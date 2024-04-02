@@ -20,6 +20,7 @@ def get_provider_info() -> dict[str, Any]:
         "name": meta.get("name"),
         "description": meta.get("summary"),
         "version": dist.version,
+        "secrets-backends": "airflow_fernet_secrets",
     }
 
 
