@@ -3,7 +3,6 @@ from __future__ import annotations
 from functools import cached_property
 from typing import TYPE_CHECKING
 
-import sqlalchemy as sa
 from airflow.models.connection import Connection
 from airflow.secrets import BaseSecretsBackend
 from airflow.utils.log.logging_mixin import LoggingMixin
@@ -28,7 +27,6 @@ if TYPE_CHECKING:
     from _typeshed import StrOrBytesPath
     from cryptography.fernet import Fernet
     from sqlalchemy.engine import Engine
-    from sqlalchemy.engine.result import Result
     from sqlalchemy.engine.url import URL
 
 
@@ -76,14 +74,9 @@ class FernetLocalSecretsBackend(BaseSecretsBackend, LoggingMixin):
     @override
     def get_conn_value(self, conn_id: str) -> str | None:
         with enter_database(self._connections_engine) as session:
-            fetch: Result = session.execute(
-                sa.select(FernetConnection).where(FernetConnection.conn_id == conn_id)
-            )
-            value: FernetConnection | None = fetch.one_or_none()
-
+            value = FernetConnection.get(session, conn_id)
             if value is None:
                 return None
-
             return value.encrypted.decode("utf-8")
 
     @override
@@ -95,11 +88,7 @@ class FernetLocalSecretsBackend(BaseSecretsBackend, LoggingMixin):
     @override
     def get_variable(self, key: str) -> str | None:
         with enter_database(self._variables_engine) as session:
-            fetch: Result = session.execute(
-                sa.select(FernetVariable).where(FernetVariable.key == key)
-            )
-            value: FernetVariable | None = fetch.one_or_none()
-
+            value = FernetVariable.get(session, key)
             if value is None:
                 return None
             session.expunge(value)
