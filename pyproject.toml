@@ -42,3 +42,9 @@ build-backend = "hatchling.build"
 
 [tool.hatch.metadata]
 allow-direct-references = true
+
+[tool.pyright]
+include = ["src", "tests"]
+pythonVersion = '3.8'
+pythonPlatform = 'Linux'
+diagnostic = 'basic'

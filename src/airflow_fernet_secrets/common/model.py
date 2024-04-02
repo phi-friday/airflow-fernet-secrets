@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 import json
+import sys
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Callable, ClassVar, cast
 
@@ -22,6 +23,12 @@ if TYPE_CHECKING:
     from sqlalchemy.engine.result import Result
     from sqlalchemy.orm import Session, scoped_session, sessionmaker
 
+if sys.version_info >= (3, 10):
+    _DATACLASS_ARGS = {"kw_only": True}
+else:
+    _DATACLASS_ARGS = {}
+
+
 metadata = sa.MetaData()
 mapper_registry = registry(metadata=metadata)
 
@@ -30,7 +37,7 @@ def _get_class(value: Any) -> type[Any]:
     return value if inspect.isclass(value) else type(value)
 
 
-@dataclass(kw_only=True)
+@dataclass(**_DATACLASS_ARGS)
 class Base:
     __sa_dataclass_metadata_key__: ClassVar[str] = "sa"
     __table__: ClassVar[sa.Table]
@@ -49,7 +56,7 @@ class Base:
     )
 
 
-@dataclass(kw_only=True)
+@dataclass(**_DATACLASS_ARGS)
 class Encrypted(Base):
     __abstract__: ClassVar[bool] = True
     encrypted: bytes = field(metadata={"sa": sa.Column(sa.LargeBinary())})
@@ -67,7 +74,7 @@ class Encrypted(Base):
 
 
 @mapper_registry.mapped
-@dataclass(kw_only=True)
+@dataclass(**_DATACLASS_ARGS)
 class Connection(Encrypted):
     conn_id: str = field(
         metadata={"sa": sa.Column(sa.String(2**8), index=True, unique=True)}
@@ -130,7 +137,7 @@ class Connection(Encrypted):
 
 
 @mapper_registry.mapped
-@dataclass(kw_only=True)
+@dataclass(**_DATACLASS_ARGS)
 class Variable(Encrypted):
     key: str = field(
         metadata={"sa": sa.Column(sa.String(2**8), index=True, unique=True)}
