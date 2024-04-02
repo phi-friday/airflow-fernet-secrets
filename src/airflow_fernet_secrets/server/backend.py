@@ -95,3 +95,7 @@ class FernetLocalSecretsBackend(BaseSecretsBackend, LoggingMixin):
 
         fernet = self._secret()
         return FernetVariable.decrypt(value.encrypted, fernet)
+
+    @override
+    def get_config(self, key: str) -> str | None:
+        return None
