@@ -3,7 +3,7 @@ from __future__ import annotations
 import inspect
 import json
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, Callable, ClassVar, cast
 
 import sqlalchemy as sa
 from cryptography.fernet import Fernet
@@ -15,6 +15,9 @@ from airflow_fernet_secrets.common.utils.re import camel_to_snake
 if TYPE_CHECKING:
     from airflow.models.connection import Connection as AirflowConnection
     from airflow.models.variable import Variable as AirflowVariable
+    from sqlalchemy.engine import Connection as SqlalchemyConnection
+    from sqlalchemy.engine import Engine
+    from sqlalchemy.orm import Session, scoped_session, sessionmaker
 
 metadata = sa.MetaData()
 mapper_registry = registry(metadata=metadata)
@@ -74,6 +77,37 @@ class Variable(Encrypted):
     def decrypt(self, secret_key: str | bytes | Fernet) -> str:
         as_bytes = super().decrypt(secret_key)
         return as_bytes.decode("utf-8")
+
+
+def migrate(
+    connectable: Engine
+    | SqlalchemyConnection
+    | sessionmaker
+    | scoped_session
+    | Session,
+) -> None:
+    engine_or_connection: Engine | SqlalchemyConnection
+
+    finalize: Callable[[], None] | None = None
+    if callable(connectable):
+        connectable = cast("sessionmaker | scoped_session", connectable)()
+        finalize = connectable.close
+
+    try:
+        if callable(getattr(connectable, "connect", None)):
+            engine_or_connection = cast("Engine | SqlalchemyConnection", connectable)
+        elif callable(getattr(connectable, "execute", None)):
+            engine_or_connection = cast("Session", connectable).connection()
+        else:
+            raise NotImplementedError
+        metadata.create_all(
+            engine_or_connection,
+            [Connection.__table__, Variable.__table__],
+            checkfirst=True,
+        )
+    finally:
+        if callable(finalize):
+            finalize()
 
 
 def _ensure_fernet(secret_key: str | bytes | Fernet) -> Fernet:
