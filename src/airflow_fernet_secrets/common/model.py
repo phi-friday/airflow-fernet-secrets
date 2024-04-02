@@ -6,15 +6,16 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Callable, ClassVar, cast
 
 import sqlalchemy as sa
-from cryptography.fernet import Fernet
 from sqlalchemy.orm import declared_attr, registry
 from typing_extensions import TypeGuard, override
 
+from airflow_fernet_secrets.common.config.common import ensure_fernet
 from airflow_fernet_secrets.common.utils.re import camel_to_snake
 
 if TYPE_CHECKING:
     from airflow.models.connection import Connection as AirflowConnection
     from airflow.models.variable import Variable as AirflowVariable
+    from cryptography.fernet import Fernet
     from sqlalchemy.engine import Connection as SqlalchemyConnection
     from sqlalchemy.engine import Engine
     from sqlalchemy.orm import Session, scoped_session, sessionmaker
@@ -51,13 +52,14 @@ class Encrypted(Base):
     __abstract__: ClassVar[bool] = True
     encrypted: bytes = field(metadata={"sa": sa.Column(sa.LargeBinary())})
 
-    def decrypt(self, secret_key: str | bytes | Fernet) -> bytes:
-        secret_key = _ensure_fernet(secret_key)
-        return secret_key.decrypt(self.encrypted)
+    @staticmethod
+    def decrypt(value: str | bytes, secret_key: str | bytes | Fernet) -> bytes:
+        secret_key = ensure_fernet(secret_key)
+        return secret_key.decrypt(value)
 
     @staticmethod
     def encrypt(value: Any, secret_key: str | bytes | Fernet) -> bytes:
-        secret_key = _ensure_fernet(secret_key)
+        secret_key = ensure_fernet(secret_key)
         as_bytes = _dump(value)
         return secret_key.encrypt(as_bytes)
 
@@ -65,18 +67,29 @@ class Encrypted(Base):
 @mapper_registry.mapped
 @dataclass
 class Connection(Encrypted):
-    conn_id: str = field(metadata={"sa": sa.Column(sa.String(2**8))})
+    conn_id: str = field(
+        metadata={"sa": sa.Column(sa.String(2**8), index=True, unique=True)}
+    )
+
+    @staticmethod
+    @override
+    def decrypt(value: str | bytes, secret_key: str | bytes | Fernet) -> dict[str, Any]:
+        value = Encrypted.decrypt(value, secret_key)
+        return json.loads(value)
 
 
 @mapper_registry.mapped
 @dataclass
 class Variable(Encrypted):
-    variable_id: str = field(metadata={"sa": sa.Column(sa.String(2**8))})
+    key: str = field(
+        metadata={"sa": sa.Column(sa.String(2**8), index=True, unique=True)}
+    )
 
+    @staticmethod
     @override
-    def decrypt(self, secret_key: str | bytes | Fernet) -> str:
-        as_bytes = super().decrypt(secret_key)
-        return as_bytes.decode("utf-8")
+    def decrypt(value: str | bytes, secret_key: str | bytes | Fernet) -> str:
+        value = Encrypted.decrypt(value, secret_key)
+        return value.decode("utf-8")
 
 
 def migrate(
@@ -108,12 +121,6 @@ def migrate(
     finally:
         if callable(finalize):
             finalize()
-
-
-def _ensure_fernet(secret_key: str | bytes | Fernet) -> Fernet:
-    if isinstance(secret_key, Fernet):
-        return secret_key
-    return Fernet(secret_key)
 
 
 def _check_airflow_connection_instance(value: Any) -> TypeGuard[AirflowConnection]:
