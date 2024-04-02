@@ -3,7 +3,7 @@ name = "airflow-fernet-secrets"
 version = "0.0.0"
 description = "airflow filesystem secret backend using fernet"
 authors = [{ name = "phi", email = "phi.friday@gmail.com" }]
-dependencies = []
+dependencies = ["jsonschema"]
 readme = "README.md"
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -17,15 +17,15 @@ classifiers = [
 ]
 requires-python = ">=3.8, <3.13"
 
+[project.entry-points."apache_airflow_provider"]
+provider_info = "airflow_fernet_secrets.info:get_provider_info"
+
 [tool.rye]
 managed = true
-dev-dependencies = [
-    "apache-airflow>=2.8.0",
-    "ruff>=0.3.5",
-]
+dev-dependencies = ["apache-airflow>=2.8.0", "ruff>=0.3.5"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/airflow_fernet_secrets"]
+packages = ["src/airflow_fernet_secrets", "src/airflow"]
 
 [build-system]
 requires = ["hatchling"]
