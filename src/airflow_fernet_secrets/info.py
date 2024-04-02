@@ -20,7 +20,58 @@ def get_provider_info() -> dict[str, Any]:
         "name": meta.get("name"),
         "description": meta.get("summary"),
         "version": dist.version,
-        "secrets-backends": "airflow_fernet_secrets",
+        "secrets-backends": [
+            "airflow.providers.fernet_secrets.secrets.secret_manager.FernetLocalSecretsBackend"
+        ],
+        "config": {
+            "fernet_secrets": {
+                "description": meta.get("summary"),
+                "options": {
+                    "secret_key": {
+                        "default": None,
+                        "description": "fernet secret key",
+                        "type": "string",
+                        "version_added": "2.8.0",
+                        "example": "96qLkedvLv-7mvHsj5xPOPFbJYUxS3jBp9Q_eLeJOmQ=",
+                    },
+                    "secret_key_cmd": {
+                        "default": None,
+                        "description": "fernet secret key command",
+                        "type": "string",
+                        "version_added": "2.8.0",
+                        "example": "cat /dev/run/fernet_key",
+                    },
+                    "variables_file": {
+                        "default": None,
+                        "description": "variables_file path",
+                        "type": "string",
+                        "version_added": "2.8.0",
+                        "example": "/tmp/variables.sqlite3",  # noqa: S108
+                    },
+                    "variables_file_cmd": {
+                        "default": None,
+                        "description": "variables_file path command",
+                        "type": "string",
+                        "version_added": "2.8.0",
+                        "example": "cat /dev/run/variables",
+                    },
+                    "connections_file": {
+                        "default": None,
+                        "description": "connections_file path",
+                        "type": "string",
+                        "version_added": "2.8.0",
+                        "example": "/tmp/connections.sqlite3",  # noqa: S108
+                    },
+                    "connections_file_cmd": {
+                        "default": None,
+                        "description": "connections_file path command",
+                        "type": "string",
+                        "version_added": "2.8.0",
+                        "example": "cat /dev/run/connections",
+                    },
+                },
+            }
+        },
     }
 
 
