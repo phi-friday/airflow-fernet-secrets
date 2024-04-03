@@ -6,13 +6,11 @@ from importlib.util import find_spec
 from pathlib import Path
 from typing import Any
 
-from airflow_fernet_secrets.common.log import logger
-
 __all__ = ["validate_provider_info"]
 
 
 def get_provider_info() -> dict[str, Any]:
-    dist = distribution(__package__)
+    dist = distribution(__package__ or "airflow-fernet-secrets")
     meta = dist.metadata
 
     return {
@@ -77,6 +75,10 @@ def get_provider_info() -> dict[str, Any]:
 
 def validate_provider_info(info: dict[str, Any]) -> None:
     import jsonschema
+
+    from airflow_fernet_secrets.common.log.common import get_logger
+
+    logger = get_logger()
 
     spec = find_spec("airflow")
     if spec is None or spec.origin is None:

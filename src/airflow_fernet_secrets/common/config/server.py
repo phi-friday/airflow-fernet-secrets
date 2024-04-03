@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from airflow.configuration import conf
 
+from airflow_fernet_secrets.common.config import const
 from airflow_fernet_secrets.common.config.common import (
     create_connections_file,
     create_variables_file,
@@ -17,11 +18,11 @@ if TYPE_CHECKING:
 
 @ensure_fernet_return
 def load_secret_key(logger: Logger) -> str:
-    value = conf.get("providers.fernet_secrets", "secret_key", "")
+    value = _get_from_conf(const.ENV_SECRET_KEY)
     if value:
         return value
 
-    cmd = conf.get("providers.fernet_secrets", "secret_key_cmd", "")
+    cmd = _get_from_conf(const.ENV_SECRET_KEY_CMD)
     if cmd:
         value = load_from_cmd(cmd)
 
@@ -37,11 +38,11 @@ def load_secret_key(logger: Logger) -> str:
 
 
 def load_variables_file(logger: Logger) -> str:
-    file = conf.get("providers.fernet_secrets", "variables_file", "")
+    file = _get_from_conf(const.ENV_VARIABLES_FILE)
     if file:
         return file
 
-    cmd = conf.get("providers.fernet_secrets", "variables_file_cmd", "")
+    cmd = _get_from_conf(const.ENV_VARIABLES_FILE_CMD)
     if cmd:
         file = load_from_cmd(cmd)
 
@@ -52,11 +53,11 @@ def load_variables_file(logger: Logger) -> str:
 
 
 def load_connections_file(logger: Logger) -> str:
-    file = conf.get("providers.fernet_secrets", "connections_file", "")
+    file = _get_from_conf(const.ENV_CONNECTIONS_FILE)
     if file:
         return file
 
-    cmd = conf.get("providers.fernet_secrets", "connections_file_cmd", "")
+    cmd = _get_from_conf(const.ENV_CONNECTIONS_FILE_CMD)
     if cmd:
         file = load_from_cmd(cmd)
 
@@ -64,3 +65,10 @@ def load_connections_file(logger: Logger) -> str:
         return file
 
     return create_connections_file(logger)
+
+
+def _get_from_conf(
+    key: str, default_value: str = "", *, section: str | None = None
+) -> str:
+    section = section or const.SERVER_CONF_SECTION
+    return conf.get(section, key, default_value)

@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING, Callable
 
 from cryptography.fernet import Fernet
 
+from airflow_fernet_secrets.common.config import const
+
 if TYPE_CHECKING:
     from logging import Logger
 
@@ -23,7 +25,9 @@ def create_variables_file(logger: Logger) -> str:
     logger.info("create new variables file", stacklevel=3)
     temp_dir = gettempdir()
     temp_path = Path(temp_dir)
-    temp_file = (temp_path / str(uuid.uuid4())).with_suffix(".variables.sqlite3")
+    temp_file = (temp_path / str(uuid.uuid4())).with_suffix(
+        const.DEFAULT_VARIABLES_SUFFIX
+    )
     return temp_file.as_posix()
 
 
@@ -31,7 +35,9 @@ def create_connections_file(logger: Logger) -> str:
     logger.info("create new connections file", stacklevel=3)
     temp_dir = gettempdir()
     temp_path = Path(temp_dir)
-    temp_file = (temp_path / str(uuid.uuid4())).with_suffix(".connections.sqlite3")
+    temp_file = (temp_path / str(uuid.uuid4())).with_suffix(
+        const.DEFAULT_CONNECTIONS_SUFFIX
+    )
     return temp_file.as_posix()
 
 
