@@ -3,7 +3,6 @@ from __future__ import annotations
 from functools import cached_property
 from typing import TYPE_CHECKING
 
-from airflow.models.connection import Connection
 from typing_extensions import override
 
 from airflow_fernet_secrets.common.config import (
@@ -37,7 +36,10 @@ else:
     class BaseFernetLocalSecretsBackend(LoggingMixin): ...
 
 
-class FernetLocalSecretsBackend(BaseFernetLocalSecretsBackend):
+__all__ = ["CommonFernetLocalSecretsBackend"]
+
+
+class CommonFernetLocalSecretsBackend(BaseFernetLocalSecretsBackend):
     def __init__(
         self,
         *,
@@ -87,10 +89,9 @@ class FernetLocalSecretsBackend(BaseFernetLocalSecretsBackend):
             return value.encrypted.decode("utf-8")
 
     @override
-    def deserialize_connection(self, conn_id: str, value: str) -> Connection:
+    def deserialize_connection(self, conn_id: str, value: str) -> bytes:
         fernet = self._secret()
-        data = Encrypted.decrypt(value, fernet)
-        return Connection.from_json(data, conn_id)
+        return Encrypted.decrypt(value, fernet)
 
     @override
     def get_variable(self, key: str) -> str | None:

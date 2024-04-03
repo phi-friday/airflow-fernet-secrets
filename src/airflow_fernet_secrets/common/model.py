@@ -23,6 +23,8 @@ if TYPE_CHECKING:
     from sqlalchemy.engine.result import Result
     from sqlalchemy.orm import Session, scoped_session, sessionmaker
 
+__all__ = ["Connection", "Variable", "migrate"]
+
 if sys.version_info >= (3, 10):
     _DATACLASS_ARGS = {"kw_only": True}
 else:

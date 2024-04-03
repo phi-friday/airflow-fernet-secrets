@@ -13,6 +13,13 @@ if TYPE_CHECKING:
 
     from airflow_fernet_secrets.common.typeshed import PathType
 
+__all__ = [
+    "create_sqlite_url",
+    "ensure_sqlite_url",
+    "ensure_sqlite_engine",
+    "enter_database",
+]
+
 
 def create_sqlite_url(file: PathType, **kwargs: Any) -> URL:
     url = URL.create(drivername="sqlite+pysqlite").set(**kwargs).set(database=str(file))

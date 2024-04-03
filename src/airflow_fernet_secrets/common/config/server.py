@@ -15,6 +15,8 @@ from airflow_fernet_secrets.common.config.common import (
 if TYPE_CHECKING:
     from logging import Logger
 
+__all__ = ["load_secret_key", "load_variables_file", "load_connections_file"]
+
 
 @ensure_fernet_return
 def load_secret_key(logger: Logger) -> str:
@@ -49,7 +51,7 @@ def load_variables_file(logger: Logger) -> str:
     if file:
         return file
 
-    return create_variables_file(logger)
+    return create_variables_file(logger, stacklevel=3)
 
 
 def load_connections_file(logger: Logger) -> str:
@@ -64,7 +66,7 @@ def load_connections_file(logger: Logger) -> str:
     if file:
         return file
 
-    return create_connections_file(logger)
+    return create_connections_file(logger, stacklevel=3)
 
 
 def _get_from_conf(

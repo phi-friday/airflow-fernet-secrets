@@ -7,7 +7,7 @@ from airflow_fernet_secrets.common.log.common import get_logger
 if TYPE_CHECKING:
     from logging import Logger
 
-__all__ = ["LoggingMixin", "logger"]
+__all__ = ["LoggingMixin"]
 
 
 class LoggingMixin:
@@ -25,6 +25,3 @@ class LoggingMixin:
     @property
     def log(self) -> Logger:
         return self._logger
-
-
-logger = get_logger()
