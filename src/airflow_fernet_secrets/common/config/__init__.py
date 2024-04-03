@@ -19,22 +19,19 @@ IS_SERVER_FLAG = (
 
 if IS_SERVER_FLAG:
     from airflow_fernet_secrets.common.config.server import (
-        load_connections_file,
+        load_backend_file,
         load_secret_key,
-        load_variables_file,
     )
 else:
     from airflow_fernet_secrets.common.config.client import (
-        load_connections_file,
+        load_backend_file,
         load_secret_key,
-        load_variables_file,
     )
 
 __all__ = [
     "HAS_AIRFLOW",
     "IS_SERVER_FLAG",
     "load_secret_key",
-    "load_connections_file",
-    "load_variables_file",
+    "load_backend_file",
     "ensure_fernet",
 ]

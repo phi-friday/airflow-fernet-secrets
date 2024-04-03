@@ -81,3 +81,20 @@ required-imports = ["from __future__ import annotations"]
 force-single-line = false
 force-wrap-aliases = false
 split-on-trailing-comma = false
+
+# tests
+[lint.per-file-ignores]
+"./tests/**/*.py" = [
+    "TCH001",
+    "TCH002",
+    "TCH003",
+    "S101",
+    "D101",
+    "ANN001",
+    "ANN201",
+    "PLR0133",
+    "W605",
+    "D103",
+    "D102",
+    "PLR2004",
+]

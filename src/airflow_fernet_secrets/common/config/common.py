@@ -21,30 +21,19 @@ if TYPE_CHECKING:
     P = ParamSpec("P")
 
 __all__ = [
-    "create_variables_file",
-    "create_connections_file",
+    "create_backend_file",
     "load_from_cmd",
     "ensure_fernet",
     "ensure_fernet_return",
 ]
 
 
-def create_variables_file(logger: Logger, stacklevel: int = 2) -> str:
-    logger.info("create new variables file", stacklevel=stacklevel)
+def create_backend_file(logger: Logger, stacklevel: int = 2) -> str:
+    logger.info("create new backend file", stacklevel=stacklevel)
     temp_dir = gettempdir()
     temp_path = Path(temp_dir)
     temp_file = (temp_path / str(uuid.uuid4())).with_suffix(
-        const.DEFAULT_VARIABLES_SUFFIX
-    )
-    return temp_file.as_posix()
-
-
-def create_connections_file(logger: Logger, stacklevel: int = 2) -> str:
-    logger.info("create new connections file", stacklevel=stacklevel)
-    temp_dir = gettempdir()
-    temp_path = Path(temp_dir)
-    temp_file = (temp_path / str(uuid.uuid4())).with_suffix(
-        const.DEFAULT_CONNECTIONS_SUFFIX
+        const.DEFAULT_BACKEND_SUFFIX
     )
     return temp_file.as_posix()
 

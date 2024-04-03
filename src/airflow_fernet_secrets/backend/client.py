@@ -19,3 +19,8 @@ class FernetLocalSecretsBackend(_CommonFernetLocalSecretsBackend):
         as_dict = json.loads(data)
         as_dict["conn_id"] = conn_id
         return as_dict
+
+    @override
+    def serialize_connection(self, conn_id: str, connection: dict[str, Any]) -> bytes:
+        as_str = json.dumps(connection)
+        return as_str.encode("utf-8")

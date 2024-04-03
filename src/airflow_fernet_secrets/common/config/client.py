@@ -5,8 +5,7 @@ from typing import TYPE_CHECKING
 
 from airflow_fernet_secrets.common.config import const
 from airflow_fernet_secrets.common.config.common import (
-    create_connections_file,
-    create_variables_file,
+    create_backend_file,
     ensure_fernet_return,
     load_from_cmd,
 )
@@ -14,7 +13,7 @@ from airflow_fernet_secrets.common.config.common import (
 if TYPE_CHECKING:
     from logging import Logger
 
-__all__ = ["load_secret_key", "load_variables_file", "load_connections_file"]
+__all__ = ["load_secret_key", "load_backend_file"]
 
 
 @ensure_fernet_return
@@ -36,13 +35,13 @@ def load_secret_key(logger: Logger) -> str:
     raise NotImplementedError
 
 
-def load_variables_file(logger: Logger) -> str:
-    env = _env_variable(const.ENV_VARIABLES_FILE)
+def load_backend_file(logger: Logger) -> str:
+    env = _env_variable(const.ENV_BACKEND_FILE)
     file = getenv(env, "")
     if file:
         return file
 
-    env = _env_variable(const.ENV_VARIABLES_FILE_CMD)
+    env = _env_variable(const.ENV_BACKEND_FILE_CMD)
     cmd = getenv(env, "")
     if cmd:
         file = load_from_cmd(cmd)
@@ -50,24 +49,7 @@ def load_variables_file(logger: Logger) -> str:
     if file:
         return file
 
-    return create_variables_file(logger, stacklevel=3)
-
-
-def load_connections_file(logger: Logger) -> str:
-    env = _env_variable(const.ENV_CONNECTIONS_FILE)
-    file = getenv(env, "")
-    if file:
-        return file
-
-    env = _env_variable(const.ENV_CONNECTIONS_FILE_CMD)
-    cmd = getenv(env, "")
-    if cmd:
-        file = load_from_cmd(cmd)
-
-    if file:
-        return file
-
-    return create_connections_file(logger, stacklevel=3)
+    return create_backend_file(logger, stacklevel=3)
 
 
 def _env_variable(name: str) -> str:

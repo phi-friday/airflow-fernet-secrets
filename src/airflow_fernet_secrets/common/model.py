@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Callable, ClassVar, cast
 
 import sqlalchemy as sa
+from cryptography.fernet import Fernet
 from sqlalchemy.engine.url import URL, make_url
 from sqlalchemy.orm import declared_attr, registry
 from typing_extensions import Self, TypeGuard, override
@@ -94,7 +95,7 @@ class Connection(Encrypted):
             return cast("Self", session.get(cls, conn_id))
         stmt = sa.select(cls).where(cls.conn_id == conn_id)
         fetch: Result = session.execute(stmt)
-        return fetch.one_or_none()
+        return fetch.scalar_one_or_none()
 
     @classmethod
     def from_url(
@@ -157,7 +158,7 @@ class Variable(Encrypted):
             return cast("Self", session.get(cls, key))
         stmt = sa.select(cls).where(cls.key == key)
         fetch: Result = session.execute(stmt)
-        return fetch.one_or_none()
+        return fetch.scalar_one_or_none()
 
     @classmethod
     def from_value(cls, key: str, value: Any, secret_key: str | bytes | Fernet) -> Self:
@@ -187,11 +188,16 @@ def migrate(
             engine_or_connection = cast("Session", connectable).connection()
         else:
             raise NotImplementedError
+
+        commit = getattr(engine_or_connection, "commit", None)
         metadata.create_all(
             engine_or_connection,
             [Connection.__table__, Variable.__table__],
             checkfirst=True,
         )
+        if callable(commit):
+            commit()
+
     finally:
         if callable(finalize):
             finalize()

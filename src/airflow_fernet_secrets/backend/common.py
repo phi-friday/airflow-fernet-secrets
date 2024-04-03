@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 from functools import cached_property
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from typing_extensions import override
 
 from airflow_fernet_secrets.common.config import (
     ensure_fernet,
-    load_connections_file,
+    load_backend_file,
     load_secret_key,
-    load_variables_file,
 )
 from airflow_fernet_secrets.common.database import (
     create_sqlite_url,
@@ -44,36 +43,23 @@ class CommonFernetLocalSecretsBackend(BaseFernetLocalSecretsBackend):
         self,
         *,
         secret_key: str | bytes | Fernet | None = None,
-        variables_file_path: PathType | None = None,
-        connections_file_path: PathType | None = None,
+        backend_file_path: PathType | None = None,
     ) -> None:
         super().__init__()
-        self.variables_file = variables_file_path
-        self.connections_file = connections_file_path
+        self.backend_file = backend_file_path
 
         self._secret_key = None if secret_key is None else ensure_fernet(secret_key)
 
     @cached_property
-    def _variables_url(self) -> URL:
-        if self.variables_file is not None:
-            return create_sqlite_url(self.variables_file)
-        file = load_variables_file(self.log)
+    def _backend_url(self) -> URL:
+        if self.backend_file is not None:
+            return create_sqlite_url(self.backend_file)
+        file = load_backend_file(self.log)
         return create_sqlite_url(file)
 
     @cached_property
-    def _variables_engine(self) -> Engine:
-        return ensure_sqlite_engine(self._variables_url)
-
-    @cached_property
-    def _connections_url(self) -> URL:
-        if self.connections_file is not None:
-            return create_sqlite_url(self.connections_file)
-        file = load_connections_file(self.log)
-        return create_sqlite_url(file)
-
-    @cached_property
-    def _connections_engine(self) -> Engine:
-        return ensure_sqlite_engine(self._connections_url)
+    def _backend_engine(self) -> Engine:
+        return ensure_sqlite_engine(self._backend_url)
 
     def _secret(self) -> Fernet:
         if self._secret_key is not None:
@@ -82,20 +68,47 @@ class CommonFernetLocalSecretsBackend(BaseFernetLocalSecretsBackend):
 
     @override
     def get_conn_value(self, conn_id: str) -> str | None:
-        with enter_database(self._connections_engine) as session:
+        with enter_database(self._backend_engine) as session:
             value = FernetConnection.get(session, conn_id)
             if value is None:
                 return None
             return value.encrypted.decode("utf-8")
+
+    def set_conn_value(self, conn_id: str, value: str | bytes) -> None:
+        secret_key = self._secret()
+        with enter_database(self._backend_engine) as session:
+            value = FernetConnection.encrypt(value, secret_key)
+            connection = FernetConnection.get(session, conn_id)
+            if connection is None:
+                connection = FernetConnection(encrypted=value, conn_id=conn_id)
+            else:
+                connection.encrypted = value
+            session.add(connection)
+            session.commit()
 
     @override
     def deserialize_connection(self, conn_id: str, value: str) -> bytes:
         fernet = self._secret()
         return Encrypted.decrypt(value, fernet)
 
+    def serialize_connection(self, conn_id: str, connection: Any) -> bytes:
+        raise NotImplementedError
+
+    @override
+    def get_connection(self, conn_id: str) -> Any:
+        value = self.get_conn_value(conn_id)
+        if value is None:
+            return None
+
+        return self.deserialize_connection(conn_id, value)
+
+    def set_connection(self, conn_id: str, connection: Any) -> None:
+        value = self.serialize_connection(conn_id, connection)
+        self.set_conn_value(conn_id, value)
+
     @override
     def get_variable(self, key: str) -> str | None:
-        with enter_database(self._variables_engine) as session:
+        with enter_database(self._backend_engine) as session:
             value = FernetVariable.get(session, key)
             if value is None:
                 return None
@@ -103,6 +116,18 @@ class CommonFernetLocalSecretsBackend(BaseFernetLocalSecretsBackend):
 
         fernet = self._secret()
         return FernetVariable.decrypt(value.encrypted, fernet)
+
+    def set_variable(self, key: str, value: str) -> None:
+        secret_key = self._secret()
+        with enter_database(self._backend_engine) as session:
+            as_bytes = FernetVariable.encrypt(value, secret_key)
+            variable = FernetVariable.get(session, key)
+            if variable is None:
+                variable = FernetVariable(encrypted=as_bytes, key=key)
+            else:
+                variable.encrypted = as_bytes
+            session.add(variable)
+            session.commit()
 
     @override
     def get_config(self, key: str) -> str | None:
