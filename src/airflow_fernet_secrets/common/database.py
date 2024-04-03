@@ -9,11 +9,12 @@ from sqlalchemy.engine.url import URL, make_url
 from sqlalchemy.orm import Session, scoped_session, sessionmaker
 
 if TYPE_CHECKING:
-    from _typeshed import StrOrBytesPath
     from sqlalchemy.engine.interfaces import Dialect
 
+    from airflow_fernet_secrets.common.typeshed import PathType
 
-def create_sqlite_url(file: StrOrBytesPath, **kwargs: Any) -> URL:
+
+def create_sqlite_url(file: PathType, **kwargs: Any) -> URL:
     url = URL.create(drivername="sqlite+pysqlite").set(**kwargs).set(database=str(file))
     return ensure_sqlite_url(url)
 

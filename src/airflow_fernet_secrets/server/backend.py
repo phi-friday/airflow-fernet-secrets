@@ -24,10 +24,11 @@ from airflow_fernet_secrets.common.model import Encrypted
 from airflow_fernet_secrets.common.model import Variable as FernetVariable
 
 if TYPE_CHECKING:
-    from _typeshed import StrOrBytesPath
     from cryptography.fernet import Fernet
     from sqlalchemy.engine import Engine
     from sqlalchemy.engine.url import URL
+
+    from airflow_fernet_secrets.common.typeshed import PathType
 
 
 class FernetLocalSecretsBackend(BaseSecretsBackend, LoggingMixin):
@@ -35,8 +36,8 @@ class FernetLocalSecretsBackend(BaseSecretsBackend, LoggingMixin):
         self,
         *,
         secret_key: str | bytes | Fernet | None = None,
-        variables_file_path: StrOrBytesPath | None = None,
-        connections_file_path: StrOrBytesPath | None = None,
+        variables_file_path: PathType | None = None,
+        connections_file_path: PathType | None = None,
     ) -> None:
         super().__init__()
         self.variables_file = variables_file_path
