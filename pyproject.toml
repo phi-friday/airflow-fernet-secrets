@@ -4,8 +4,9 @@ version = "0.0.0"
 description = "airflow filesystem secret backend using fernet"
 authors = [{ name = "phi", email = "phi.friday@gmail.com" }]
 dependencies = [
-    "jsonschema",
     "typing-extensions>=4.4.0",
+    "jsonschema",
+    "pyyaml",
     "sqlalchemy[asyncio]>=1.4",
     "cryptography>=41",
 ]
@@ -22,19 +23,21 @@ classifiers = [
 ]
 requires-python = ">=3.8, <3.13"
 
+[project.scripts]
+copy_info_schema = "airflow_fernet_secrets.info:copy_provider_info_schema"
+
 [project.entry-points."apache_airflow_provider"]
 provider_info = "airflow_fernet_secrets.info:get_provider_info"
 
 [tool.rye]
 managed = true
-dev-dependencies = [
-    "apache-airflow>=2.8.0",
-    "ruff>=0.3.5",
-    "ipykernel>=6.29.4",
-]
+dev-dependencies = ["apache-airflow>=2.8.0", "ruff>=0.3.5", "ipykernel>=6.29.4"]
 
+[tool.hatch.build.targets.sdist]
+exclude = ["src/airflow_fernet_secrets/info.schema.json", "src/**/.gitignore"]
 [tool.hatch.build.targets.wheel]
 packages = ["src/airflow_fernet_secrets", "src/airflow"]
+artifacts = ["src/airflow_fernet_secrets/info.schema.json", "src/**/.gitignore"]
 
 [build-system]
 requires = ["hatchling"]

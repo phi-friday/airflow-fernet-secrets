@@ -1,0 +1,47 @@
+# yaml-language-server: $schema=./info.schema.json
+name: "{{ name }}"
+package-name: "{{ package }}"
+version: "{{ version }}"
+description: "{{ description }}"
+secrets-backends:
+  - airflow.providers.fernet_secrets.secrets.secret_manager.FernetLocalSecretsBackend
+config:
+  fernet_secrets:
+    description: "{{ description }}"
+    options:
+      connections_file:
+        default: null
+        description: connections_file path
+        example: /tmp/connections.sqlite3
+        type: string
+        version_added: 2.8.0
+      connections_file_cmd:
+        default: null
+        description: connections_file path command
+        example: cat /dev/run/connections
+        type: string
+        version_added: 2.8.0
+      secret_key:
+        default: null
+        description: fernet secret key
+        example: 96qLkedvLv-7mvHsj5xPOPFbJYUxS3jBp9Q_eLeJOmQ=
+        type: string
+        version_added: 2.8.0
+      secret_key_cmd:
+        default: null
+        description: fernet secret key command
+        example: cat /dev/run/fernet_key
+        type: string
+        version_added: 2.8.0
+      variables_file:
+        default: null
+        description: variables_file path
+        example: /tmp/variables.sqlite3
+        type: string
+        version_added: 2.8.0
+      variables_file_cmd:
+        default: null
+        description: variables_file path command
+        example: cat /dev/run/variables
+        type: string
+        version_added: 2.8.0
