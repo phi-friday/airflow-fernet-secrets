@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from functools import cached_property
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Generic
 
-from typing_extensions import override
+from typing_extensions import TypeVar, override
 
 from airflow_fernet_secrets.common.config import (
     ensure_fernet,
@@ -38,7 +38,12 @@ else:
 __all__ = ["CommonFernetLocalSecretsBackend"]
 
 
-class CommonFernetLocalSecretsBackend(BaseFernetLocalSecretsBackend):
+ConnectionT = TypeVar("ConnectionT", infer_variance=True)
+
+
+class CommonFernetLocalSecretsBackend(
+    BaseFernetLocalSecretsBackend, Generic[ConnectionT]
+):
     def __init__(
         self,
         *,
@@ -87,22 +92,26 @@ class CommonFernetLocalSecretsBackend(BaseFernetLocalSecretsBackend):
             session.commit()
 
     @override
-    def deserialize_connection(self, conn_id: str, value: str) -> bytes:
+    def deserialize_connection(self, conn_id: str, value: str) -> ConnectionT:
         fernet = self._secret()
-        return Encrypted.decrypt(value, fernet)
+        as_bytes = Encrypted.decrypt(value, fernet)
+        return self._deserialize_connection(conn_id, as_bytes)
 
-    def serialize_connection(self, conn_id: str, connection: Any) -> bytes:
+    def _deserialize_connection(self, conn_id: str, value: bytes) -> ConnectionT:
+        raise NotImplementedError
+
+    def serialize_connection(self, conn_id: str, connection: ConnectionT) -> bytes:
         raise NotImplementedError
 
     @override
-    def get_connection(self, conn_id: str) -> Any:
+    def get_connection(self, conn_id: str) -> ConnectionT | None:
         value = self.get_conn_value(conn_id)
         if value is None:
             return None
 
         return self.deserialize_connection(conn_id, value)
 
-    def set_connection(self, conn_id: str, connection: Any) -> None:
+    def set_connection(self, conn_id: str, connection: ConnectionT) -> None:
         value = self.serialize_connection(conn_id, connection)
         self.set_conn_value(conn_id, value)
 

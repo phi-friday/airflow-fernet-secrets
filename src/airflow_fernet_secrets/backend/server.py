@@ -10,11 +10,10 @@ from airflow_fernet_secrets.backend.common import (
 __all__ = ["FernetLocalSecretsBackend"]
 
 
-class FernetLocalSecretsBackend(_CommonFernetLocalSecretsBackend):
+class FernetLocalSecretsBackend(_CommonFernetLocalSecretsBackend[Connection]):
     @override
-    def deserialize_connection(self, conn_id: str, value: str) -> Connection:
-        data = super().deserialize_connection(conn_id=conn_id, value=value)
-        return Connection.from_json(data, conn_id=conn_id)
+    def _deserialize_connection(self, conn_id: str, value: bytes) -> Connection:
+        return Connection.from_json(value, conn_id=conn_id)
 
     @override
     def serialize_connection(self, conn_id: str, connection: Connection) -> bytes:
