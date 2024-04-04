@@ -87,12 +87,6 @@ class Connection(Encrypted):
         metadata={"sa": sa.Column(sa.String(2**8), nullable=True)}
     )
 
-    @staticmethod
-    @override
-    def decrypt(value: str | bytes, secret_key: str | bytes | Fernet) -> dict[str, Any]:
-        value = Encrypted.decrypt(value, secret_key)
-        return json.loads(value)
-
     @classmethod
     def get(
         cls, session: Session, conn_id: int | str, conn_type: str | None = None

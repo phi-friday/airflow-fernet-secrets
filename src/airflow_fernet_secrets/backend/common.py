@@ -18,7 +18,6 @@ from airflow_fernet_secrets.core.database import (
 )
 from airflow_fernet_secrets.core.log import LoggingMixin
 from airflow_fernet_secrets.core.model import Connection as FernetConnection
-from airflow_fernet_secrets.core.model import Encrypted
 from airflow_fernet_secrets.core.model import Variable as FernetVariable
 
 if TYPE_CHECKING:
@@ -75,6 +74,7 @@ class CommonFernetLocalSecretsBackend(
 
     @override
     def get_conn_value(self, conn_id: str) -> str | None:
+        secret_key = self._secret()
         with enter_database(self._backend_engine) as session:
             value = FernetConnection.get(session, conn_id)
             if value is None:
@@ -82,7 +82,8 @@ class CommonFernetLocalSecretsBackend(
             value = self._validate_connection(
                 conn_id=conn_id, connection=value, when="get"
             )
-            return value.encrypted.decode("utf-8")
+            decrypted = FernetConnection.decrypt(value.encrypted, secret_key)
+            return decrypted.decode("utf-8")
 
     def set_conn_value(
         self, conn_id: str, conn_type: str | None, value: str | bytes
@@ -114,10 +115,8 @@ class CommonFernetLocalSecretsBackend(
         return connection
 
     @override
-    def deserialize_connection(self, conn_id: str, value: str) -> ConnectionT:
-        fernet = self._secret()
-        as_json = Encrypted.decrypt(value, fernet)
-        as_dict = json.loads(as_json)
+    def deserialize_connection(self, conn_id: str, value: str | bytes) -> ConnectionT:
+        as_dict = json.loads(value)
         as_dict = self._validate_connection_dict(
             conn_id=conn_id, connection=as_dict, when="deserialize"
         )
@@ -128,14 +127,14 @@ class CommonFernetLocalSecretsBackend(
     ) -> ConnectionT:
         raise NotImplementedError
 
-    def serialize_connection(self, conn_id: str, connection: ConnectionT) -> bytes:
+    def serialize_connection(
+        self, conn_id: str, connection: ConnectionT
+    ) -> str | bytes:
         as_dict = self._serialize_connection(conn_id=conn_id, connection=connection)
         as_dict = self._validate_connection_dict(
             conn_id=conn_id, connection=as_dict, when="serialize"
         )
-        as_json = json.dumps(as_dict)
-        fernet = self._secret()
-        return Encrypted.encrypt(as_json, secret_key=fernet)
+        return json.dumps(as_dict)
 
     def _serialize_connection(
         self, conn_id: str, connection: ConnectionT
