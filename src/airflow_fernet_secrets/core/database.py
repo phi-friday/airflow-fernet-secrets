@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session, scoped_session, sessionmaker
 if TYPE_CHECKING:
     from sqlalchemy.engine.interfaces import Dialect
 
-    from airflow_fernet_secrets.common.typeshed import PathType
+    from airflow_fernet_secrets.core.typeshed import PathType
 
 __all__ = [
     "create_sqlite_url",

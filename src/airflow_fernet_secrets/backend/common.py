@@ -5,20 +5,20 @@ from typing import TYPE_CHECKING, Generic
 
 from typing_extensions import TypeVar, override
 
-from airflow_fernet_secrets.common.config import (
+from airflow_fernet_secrets.core.config import (
     ensure_fernet,
     load_backend_file,
     load_secret_key,
 )
-from airflow_fernet_secrets.common.database import (
+from airflow_fernet_secrets.core.database import (
     create_sqlite_url,
     ensure_sqlite_engine,
     enter_database,
 )
-from airflow_fernet_secrets.common.log import LoggingMixin
-from airflow_fernet_secrets.common.model import Connection as FernetConnection
-from airflow_fernet_secrets.common.model import Encrypted
-from airflow_fernet_secrets.common.model import Variable as FernetVariable
+from airflow_fernet_secrets.core.log import LoggingMixin
+from airflow_fernet_secrets.core.model import Connection as FernetConnection
+from airflow_fernet_secrets.core.model import Encrypted
+from airflow_fernet_secrets.core.model import Variable as FernetVariable
 
 if TYPE_CHECKING:
     from airflow.secrets import BaseSecretsBackend
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
     from sqlalchemy.engine.url import URL
 
-    from airflow_fernet_secrets.common.typeshed import PathType
+    from airflow_fernet_secrets.core.typeshed import PathType
 
     class BaseFernetLocalSecretsBackend(BaseSecretsBackend, LoggingMixin): ...
 

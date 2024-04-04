@@ -12,8 +12,8 @@ from sqlalchemy.engine.url import URL, make_url
 from sqlalchemy.orm import declared_attr, registry
 from typing_extensions import Self, TypeGuard, override
 
-from airflow_fernet_secrets.common.config.common import ensure_fernet
-from airflow_fernet_secrets.common.utils.re import camel_to_snake
+from airflow_fernet_secrets.core.config.common import ensure_fernet
+from airflow_fernet_secrets.core.utils.re import camel_to_snake
 
 if TYPE_CHECKING:
     from airflow.models.connection import Connection as AirflowConnection

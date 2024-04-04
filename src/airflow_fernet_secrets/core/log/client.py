@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from airflow_fernet_secrets.common.log.common import get_logger
+from airflow_fernet_secrets.core.log.common import get_logger
 
 if TYPE_CHECKING:
     from logging import Logger

@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING
 
 from airflow.configuration import conf
 
-from airflow_fernet_secrets.common.config import const
-from airflow_fernet_secrets.common.config.common import (
+from airflow_fernet_secrets.core.config import const
+from airflow_fernet_secrets.core.config.common import (
     create_backend_file,
     ensure_fernet_return,
     load_from_cmd,

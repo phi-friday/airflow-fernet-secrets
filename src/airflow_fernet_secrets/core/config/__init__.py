@@ -3,12 +3,12 @@ from __future__ import annotations
 from importlib.util import find_spec
 from os import getenv
 
-from airflow_fernet_secrets.common.config.common import ensure_fernet
-from airflow_fernet_secrets.common.config.const import (
+from airflow_fernet_secrets.core.config.common import ensure_fernet
+from airflow_fernet_secrets.core.config.const import (
     CLIENT_ENV_PREFIX as _CLIENT_ENV_PREFIX,
 )
-from airflow_fernet_secrets.common.config.const import ENV_IS_SERVER as _ENV_IS_SERVER
-from airflow_fernet_secrets.common.utils.cast import ensure_boolean
+from airflow_fernet_secrets.core.config.const import ENV_IS_SERVER as _ENV_IS_SERVER
+from airflow_fernet_secrets.core.utils.cast import ensure_boolean
 
 HAS_AIRFLOW = find_spec("airflow") is None
 IS_SERVER_FLAG = (
@@ -18,12 +18,12 @@ IS_SERVER_FLAG = (
 )
 
 if IS_SERVER_FLAG:
-    from airflow_fernet_secrets.common.config.server import (
+    from airflow_fernet_secrets.core.config.server import (
         load_backend_file,
         load_secret_key,
     )
 else:
-    from airflow_fernet_secrets.common.config.client import (
+    from airflow_fernet_secrets.core.config.client import (
         load_backend_file,
         load_secret_key,
     )
