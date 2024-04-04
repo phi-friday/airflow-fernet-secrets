@@ -9,12 +9,16 @@ from airflow_fernet_secrets.core.config.const import (
     CONNECTION_DRIVER_FORMAT as _CONNECTION_DRIVER_FORMAT,
 )
 from airflow_fernet_secrets.core.config.const import (
-    RE_CONNECTION_DRIVER_FORMAT as _RE_CONNECTION_DRIVER_FORMAT,
+    RE_CONNECTION_BACKEND_DRIVER_FORMAT as _RE_CONNECTION_BACKEND_DRIVER_FORMAT,
+)
+from airflow_fernet_secrets.core.config.const import (
+    RE_CONNECTION_TYPE_DRIVER_FORMAT as _RE_CONNECTION_TYPE_DRIVER_FORMAT,
 )
 
 __all__ = ["ConnectionDict", "Driver", "create_driver", "parse_driver"]
 
-_RE_DRIVER = re.compile(_RE_CONNECTION_DRIVER_FORMAT)
+_RE_BACKEND_DRIVER = re.compile(_RE_CONNECTION_BACKEND_DRIVER_FORMAT)
+_RE_TYPE_DRIVER = re.compile(_RE_CONNECTION_TYPE_DRIVER_FORMAT)
 
 
 class ConnectionDict(TypedDict, total=False):
@@ -50,7 +54,10 @@ def create_driver(
 
 
 def parse_driver(driver: str) -> Driver:
-    match = _RE_DRIVER.match(driver)
+    match = _RE_BACKEND_DRIVER.match(driver)
+    if match is None:
+        match = _RE_TYPE_DRIVER.match(driver)
+
     if match is None:
         raise NotImplementedError
 
