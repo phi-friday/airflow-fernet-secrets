@@ -84,14 +84,18 @@ class CommonFernetLocalSecretsBackend(
             )
             return value.encrypted.decode("utf-8")
 
-    def set_conn_value(self, conn_id: str, value: str | bytes, *, is_sql: bool) -> None:
+    def set_conn_value(
+        self, conn_id: str, conn_type: str | None, value: str | bytes
+    ) -> None:
         secret_key = self._secret()
         with enter_database(self._backend_engine) as session:
             value = FernetConnection.encrypt(value, secret_key)
-            connection = FernetConnection.get(session, conn_id, is_sql=is_sql)
+            connection = FernetConnection.get(
+                session, conn_id=conn_id, conn_type=conn_type
+            )
             if connection is None:
                 connection = FernetConnection(
-                    encrypted=value, conn_id=conn_id, is_sql=is_sql
+                    encrypted=value, conn_id=conn_id, conn_type=conn_type
                 )
             else:
                 connection.encrypted = value
@@ -155,10 +159,10 @@ class CommonFernetLocalSecretsBackend(
         return self.deserialize_connection(conn_id, value)
 
     def set_connection(
-        self, conn_id: str, connection: ConnectionT, *, is_sql: bool
+        self, conn_id: str, conn_type: str | None, connection: ConnectionT
     ) -> None:
         value = self.serialize_connection(conn_id, connection)
-        self.set_conn_value(conn_id, value, is_sql=is_sql)
+        self.set_conn_value(conn_id=conn_id, conn_type=conn_type, value=value)
 
     @override
     def get_variable(self, key: str) -> str | None:

@@ -26,6 +26,7 @@ if TYPE_CHECKING:
 
 __all__ = ["Connection", "Variable", "migrate"]
 
+_DATACLASS_ARGS: dict[str, Any]
 if sys.version_info >= (3, 10):
     _DATACLASS_ARGS = {"kw_only": True}
 else:
@@ -82,7 +83,9 @@ class Connection(Encrypted):
     conn_id: str = field(
         metadata={"sa": sa.Column(sa.String(2**8), index=True, unique=True)}
     )
-    is_sql: bool = field(metadata={"sa": sa.Column(sa.Boolean())})
+    conn_type: str | None = field(
+        metadata={"sa": sa.Column(sa.String(2**8), nullable=True)}
+    )
 
     @staticmethod
     @override
@@ -92,13 +95,13 @@ class Connection(Encrypted):
 
     @classmethod
     def get(
-        cls, session: Session, conn_id: int | str, is_sql: bool | None = None
+        cls, session: Session, conn_id: int | str, conn_type: str | None = None
     ) -> Self | None:
         if isinstance(conn_id, int):
             return cast("Self", session.get(cls, conn_id))
         stmt = sa.select(cls).where(cls.conn_id == conn_id)
-        if is_sql is not None:
-            stmt = stmt.where(cls.is_sql == is_sql)
+        if conn_type:
+            stmt = stmt.where(cls.conn_type == conn_type)
 
         fetch: Result = session.execute(stmt)
         return fetch.scalar_one_or_none()

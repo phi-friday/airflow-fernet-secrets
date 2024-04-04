@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from airflow.models.connection import Connection
 from typing_extensions import override
@@ -23,10 +23,18 @@ __all__ = ["FernetLocalSecretsBackend"]
 class FernetLocalSecretsBackend(_CommonFernetLocalSecretsBackend[Connection]):
     @override
     def set_connection(
-        self, conn_id: str, connection: Connection, *, is_sql: Any = None
+        self, conn_id: str, conn_type: str | None, connection: Connection
     ) -> None:
-        is_sql = is_sql_connection(connection)
-        return super().set_connection(conn_id, connection, is_sql=is_sql)
+        conn_type_or_null: str | None = (
+            "sql"
+            if is_sql_connection(connection)
+            else conn_type
+            if connection.conn_type is None
+            else connection.conn_type
+        )
+        return super().set_connection(
+            conn_id=conn_id, conn_type=conn_type_or_null, connection=connection
+        )
 
     @override
     def _deserialize_connection(

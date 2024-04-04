@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Literal
 
 from sqlalchemy.engine.url import URL
 from typing_extensions import TypeAlias, override
@@ -25,9 +25,11 @@ ConnectionType: TypeAlias = URL
 class FernetLocalSecretsBackend(_CommonFernetLocalSecretsBackend[ConnectionType]):
     @override
     def set_connection(
-        self, conn_id: str, connection: ConnectionType, *, is_sql: Any = None
+        self, conn_id: str, conn_type: str | None, connection: ConnectionType
     ) -> None:
-        return super().set_connection(conn_id, connection, is_sql=True)
+        return super().set_connection(
+            conn_id=conn_id, conn_type="sql", connection=connection
+        )
 
     @override
     def _deserialize_connection(
@@ -50,7 +52,10 @@ class FernetLocalSecretsBackend(_CommonFernetLocalSecretsBackend[ConnectionType]
         )
         if when == "set":
             return connection
-        if not connection.is_sql:
+        if (
+            connection.conn_type is None
+            or connection.conn_type.lower().strip() != "sql"
+        ):
             raise NotImplementedError
         return connection
 
