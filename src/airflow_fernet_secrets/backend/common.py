@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import json
 from functools import cached_property
-from typing import TYPE_CHECKING, Generic
+from typing import TYPE_CHECKING, Generic, Literal
 
 from typing_extensions import TypeVar, override
 
@@ -26,6 +27,7 @@ if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
     from sqlalchemy.engine.url import URL
 
+    from airflow_fernet_secrets.connection.common import ConnectionDict
     from airflow_fernet_secrets.core.typeshed import PathType
 
     class BaseFernetLocalSecretsBackend(BaseSecretsBackend, LoggingMixin): ...
@@ -77,31 +79,72 @@ class CommonFernetLocalSecretsBackend(
             value = FernetConnection.get(session, conn_id)
             if value is None:
                 return None
+            value = self._validate_connection(
+                conn_id=conn_id, connection=value, when="get"
+            )
             return value.encrypted.decode("utf-8")
 
-    def set_conn_value(self, conn_id: str, value: str | bytes) -> None:
+    def set_conn_value(self, conn_id: str, value: str | bytes, *, is_sql: bool) -> None:
         secret_key = self._secret()
         with enter_database(self._backend_engine) as session:
             value = FernetConnection.encrypt(value, secret_key)
-            connection = FernetConnection.get(session, conn_id)
+            connection = FernetConnection.get(session, conn_id, is_sql=is_sql)
             if connection is None:
-                connection = FernetConnection(encrypted=value, conn_id=conn_id)
+                connection = FernetConnection(
+                    encrypted=value, conn_id=conn_id, is_sql=is_sql
+                )
             else:
                 connection.encrypted = value
+            connection = self._validate_connection(
+                conn_id=conn_id, connection=connection, when="set"
+            )
             session.add(connection)
             session.commit()
+
+    def _validate_connection(
+        self,
+        conn_id: str,  # noqa: ARG002
+        connection: FernetConnection,
+        when: Literal["get", "set"],  # noqa: ARG002
+    ) -> FernetConnection:
+        return connection
 
     @override
     def deserialize_connection(self, conn_id: str, value: str) -> ConnectionT:
         fernet = self._secret()
-        as_bytes = Encrypted.decrypt(value, fernet)
-        return self._deserialize_connection(conn_id, as_bytes)
+        as_json = Encrypted.decrypt(value, fernet)
+        as_dict = json.loads(as_json)
+        as_dict = self._validate_connection_dict(
+            conn_id=conn_id, connection=as_dict, when="deserialize"
+        )
+        return self._deserialize_connection(conn_id=conn_id, connection=as_dict)
 
-    def _deserialize_connection(self, conn_id: str, value: bytes) -> ConnectionT:
+    def _deserialize_connection(
+        self, conn_id: str, connection: ConnectionDict
+    ) -> ConnectionT:
         raise NotImplementedError
 
     def serialize_connection(self, conn_id: str, connection: ConnectionT) -> bytes:
+        as_dict = self._serialize_connection(conn_id=conn_id, connection=connection)
+        as_dict = self._validate_connection_dict(
+            conn_id=conn_id, connection=as_dict, when="serialize"
+        )
+        as_json = json.dumps(as_dict)
+        fernet = self._secret()
+        return Encrypted.encrypt(as_json, secret_key=fernet)
+
+    def _serialize_connection(
+        self, conn_id: str, connection: ConnectionT
+    ) -> ConnectionDict:
         raise NotImplementedError
+
+    def _validate_connection_dict(
+        self,
+        conn_id: str,  # noqa: ARG002
+        connection: ConnectionDict,
+        when: Literal["serialize", "deserialize"],  # noqa: ARG002
+    ) -> ConnectionDict:
+        return connection
 
     @override
     def get_connection(self, conn_id: str) -> ConnectionT | None:
@@ -111,9 +154,11 @@ class CommonFernetLocalSecretsBackend(
 
         return self.deserialize_connection(conn_id, value)
 
-    def set_connection(self, conn_id: str, connection: ConnectionT) -> None:
+    def set_connection(
+        self, conn_id: str, connection: ConnectionT, *, is_sql: bool
+    ) -> None:
         value = self.serialize_connection(conn_id, connection)
-        self.set_conn_value(conn_id, value)
+        self.set_conn_value(conn_id, value, is_sql=is_sql)
 
     @override
     def get_variable(self, key: str) -> str | None:

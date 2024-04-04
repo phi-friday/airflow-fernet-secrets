@@ -14,3 +14,10 @@ ENV_BACKEND_FILE_CMD = "backend_file_cmd"
 ENV_IS_SERVER = "is_server"
 
 LOGGER_NAME = "airflow.fernet_secrets"
+
+CONNECTION_DRIVER_FORMAT = "{backend}:{dialect}:{conn_type}"
+RE_CONNECTION_DRIVER_FORMAT = (
+    r"(?P<backend>[a-zA-Z0-9_-]*?)"
+    r":(?P<dialect>[a-zA-Z0-9_-]*?)"
+    r":(?P<conn_type>[a-zA-Z0-9_-]*)"
+)

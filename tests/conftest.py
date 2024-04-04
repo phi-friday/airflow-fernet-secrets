@@ -6,6 +6,7 @@ from uuid import uuid4
 
 import pytest
 from cryptography.fernet import Fernet
+from sqlalchemy.engine.url import URL
 
 
 @pytest.fixture(scope="session")
@@ -16,11 +17,11 @@ def temp_path():
 
 @pytest.fixture(scope="session")
 def backend_path(temp_path: Path):
-    from airflow_fernet_secrets.common.database import (
+    from airflow_fernet_secrets.core.database import (
         create_sqlite_url,
         ensure_sqlite_engine,
     )
-    from airflow_fernet_secrets.common.model import migrate
+    from airflow_fernet_secrets.core.model import migrate
 
     file = temp_path / str(uuid4())
     file.touch()
@@ -43,8 +44,9 @@ def default_conn_id():
 
 
 @pytest.fixture(scope="session")
-def default_conn():
-    return {"host": "localhost", "extra": {"some": "value"}}
+def default_conn(temp_path: Path) -> URL:
+    file = temp_path / str(uuid4())
+    return URL.create("sqlite", database=str(file))
 
 
 @pytest.fixture()

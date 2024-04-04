@@ -25,15 +25,15 @@ def test_get_conn_value(
 def setup(*, is_server: bool) -> None:
     import os
 
-    from airflow_fernet_secrets.common.config import const
-    from airflow_fernet_secrets.common.utils.reload import reload
+    from airflow_fernet_secrets.core.config import const
+    from airflow_fernet_secrets.core.utils.reload import reload
 
     key = (const.CLIENT_ENV_PREFIX + const.ENV_IS_SERVER).upper()
     os.environ[key] = str(is_server)
     reload()
 
     from airflow_fernet_secrets.backend import FernetLocalSecretsBackend
-    from airflow_fernet_secrets.common.config import IS_SERVER_FLAG
+    from airflow_fernet_secrets.core.config import IS_SERVER_FLAG
 
     assert IS_SERVER_FLAG is is_server
     assert (

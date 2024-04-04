@@ -1,21 +1,41 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any
+
 from airflow.models.connection import Connection
 from typing_extensions import override
 
 from airflow_fernet_secrets.backend.common import (
     CommonFernetLocalSecretsBackend as _CommonFernetLocalSecretsBackend,
 )
+from airflow_fernet_secrets.connection.server import (
+    convert_connection_to_dict,
+    create_airflow_connection,
+    is_sql_connection,
+)
+
+if TYPE_CHECKING:
+    from airflow_fernet_secrets.connection.common import ConnectionDict
 
 __all__ = ["FernetLocalSecretsBackend"]
 
 
 class FernetLocalSecretsBackend(_CommonFernetLocalSecretsBackend[Connection]):
     @override
-    def _deserialize_connection(self, conn_id: str, value: bytes) -> Connection:
-        return Connection.from_json(value, conn_id=conn_id)
+    def set_connection(
+        self, conn_id: str, connection: Connection, *, is_sql: Any = None
+    ) -> None:
+        is_sql = is_sql_connection(connection)
+        return super().set_connection(conn_id, connection, is_sql=is_sql)
 
     @override
-    def serialize_connection(self, conn_id: str, connection: Connection) -> bytes:
-        as_str = connection.as_json()
-        return as_str.encode("utf-8")
+    def _deserialize_connection(
+        self, conn_id: str, connection: ConnectionDict
+    ) -> Connection:
+        return create_airflow_connection(connection=connection)
+
+    @override
+    def _serialize_connection(
+        self, conn_id: str, connection: Connection
+    ) -> ConnectionDict:
+        return convert_connection_to_dict(connection)
