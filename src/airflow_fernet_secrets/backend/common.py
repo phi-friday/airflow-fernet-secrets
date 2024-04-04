@@ -99,6 +99,7 @@ class CommonFernetLocalSecretsBackend(
                     encrypted=value, conn_id=conn_id, conn_type=conn_type
                 )
             else:
+                FernetConnection.decrypt(connection.encrypted, secret_key)
                 connection.encrypted = value
             connection = self._validate_connection(
                 conn_id=conn_id, connection=connection, when="set"
