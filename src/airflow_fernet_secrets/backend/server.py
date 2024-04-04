@@ -27,7 +27,7 @@ class FernetLocalSecretsBackend(_CommonFernetLocalSecretsBackend[Connection]):
     ) -> None:
         conn_type_or_null: str | None = (
             "sql"
-            if is_sql_connection(connection)
+            if is_sql_connection(connection, conn_type=conn_type)
             else conn_type
             if connection.conn_type is None
             else connection.conn_type

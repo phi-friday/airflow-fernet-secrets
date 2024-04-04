@@ -50,8 +50,10 @@ def create_airflow_connection(connection: ConnectionDict) -> Connection:
     return Connection.from_json(as_json)
 
 
-def is_sql_connection(connection: Connection) -> bool:
+def is_sql_connection(connection: Connection, conn_type: str | None = None) -> bool:
     from airflow.providers_manager import ProvidersManager
 
-    hook_class = ProvidersManager().hooks.get(connection.conn_type or "", None)
+    hook_class = ProvidersManager().hooks.get(
+        connection.conn_type or conn_type or "", None
+    )
     return callable(getattr(hook_class, "get_sqlalchemy_engine", None))
