@@ -26,8 +26,7 @@ def get_provider_info() -> dict[str, Any]:
     registry = {x: "" for x in _RE_VARIABLE.findall(text)}
     meta = dist.metadata
 
-    registry["name"] = meta.get("name") or ""
-    registry["package"] = package
+    registry["package"] = registry["name"] = meta.get("name") or package
     registry["version"] = dist.version
     registry["description"] = meta.get("summary") or ""
 

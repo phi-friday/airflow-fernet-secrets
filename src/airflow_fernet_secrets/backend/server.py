@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from airflow.models.connection import Connection
 from typing_extensions import override
 
 from airflow_fernet_secrets.backend.common import (
@@ -15,7 +14,11 @@ from airflow_fernet_secrets.connection.server import (
 )
 
 if TYPE_CHECKING:
+    from airflow.models.connection import Connection
+
     from airflow_fernet_secrets.connection import ConnectionDict
+else:
+    Connection = Any
 
 __all__ = ["FernetLocalSecretsBackend"]
 
@@ -40,7 +43,9 @@ class FernetLocalSecretsBackend(_CommonFernetLocalSecretsBackend[Connection]):
     def _deserialize_connection(
         self, conn_id: str, connection: ConnectionDict
     ) -> Connection:
-        return create_airflow_connection(connection=connection)
+        result = create_airflow_connection(connection=connection)
+        result.conn_id = conn_id
+        return result
 
     @override
     def _serialize_connection(

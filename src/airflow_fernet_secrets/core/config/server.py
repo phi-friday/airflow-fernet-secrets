@@ -1,8 +1,7 @@
 from __future__ import annotations
 
+from contextlib import suppress
 from typing import TYPE_CHECKING
-
-from airflow.configuration import conf
 
 from airflow_fernet_secrets.core.config import const
 from airflow_fernet_secrets.core.config.common import (
@@ -31,6 +30,8 @@ def load_secret_key(logger: Logger) -> str:
         return value
 
     logger.warning("empty secret_key. use airflow core secret key.")
+    from airflow.configuration import conf
+
     value = conf.get("core", "fernet_key", "")
     if value:
         return value
@@ -56,5 +57,10 @@ def load_backend_file(logger: Logger) -> str:
 def _get_from_conf(
     key: str, default_value: str = "", *, section: str | None = None
 ) -> str:
+    from airflow.configuration import conf
+    from airflow.exceptions import AirflowConfigException
+
     section = section or const.SERVER_CONF_SECTION
-    return conf.get(section, key, default_value)
+    with suppress(AirflowConfigException):
+        return conf.get(section, key, fallback=default_value, suppress_warnings=True)
+    return default_value

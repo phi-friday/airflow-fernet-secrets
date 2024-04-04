@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import json
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
-from airflow.models.connection import Connection
 from sqlalchemy.engine.url import URL, make_url
 
 from airflow_fernet_secrets.connection import (
@@ -11,6 +10,9 @@ from airflow_fernet_secrets.connection import (
     create_driver,
     parse_driver,
 )
+
+if TYPE_CHECKING:
+    from airflow.models.connection import Connection
 
 __all__ = [
     "convert_connection_to_dict",
@@ -41,6 +43,8 @@ def convert_connection_to_dict(connection: Connection) -> ConnectionDict:
 
 
 def create_airflow_connection(connection: ConnectionDict) -> Connection:
+    from airflow.models.connection import Connection
+
     driver = parse_driver(connection["driver"])
     conn_type = driver.conn_type or driver.backend
     as_dict: dict[str, Any] = dict(connection)
