@@ -6,7 +6,7 @@ from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.url import URL, make_url
 from sqlalchemy.orm import Session, scoped_session, sessionmaker
 
-from airflow_fernet_secrets.connection.common import (
+from airflow_fernet_secrets.connection import (
     ConnectionDict,
     create_driver,
     parse_driver,

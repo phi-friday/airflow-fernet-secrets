@@ -6,7 +6,7 @@ from typing import Any, cast
 from airflow.models.connection import Connection
 from sqlalchemy.engine.url import URL, make_url
 
-from airflow_fernet_secrets.connection.common import (
+from airflow_fernet_secrets.connection import (
     ConnectionDict,
     create_driver,
     parse_driver,

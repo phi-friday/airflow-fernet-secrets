@@ -15,7 +15,7 @@ from airflow_fernet_secrets.connection.server import (
 )
 
 if TYPE_CHECKING:
-    from airflow_fernet_secrets.connection.common import ConnectionDict
+    from airflow_fernet_secrets.connection import ConnectionDict
 
 __all__ = ["FernetLocalSecretsBackend"]
 

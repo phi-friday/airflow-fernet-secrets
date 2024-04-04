@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
     from sqlalchemy.engine.url import URL
 
-    from airflow_fernet_secrets.connection.common import ConnectionDict
+    from airflow_fernet_secrets.connection import ConnectionDict
     from airflow_fernet_secrets.core.typeshed import PathType
 
     class BaseFernetLocalSecretsBackend(BaseSecretsBackend, LoggingMixin): ...

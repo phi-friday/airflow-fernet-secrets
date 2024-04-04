@@ -8,11 +8,11 @@ from typing_extensions import TypeAlias, override
 from airflow_fernet_secrets.backend.common import (
     CommonFernetLocalSecretsBackend as _CommonFernetLocalSecretsBackend,
 )
+from airflow_fernet_secrets.connection import ConnectionDict, parse_driver
 from airflow_fernet_secrets.connection.client import (
     convert_connectable_to_dict,
     create_url,
 )
-from airflow_fernet_secrets.connection.common import ConnectionDict, parse_driver
 
 if TYPE_CHECKING:
     from airflow_fernet_secrets.core.model import Connection
