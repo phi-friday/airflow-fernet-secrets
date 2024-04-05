@@ -10,7 +10,7 @@ from airflow_fernet_secrets.core.config.const import (
 from airflow_fernet_secrets.core.config.const import ENV_IS_SERVER as _ENV_IS_SERVER
 from airflow_fernet_secrets.core.utils.cast import ensure_boolean
 
-HAS_AIRFLOW = find_spec("airflow") is None
+HAS_AIRFLOW = find_spec("airflow") is not None
 IS_SERVER_FLAG = (
     ensure_boolean(_server_env)
     if (_server_env := getenv((_CLIENT_ENV_PREFIX + _ENV_IS_SERVER).upper(), ""))
