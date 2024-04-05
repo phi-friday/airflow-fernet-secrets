@@ -29,13 +29,7 @@ def load_secret_key(logger: Logger) -> str:
     if value:
         return value
 
-    logger.warning("empty secret_key. use airflow core secret key.")
-    from airflow.configuration import conf
-
-    value = conf.get("core", "fernet_key", "")
-    if value:
-        return value
-
+    logger.error("need secret_key")
     raise NotImplementedError
 
 
