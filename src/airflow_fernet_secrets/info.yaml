@@ -9,16 +9,16 @@ config:
   fernet_secrets:
     description: "{{ description }}"
     options:
-      connections_file:
+      backend_file:
         default: null
-        description: connections_file path
-        example: /tmp/connections.sqlite3
+        description: backend file path
+        example: /tmp/backend.sqlite3
         type: string
         version_added: 2.8.0
-      connections_file_cmd:
+      backend_file_cmd:
         default: null
-        description: connections_file path command
-        example: cat /dev/run/connections
+        description: backend file path command
+        example: cat /dev/run/backend
         type: string
         version_added: 2.8.0
       secret_key:
@@ -31,17 +31,5 @@ config:
         default: null
         description: fernet secret key command
         example: cat /dev/run/fernet_key
-        type: string
-        version_added: 2.8.0
-      variables_file:
-        default: null
-        description: variables_file path
-        example: /tmp/variables.sqlite3
-        type: string
-        version_added: 2.8.0
-      variables_file_cmd:
-        default: null
-        description: variables_file path command
-        example: cat /dev/run/variables
         type: string
         version_added: 2.8.0
