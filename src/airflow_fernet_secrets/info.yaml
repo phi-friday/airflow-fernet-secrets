@@ -5,6 +5,9 @@ version: "{{ version }}"
 description: "{{ description }}"
 secrets-backends:
   - airflow.providers.fernet_secrets.secrets.secret_manager.FernetLocalSecretsBackend
+operators:
+  - airflow.providers.fernet_secrets.operators.sync.DumpConnectionsOperator
+  - airflow.providers.fernet_secrets.operators.sync.LoadConnectionsOperator
 config:
   fernet_secrets:
     description: "{{ description }}"
