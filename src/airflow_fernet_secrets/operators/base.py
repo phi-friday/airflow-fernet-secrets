@@ -22,7 +22,6 @@ if TYPE_CHECKING:
     from cryptography.fernet import Fernet
 
     from airflow_fernet_secrets.core.typeshed import PathType
-    from airflow_fernet_secrets.secrets.server import FernetLocalSecretsBackend
 
 
 class HasSecrets(BaseOperator):
