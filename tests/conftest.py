@@ -51,7 +51,7 @@ def default_conn(temp_path: Path) -> URL:
 
 @pytest.fixture()
 def client_backend(secret_key, backend_path, default_conn_id, default_conn):
-    from airflow_fernet_secrets.backend.client import FernetLocalSecretsBackend
+    from airflow_fernet_secrets.secrets.client import FernetLocalSecretsBackend
 
     backend = FernetLocalSecretsBackend(
         secret_key=secret_key, backend_file_path=backend_path
@@ -67,7 +67,7 @@ def client_backend(secret_key, backend_path, default_conn_id, default_conn):
 
 @pytest.fixture()
 def server_backend(secret_key, backend_path):
-    from airflow_fernet_secrets.backend.server import FernetLocalSecretsBackend
+    from airflow_fernet_secrets.secrets.server import FernetLocalSecretsBackend
 
     return FernetLocalSecretsBackend(
         secret_key=secret_key, backend_file_path=backend_path

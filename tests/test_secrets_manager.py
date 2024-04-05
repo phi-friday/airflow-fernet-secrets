@@ -13,7 +13,7 @@ def test_get_conn_value(
 ):
     setup(is_server=side == "server")
 
-    from airflow_fernet_secrets.backend import FernetLocalSecretsBackend
+    from airflow_fernet_secrets.secrets import FernetLocalSecretsBackend
 
     backend = FernetLocalSecretsBackend(
         secret_key=secret_key, backend_file_path=backend_path
@@ -32,8 +32,8 @@ def setup(*, is_server: bool) -> None:
     os.environ[key] = str(is_server)
     reload()
 
-    from airflow_fernet_secrets.backend import FernetLocalSecretsBackend
     from airflow_fernet_secrets.core.config import IS_SERVER_FLAG
+    from airflow_fernet_secrets.secrets import FernetLocalSecretsBackend
 
     assert IS_SERVER_FLAG is is_server
     assert (

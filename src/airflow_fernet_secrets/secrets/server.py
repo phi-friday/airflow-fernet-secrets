@@ -4,13 +4,13 @@ from typing import TYPE_CHECKING, Any
 
 from typing_extensions import override
 
-from airflow_fernet_secrets.backend.common import (
-    CommonFernetLocalSecretsBackend as _CommonFernetLocalSecretsBackend,
-)
 from airflow_fernet_secrets.connection.server import (
     convert_connection_to_dict,
     create_airflow_connection,
     is_sql_connection,
+)
+from airflow_fernet_secrets.secrets.common import (
+    CommonFernetLocalSecretsBackend as _CommonFernetLocalSecretsBackend,
 )
 
 if TYPE_CHECKING:

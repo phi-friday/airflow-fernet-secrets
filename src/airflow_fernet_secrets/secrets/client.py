@@ -5,13 +5,13 @@ from typing import TYPE_CHECKING, Literal
 from sqlalchemy.engine.url import URL
 from typing_extensions import TypeAlias, override
 
-from airflow_fernet_secrets.backend.common import (
-    CommonFernetLocalSecretsBackend as _CommonFernetLocalSecretsBackend,
-)
 from airflow_fernet_secrets.connection import ConnectionDict, parse_driver
 from airflow_fernet_secrets.connection.client import (
     convert_connectable_to_dict,
     create_url,
+)
+from airflow_fernet_secrets.secrets.common import (
+    CommonFernetLocalSecretsBackend as _CommonFernetLocalSecretsBackend,
 )
 
 if TYPE_CHECKING:
