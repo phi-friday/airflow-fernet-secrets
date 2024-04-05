@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import cast
 
+from sqlalchemy.dialects.sqlite import dialect as sqlite_dialect
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.url import URL, make_url
 from sqlalchemy.orm import Session, scoped_session, sessionmaker
@@ -27,7 +28,10 @@ def convert_url_to_dict(url: str | URL) -> ConnectionDict:
     if url.password:
         result["password"] = url.password
     if url.database:
-        result["schema"] = url.database
+        if backend == sqlite_dialect.name:
+            result["host"] = url.database
+        else:
+            result["schema"] = url.database
     if url.port:
         result["port"] = url.port
 
@@ -59,7 +63,7 @@ def create_url(connection: ConnectionDict) -> URL:
         f"{driver.backend}+{driver.dialect}" if driver.dialect else driver.backend
     )
 
-    return URL.create(
+    url = URL.create(
         drivername=drivername,
         username=connection.get("login", None),
         password=connection.get("password", None),
@@ -68,3 +72,8 @@ def create_url(connection: ConnectionDict) -> URL:
         database=connection.get("schema", None),
         query=connection.get("extra", None) or {},
     )
+
+    if driver.backend == sqlite_dialect.name:
+        url = url.set(host=None, database=url.host)
+
+    return url
