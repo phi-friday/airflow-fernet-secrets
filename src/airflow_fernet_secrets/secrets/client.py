@@ -52,10 +52,7 @@ class FernetLocalSecretsBackend(_CommonFernetLocalSecretsBackend[ConnectionType]
         )
         if when == "set":
             return connection
-        if (
-            connection.conn_type is None
-            or connection.conn_type.lower().strip() != "sql"
-        ):
+        if not connection.is_sql_connection:
             raise NotImplementedError
         return connection
 

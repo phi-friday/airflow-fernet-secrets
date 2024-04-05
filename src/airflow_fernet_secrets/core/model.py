@@ -100,6 +100,10 @@ class Connection(Encrypted):
         fetch: Result = session.execute(stmt)
         return fetch.scalar_one_or_none()
 
+    @property
+    def is_sql_connection(self) -> bool:
+        return self.conn_type is not None and self.conn_type.lower().strip() == "sql"
+
 
 @mapper_registry.mapped
 @dataclass(**_DATACLASS_ARGS)
