@@ -16,7 +16,7 @@ def test_get_conn_value(
     from airflow_fernet_secrets.secrets import FernetLocalSecretsBackend
 
     backend = FernetLocalSecretsBackend(
-        secret_key=secret_key, backend_file_path=backend_path
+        fernet_secrets_key=secret_key, fernet_secrets_backend_file_path=backend_path
     )
     conn = backend.get_conn_value(default_conn_id)
     assert conn is not None

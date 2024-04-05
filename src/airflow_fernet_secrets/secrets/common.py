@@ -48,18 +48,20 @@ class CommonFernetLocalSecretsBackend(
     def __init__(
         self,
         *,
-        secret_key: str | bytes | Fernet | None = None,
-        backend_file_path: PathType | None = None,
+        fernet_secrets_key: str | bytes | Fernet | None = None,
+        fernet_secrets_backend_file_path: PathType | None = None,
     ) -> None:
         super().__init__()
-        self.backend_file = backend_file_path
+        self.fernet_secrets_backend_file = fernet_secrets_backend_file_path
 
-        self._secret_key = None if secret_key is None else ensure_fernet(secret_key)
+        self._fernet_secrets_key = (
+            None if fernet_secrets_key is None else ensure_fernet(fernet_secrets_key)
+        )
 
     @cached_property
     def _backend_url(self) -> URL:
-        if self.backend_file is not None:
-            return create_sqlite_url(self.backend_file)
+        if self.fernet_secrets_backend_file is not None:
+            return create_sqlite_url(self.fernet_secrets_backend_file)
         file = load_backend_file(self.log)
         return create_sqlite_url(file)
 
@@ -68,8 +70,8 @@ class CommonFernetLocalSecretsBackend(
         return ensure_sqlite_engine(self._backend_url)
 
     def _secret(self) -> Fernet:
-        if self._secret_key is not None:
-            return self._secret_key
+        if self._fernet_secrets_key is not None:
+            return self._fernet_secrets_key
         return load_secret_key(self.log)
 
     @override

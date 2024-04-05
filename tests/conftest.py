@@ -54,7 +54,7 @@ def client_backend(secret_key, backend_path, default_conn_id, default_conn):
     from airflow_fernet_secrets.secrets.client import FernetLocalSecretsBackend
 
     backend = FernetLocalSecretsBackend(
-        secret_key=secret_key, backend_file_path=backend_path
+        fernet_secrets_key=secret_key, fernet_secrets_backend_file_path=backend_path
     )
 
     value = backend.get_conn_value(default_conn_id)
@@ -70,5 +70,5 @@ def server_backend(secret_key, backend_path):
     from airflow_fernet_secrets.secrets.server import FernetLocalSecretsBackend
 
     return FernetLocalSecretsBackend(
-        secret_key=secret_key, backend_file_path=backend_path
+        fernet_secrets_key=secret_key, fernet_secrets_backend_file_path=backend_path
     )
