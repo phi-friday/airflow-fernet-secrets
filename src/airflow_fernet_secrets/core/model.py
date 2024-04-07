@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from sqlalchemy.engine.result import Result
     from sqlalchemy.ext.asyncio import AsyncSession
     from sqlalchemy.orm import Session, scoped_session, sessionmaker
-    from sqlalchemy.sql import Select, Update
+    from sqlalchemy.sql import Delete, Select, Update
 
 
 __all__ = ["Connection", "Variable", "migrate"]
@@ -80,12 +80,18 @@ class Encrypted(Base):
         return secret_key.encrypt(as_bytes)
 
     def is_exists(self, session: Session) -> bool:
+        if not hasattr(self, "id") or self.id is None:
+            return False
+
         stmt = self._exists_stmt()
         fetch: Result = session.execute(stmt)
         count = fetch.scalars().one()
         return count >= 1
 
     async def is_aexists(self, session: AsyncSession) -> bool:
+        if not hasattr(self, "id") or self.id is None:
+            return False
+
         stmt = self._exists_stmt()
         fetch: Result = await session.execute(stmt)
         count = fetch.scalars().one()
@@ -98,17 +104,34 @@ class Encrypted(Base):
         if not self.is_exists(session):
             session.add(self)
             return
-        stmt = self._upsert_stmt()
+        stmt = self._upsert_stmt().execution_options(synchronize_session="fetch")
         session.execute(stmt)
 
     async def aupsert(self, session: AsyncSession) -> None:
         if not await self.is_aexists(session):
             session.add(self)  # type: ignore
             return
-        stmt = self._upsert_stmt()
+        stmt = self._upsert_stmt().execution_options(synchronize_session="fetch")
         await session.execute(stmt)
 
     def _upsert_stmt(self) -> Update:
+        raise NotImplementedError
+
+    def delete(self, session: Session) -> None:
+        if self.is_exists(session):
+            session.delete(self)
+            return
+        stmt = self._delete_stmt().execution_options(synchronize_session="fetch")
+        session.execute(stmt)
+
+    async def adelete(self, session: AsyncSession) -> None:
+        if await self.is_aexists(session):
+            await session.delete(self)
+            return
+        stmt = self._delete_stmt().execution_options(synchronize_session="fetch")
+        await session.execute(stmt)
+
+    def _delete_stmt(self) -> Delete:
         raise NotImplementedError
 
 
@@ -174,6 +197,11 @@ class Connection(Encrypted):
             .values(**{x: getattr(self, x) for x in columns})
         )
 
+    @override
+    def _delete_stmt(self) -> Delete:
+        model = type(self)
+        return sa.delete(model).where(model.conn_id == self.conn_id)
+
 
 @mapper_registry.mapped
 @dataclass(**_DATACLASS_ARGS)
@@ -230,6 +258,11 @@ class Variable(Encrypted):
             .where(model.key == self.key)
             .values(**{x: getattr(self, x) for x in columns})
         )
+
+    @override
+    def _delete_stmt(self) -> Delete:
+        model = type(self)
+        return sa.delete(model).where(model.key == self.key)
 
 
 def migrate(
