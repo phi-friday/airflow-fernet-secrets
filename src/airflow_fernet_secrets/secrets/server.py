@@ -43,9 +43,7 @@ class FernetLocalSecretsBackend(_CommonFernetLocalSecretsBackend[Connection]):
     def _deserialize_connection(
         self, conn_id: str, connection: ConnectionDict
     ) -> Connection:
-        result = create_airflow_connection(connection=connection)
-        result.conn_id = conn_id
-        return result
+        return create_airflow_connection(connection=connection, conn_id=conn_id)
 
     @override
     def _serialize_connection(

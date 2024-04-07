@@ -42,7 +42,9 @@ def convert_connection_to_dict(connection: Connection) -> ConnectionDict:
     return result
 
 
-def create_airflow_connection(connection: ConnectionDict) -> Connection:
+def create_airflow_connection(
+    connection: ConnectionDict, conn_id: str | None = None
+) -> Connection:
     from airflow.models.connection import Connection
 
     driver = parse_driver(connection["driver"])
@@ -51,7 +53,7 @@ def create_airflow_connection(connection: ConnectionDict) -> Connection:
     as_dict.pop("driver")
     as_dict["conn_type"] = conn_type
     as_json = json.dumps(as_dict)
-    return Connection.from_json(as_json)
+    return Connection.from_json(as_json, conn_id=conn_id)
 
 
 def is_sql_connection(connection: Connection, conn_type: str | None = None) -> bool:
