@@ -1,12 +1,32 @@
 from __future__ import annotations
 
+import json
+from os import environ
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Any
 from uuid import uuid4
 
 import pytest
 from cryptography.fernet import Fernet
 from sqlalchemy.engine.url import URL
+
+
+def _set_backend_kwargs(key: str, value: Any) -> None:
+    json_value = environ.get("AIRFLOW__SECRETS__BACKEND_KWARGS")
+
+    kwargs: dict[str, Any]
+    kwargs = json.loads(json_value) if json_value else {}
+    kwargs[key] = value
+
+    environ["AIRFLOW__SECRETS__BACKEND_KWARGS"] = json.dumps(kwargs)
+
+
+@pytest.fixture(scope="session")
+def _init_envs() -> None:
+    environ["AIRFLOW__SECRETS__BACKEND"] = (
+        "airflow_fernet_secrets.secrets.server.FernetLocalSecretsBackend"
+    )
 
 
 @pytest.fixture(scope="session")
@@ -16,7 +36,7 @@ def temp_path():
 
 
 @pytest.fixture(scope="session")
-def backend_path(temp_path: Path):
+def backend_path(temp_path: Path, _init_envs):
     from airflow_fernet_secrets.core.database import (
         create_sqlite_url,
         ensure_sqlite_engine,
@@ -30,12 +50,16 @@ def backend_path(temp_path: Path):
     engine = ensure_sqlite_engine(url)
     migrate(engine)
 
+    _set_backend_kwargs("fernet_secrets_backend_file_path", str(file))
+
     return file
 
 
 @pytest.fixture(scope="session")
-def secret_key():
-    return Fernet.generate_key()
+def secret_key(_init_envs):
+    key = Fernet.generate_key()
+    _set_backend_kwargs("fernet_secrets_key", key.decode("utf-8"))
+    return key
 
 
 @pytest.fixture(scope="session")
@@ -59,7 +83,7 @@ def client_backend(secret_key, backend_path, default_conn_id, default_conn):
 
     value = backend.get_conn_value(default_conn_id)
     if value is not None:
-        return value
+        return backend
 
     backend.set_connection(default_conn_id, None, default_conn)
     return backend
