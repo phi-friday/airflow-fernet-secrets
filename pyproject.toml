@@ -3,13 +3,6 @@ name = "airflow-fernet-secrets"
 version = "0.0.0"
 description = "airflow filesystem secret backend using fernet"
 authors = [{ name = "phi", email = "phi.friday@gmail.com" }]
-dependencies = [
-    "typing-extensions>=4.4.0",
-    "jsonschema",
-    "pyyaml",
-    "sqlalchemy[asyncio]>=1.4",
-    "cryptography>=41",
-]
 readme = "README.md"
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -22,12 +15,20 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 requires-python = ">=3.8, <3.13"
+dependencies = [
+    "typing-extensions>=4.4.0",
+    "jsonschema",
+    "pyyaml",
+    "sqlalchemy>=1.4",
+    "cryptography>=41",
+]
 
-[project.scripts]
-copy_info_schema = "airflow_fernet_secrets.info:copy_provider_info_schema"
+[project.optional-dependencies]
+asyncio = [
+    "aiosqlite>=0.20.0",
+    "sqlalchemy[asyncio]>=1.4",
+]
 
-[project.entry-points."apache_airflow_provider"]
-provider_info = "airflow_fernet_secrets.info:get_provider_info"
 
 [tool.rye]
 managed = true
@@ -37,6 +38,12 @@ dev-dependencies = [
     "ipykernel>=6.29.4",
     "pytest>=8.1.1",
 ]
+
+[project.scripts]
+copy_info_schema = "airflow_fernet_secrets.info:copy_provider_info_schema"
+
+[project.entry-points."apache_airflow_provider"]
+provider_info = "airflow_fernet_secrets.info:get_provider_info"
 
 [tool.hatch.build.targets.sdist]
 exclude = ["src/airflow_fernet_secrets/info.schema.json", "src/**/.gitignore"]

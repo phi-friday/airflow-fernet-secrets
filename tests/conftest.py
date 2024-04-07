@@ -43,7 +43,7 @@ def temp_path():
 def backend_path(temp_path: Path, _init_envs):
     from airflow_fernet_secrets.core.database import (
         create_sqlite_url,
-        ensure_sqlite_engine,
+        ensure_sqlite_sync_engine,
     )
     from airflow_fernet_secrets.core.model import migrate
 
@@ -51,7 +51,7 @@ def backend_path(temp_path: Path, _init_envs):
     file.touch()
 
     url = create_sqlite_url(file)
-    engine = ensure_sqlite_engine(url)
+    engine = ensure_sqlite_sync_engine(url)
     migrate(engine)
 
     _set_backend_kwargs("fernet_secrets_backend_file_path", str(file))

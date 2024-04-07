@@ -14,8 +14,8 @@ from airflow_fernet_secrets.core.config import (
 )
 from airflow_fernet_secrets.core.database import (
     create_sqlite_url,
-    ensure_sqlite_engine,
-    enter_database,
+    ensure_sqlite_sync_engine,
+    enter_sync_database,
 )
 from airflow_fernet_secrets.core.log import LoggingMixin
 from airflow_fernet_secrets.core.model import Connection as FernetConnection
@@ -69,7 +69,7 @@ class CommonFernetLocalSecretsBackend(
 
     @cached_property
     def _backend_engine(self) -> Engine:
-        return ensure_sqlite_engine(self._backend_url)
+        return ensure_sqlite_sync_engine(self._backend_url)
 
     def _secret(self) -> MultiFernet:
         if self._fernet_secrets_key is not None:
@@ -78,7 +78,7 @@ class CommonFernetLocalSecretsBackend(
 
     @override
     def get_conn_value(self, conn_id: str) -> str | None:
-        with enter_database(self._backend_engine) as session:
+        with enter_sync_database(self._backend_engine) as session:
             value = FernetConnection.get(session, conn_id)
             if value is None:
                 return None
@@ -92,7 +92,7 @@ class CommonFernetLocalSecretsBackend(
     ) -> None:
         if isinstance(value, str):
             value = value.encode("utf-8")
-        with enter_database(self._backend_engine) as session:
+        with enter_sync_database(self._backend_engine) as session:
             connection = FernetConnection.get(
                 session, conn_id=conn_id, conn_type=conn_type
             )
@@ -173,7 +173,7 @@ class CommonFernetLocalSecretsBackend(
 
     @override
     def get_variable(self, key: str) -> str | None:
-        with enter_database(self._backend_engine) as session:
+        with enter_sync_database(self._backend_engine) as session:
             value = FernetVariable.get(session, key)
             if value is None:
                 return None
@@ -184,7 +184,7 @@ class CommonFernetLocalSecretsBackend(
 
     def set_variable(self, key: str, value: str) -> None:
         secret_key = self._secret()
-        with enter_database(self._backend_engine) as session:
+        with enter_sync_database(self._backend_engine) as session:
             as_bytes = FernetVariable.encrypt(value, secret_key)
             variable = FernetVariable.get(session, key)
             if variable is None:
@@ -205,7 +205,7 @@ class CommonFernetLocalSecretsBackend(
     def _rotate_connections(self) -> None:
         secret_key = self._secret()
         do_rorate = False
-        with enter_database(self._backend_engine) as session:
+        with enter_sync_database(self._backend_engine) as session:
             fetch: Result = session.execute(sa.select(FernetConnection))
 
             while True:
@@ -228,7 +228,7 @@ class CommonFernetLocalSecretsBackend(
     def _rotate_variables(self) -> None:
         do_rorate = False
         secret_key = self._secret()
-        with enter_database(self._backend_engine) as session:
+        with enter_sync_database(self._backend_engine) as session:
             fetch: Result = session.execute(sa.select(FernetVariable))
 
             while True:
