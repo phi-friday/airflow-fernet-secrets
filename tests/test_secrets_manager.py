@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import tempfile
 import warnings
+from pathlib import Path
+from uuid import uuid4
 
 import pytest
 import sqlalchemy as sa
+from airflow.hooks.base import BaseHook
 from airflow.models.connection import Connection
 from airflow.providers.common.sql.hooks.sql import DbApiHook
 from sqlalchemy.engine import Engine
@@ -57,9 +61,7 @@ def test_server_connection_touch(server_backend, default_conn_id):
     assert connection is not None
     assert isinstance(connection, Connection)
 
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", DeprecationWarning)
-        hook = connection.get_hook()
+    hook = get_hook(connection)
     assert isinstance(hook, DbApiHook)
     engine = hook.get_sqlalchemy_engine()
     assert isinstance(engine, Engine)
@@ -67,6 +69,50 @@ def test_server_connection_touch(server_backend, default_conn_id):
         values = session.execute(sa.text("select 1")).all()
 
     assert values == [(1,)]
+
+
+def test_server_to_client(server_backend, client_backend):
+    conn_id = str(uuid4())
+    with tempfile.TemporaryDirectory() as temp_dir:
+        file = Path(temp_dir) / str(uuid4())
+        connection = Connection(
+            conn_id=conn_id,
+            conn_type="sqlite",
+            host=str(file),
+            extra={"some_key": "some_value"},
+        )
+        server_backend.set_connection(
+            conn_id=conn_id, conn_type=None, connection=connection
+        )
+        hook = get_hook(connection)
+        assert isinstance(hook, DbApiHook)
+        server_url = hook.get_uri()
+
+        connection = client_backend.get_connection(conn_id=conn_id)
+        assert connection is not None
+        assert isinstance(connection, URL)
+        client_url = connection.render_as_string()
+    assert server_url == client_url
+
+
+def test_client_to_server(server_backend, client_backend):
+    conn_id = str(uuid4())
+    with tempfile.TemporaryDirectory() as temp_dir:
+        file = Path(temp_dir) / str(uuid4())
+        client_url: str = URL.create(
+            "sqlite", database=str(file), query={"some_key": "some_value"}
+        ).render_as_string()
+        client_backend.set_connection(
+            conn_id=conn_id, conn_type=None, connection=client_url
+        )
+
+        connection = server_backend.get_connection(conn_id=conn_id)
+        assert connection is not None
+        hook = get_hook(connection)
+        assert isinstance(hook, DbApiHook)
+        server_url = hook.get_uri()
+
+    assert server_url == client_url
 
 
 def setup(*, is_server: bool) -> None:
@@ -88,3 +134,9 @@ def setup(*, is_server: bool) -> None:
         if is_server
         else "client"
     )
+
+
+def get_hook(connection: Connection) -> BaseHook:
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        return connection.get_hook()

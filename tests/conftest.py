@@ -4,12 +4,16 @@ import json
 from os import environ
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 import pytest
 from cryptography.fernet import Fernet
 from sqlalchemy.engine.url import URL
+
+if TYPE_CHECKING:
+    from airflow_fernet_secrets.secrets.client import ClientFernetLocalSecretsBackend
+    from airflow_fernet_secrets.secrets.server import ServerFernetLocalSecretsBackend
 
 
 def _set_backend_kwargs(key: str, value: Any) -> None:
@@ -25,7 +29,7 @@ def _set_backend_kwargs(key: str, value: Any) -> None:
 @pytest.fixture(scope="session")
 def _init_envs() -> None:
     environ["AIRFLOW__SECRETS__BACKEND"] = (
-        "airflow_fernet_secrets.secrets.server.FernetLocalSecretsBackend"
+        "airflow.providers.fernet_secrets.secrets.secret_manager.FernetLocalSecretsBackend"
     )
 
 
@@ -74,10 +78,12 @@ def default_conn(temp_path: Path) -> URL:
 
 
 @pytest.fixture()
-def client_backend(secret_key, backend_path, default_conn_id, default_conn):
-    from airflow_fernet_secrets.secrets.client import FernetLocalSecretsBackend
+def client_backend(
+    secret_key, backend_path, default_conn_id, default_conn
+) -> ClientFernetLocalSecretsBackend:
+    from airflow_fernet_secrets.secrets.client import ClientFernetLocalSecretsBackend
 
-    backend = FernetLocalSecretsBackend(
+    backend = ClientFernetLocalSecretsBackend(
         fernet_secrets_key=secret_key, fernet_secrets_backend_file_path=backend_path
     )
 
@@ -90,9 +96,9 @@ def client_backend(secret_key, backend_path, default_conn_id, default_conn):
 
 
 @pytest.fixture()
-def server_backend(secret_key, backend_path):
-    from airflow_fernet_secrets.secrets.server import FernetLocalSecretsBackend
+def server_backend(secret_key, backend_path) -> ServerFernetLocalSecretsBackend:
+    from airflow_fernet_secrets.secrets.server import ServerFernetLocalSecretsBackend
 
-    return FernetLocalSecretsBackend(
+    return ServerFernetLocalSecretsBackend(
         fernet_secrets_key=secret_key, fernet_secrets_backend_file_path=backend_path
     )
