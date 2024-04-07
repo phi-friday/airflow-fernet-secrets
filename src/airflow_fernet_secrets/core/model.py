@@ -7,7 +7,6 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Callable, ClassVar, cast
 
 import sqlalchemy as sa
-from cryptography.fernet import Fernet
 from sqlalchemy.orm import declared_attr, registry
 from typing_extensions import Self, TypeGuard, override
 
@@ -17,7 +16,7 @@ from airflow_fernet_secrets.core.utils.re import camel_to_snake
 if TYPE_CHECKING:
     from airflow.models.connection import Connection as AirflowConnection
     from airflow.models.variable import Variable as AirflowVariable
-    from cryptography.fernet import Fernet
+    from cryptography.fernet import Fernet, MultiFernet
     from sqlalchemy.engine import Connection as SqlalchemyConnection
     from sqlalchemy.engine import Engine
     from sqlalchemy.engine.result import Result
@@ -66,12 +65,14 @@ class Encrypted(Base):
     encrypted: bytes = field(metadata={"sa": sa.Column(sa.LargeBinary())})
 
     @staticmethod
-    def decrypt(value: str | bytes, secret_key: str | bytes | Fernet) -> bytes:
+    def decrypt(
+        value: str | bytes, secret_key: str | bytes | Fernet | MultiFernet
+    ) -> bytes:
         secret_key = ensure_fernet(secret_key)
         return secret_key.decrypt(value)
 
     @staticmethod
-    def encrypt(value: Any, secret_key: str | bytes | Fernet) -> bytes:
+    def encrypt(value: Any, secret_key: str | bytes | Fernet | MultiFernet) -> bytes:
         secret_key = ensure_fernet(secret_key)
         as_bytes = _dump(value)
         return secret_key.encrypt(as_bytes)
@@ -114,7 +115,9 @@ class Variable(Encrypted):
 
     @staticmethod
     @override
-    def decrypt(value: str | bytes, secret_key: str | bytes | Fernet) -> str:
+    def decrypt(
+        value: str | bytes, secret_key: str | bytes | Fernet | MultiFernet
+    ) -> str:
         value = Encrypted.decrypt(value, secret_key)
         return value.decode("utf-8")
 
@@ -127,7 +130,9 @@ class Variable(Encrypted):
         return fetch.scalar_one_or_none()
 
     @classmethod
-    def from_value(cls, key: str, value: Any, secret_key: str | bytes | Fernet) -> Self:
+    def from_value(
+        cls, key: str, value: Any, secret_key: str | bytes | Fernet | MultiFernet
+    ) -> Self:
         secret_key = ensure_fernet(secret_key)
         as_bytes = cls.encrypt(value, secret_key)
         return cls(key=key, encrypted=as_bytes)

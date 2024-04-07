@@ -8,7 +8,7 @@ from pathlib import Path
 from tempfile import gettempdir
 from typing import TYPE_CHECKING, Callable
 
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, MultiFernet
 
 from airflow_fernet_secrets.core.config import const
 
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
     from typing_extensions import ParamSpec, TypeVar
 
-    T = TypeVar("T", bound="str | bytes | Fernet", infer_variance=True)
+    T = TypeVar("T", bound="str | bytes | Fernet | MultiFernet", infer_variance=True)
     P = ParamSpec("P")
 
 __all__ = [
@@ -48,15 +48,20 @@ def load_from_cmd(cmd: str) -> str:
     return process.stdout.strip()
 
 
-def ensure_fernet(secret_key: str | bytes | Fernet) -> Fernet:
-    if isinstance(secret_key, Fernet):
+def ensure_fernet(secret_key: str | bytes | Fernet | MultiFernet) -> MultiFernet:
+    if isinstance(secret_key, MultiFernet):
         return secret_key
-    return Fernet(secret_key)
+    if isinstance(secret_key, Fernet):
+        return MultiFernet([secret_key])
+    if isinstance(secret_key, str):
+        return MultiFernet([Fernet(x.strip()) for x in secret_key.split(",")])
+    secret_key = Fernet(secret_key)
+    return MultiFernet([secret_key])
 
 
-def ensure_fernet_return(func: Callable[P, T]) -> Callable[P, Fernet]:
+def ensure_fernet_return(func: Callable[P, T]) -> Callable[P, MultiFernet]:
     @wraps(func)
-    def inner(*args: P.args, **kwargs: P.kwargs) -> Fernet:
+    def inner(*args: P.args, **kwargs: P.kwargs) -> MultiFernet:
         value: T = func(*args, **kwargs)
         return ensure_fernet(value)
 

@@ -22,7 +22,7 @@ from airflow_fernet_secrets.core.model import Variable as FernetVariable
 
 if TYPE_CHECKING:
     from airflow.secrets import BaseSecretsBackend
-    from cryptography.fernet import Fernet
+    from cryptography.fernet import Fernet, MultiFernet
     from sqlalchemy.engine import Engine
     from sqlalchemy.engine.url import URL
 
@@ -48,7 +48,7 @@ class CommonFernetLocalSecretsBackend(
     def __init__(
         self,
         *,
-        fernet_secrets_key: str | bytes | Fernet | None = None,
+        fernet_secrets_key: str | bytes | Fernet | MultiFernet | None = None,
         fernet_secrets_backend_file_path: PathType | None = None,
     ) -> None:
         super().__init__()
@@ -69,7 +69,7 @@ class CommonFernetLocalSecretsBackend(
     def _backend_engine(self) -> Engine:
         return ensure_sqlite_engine(self._backend_url)
 
-    def _secret(self) -> Fernet:
+    def _secret(self) -> MultiFernet:
         if self._fernet_secrets_key is not None:
             return self._fernet_secrets_key
         return load_secret_key(self.log)
