@@ -18,13 +18,11 @@ __all__ = ["load_secret_key", "load_backend_file"]
 
 @ensure_fernet_return
 def load_secret_key(logger: Logger) -> str:
-    env = _env_variable(const.ENV_SECRET_KEY)
-    value = getenv(env, "")
+    value = _get_env_variable(const.ENV_SECRET_KEY)
     if value:
         return value
 
-    env = _env_variable(const.ENV_SECRET_KEY_CMD)
-    cmd = getenv(env, "")
+    cmd = _get_env_variable(const.ENV_SECRET_KEY_CMD)
     if cmd:
         value = load_from_cmd(cmd)
 
@@ -36,13 +34,11 @@ def load_secret_key(logger: Logger) -> str:
 
 
 def load_backend_file(logger: Logger) -> str:
-    env = _env_variable(const.ENV_BACKEND_FILE)
-    file = getenv(env, "")
+    file = _get_env_variable(const.ENV_BACKEND_FILE)
     if file:
         return file
 
-    env = _env_variable(const.ENV_BACKEND_FILE_CMD)
-    cmd = getenv(env, "")
+    cmd = _get_env_variable(const.ENV_BACKEND_FILE_CMD)
     if cmd:
         file = load_from_cmd(cmd)
 
@@ -52,5 +48,6 @@ def load_backend_file(logger: Logger) -> str:
     return create_backend_file(logger, stacklevel=3)
 
 
-def _env_variable(name: str) -> str:
-    return const.CLIENT_ENV_PREFIX + name.upper().strip("_")
+def _get_env_variable(name: str, default_value: str | None = None) -> str:
+    key = const.CLIENT_ENV_PREFIX + name.upper().strip("_")
+    return getenv(key, default_value or "")
