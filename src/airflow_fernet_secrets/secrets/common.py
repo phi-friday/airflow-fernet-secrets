@@ -76,7 +76,6 @@ class CommonFernetLocalSecretsBackend(
 
     @override
     def get_conn_value(self, conn_id: str) -> str | None:
-        secret_key = self._secret()
         with enter_database(self._backend_engine) as session:
             value = FernetConnection.get(session, conn_id)
             if value is None:
@@ -84,15 +83,14 @@ class CommonFernetLocalSecretsBackend(
             value = self._validate_connection(
                 conn_id=conn_id, connection=value, when="get"
             )
-            decrypted = FernetConnection.decrypt(value.encrypted, secret_key)
-            return decrypted.decode("utf-8")
+            return value.encrypted.decode("utf-8")
 
     def set_conn_value(
         self, conn_id: str, conn_type: str | None, value: str | bytes
     ) -> None:
-        secret_key = self._secret()
+        if isinstance(value, str):
+            value = value.encode("utf-8")
         with enter_database(self._backend_engine) as session:
-            value = FernetConnection.encrypt(value, secret_key)
             connection = FernetConnection.get(
                 session, conn_id=conn_id, conn_type=conn_type
             )
@@ -101,6 +99,7 @@ class CommonFernetLocalSecretsBackend(
                     encrypted=value, conn_id=conn_id, conn_type=conn_type
                 )
             else:
+                secret_key = self._secret()
                 FernetConnection.decrypt(connection.encrypted, secret_key)
                 connection.encrypted = value
             connection = self._validate_connection(
@@ -119,6 +118,8 @@ class CommonFernetLocalSecretsBackend(
 
     @override
     def deserialize_connection(self, conn_id: str, value: str | bytes) -> ConnectionT:
+        secret_key = self._secret()
+        value = secret_key.decrypt(value)
         as_dict = json.loads(value)
         as_dict = self._validate_connection_dict(
             conn_id=conn_id, connection=as_dict, when="deserialize"
@@ -133,11 +134,13 @@ class CommonFernetLocalSecretsBackend(
     def serialize_connection(
         self, conn_id: str, connection: ConnectionT
     ) -> str | bytes:
+        secret_key = self._secret()
         as_dict = self._serialize_connection(conn_id=conn_id, connection=connection)
         as_dict = self._validate_connection_dict(
             conn_id=conn_id, connection=as_dict, when="serialize"
         )
-        return json.dumps(as_dict)
+        value = json.dumps(as_dict)
+        return secret_key.encrypt(value.encode("utf-8"))
 
     def _serialize_connection(
         self, conn_id: str, connection: ConnectionT
