@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
     from airflow_fernet_secrets.core.typeshed import PathType
-    from airflow_fernet_secrets.secrets.server import FernetLocalSecretsBackend
+    from airflow_fernet_secrets.secrets.server import ServerFernetLocalSecretsBackend
 
 __all__ = ["LoadConnectionsOperator"]
 
@@ -65,7 +65,7 @@ class LoadConnectionsOperator(HasConnIds):
     def _execute_process(
         self,
         conn_id: str,
-        backend: FernetLocalSecretsBackend,
+        backend: ServerFernetLocalSecretsBackend,
         session: Session,
         stacklevel: int = 1,
     ) -> None:

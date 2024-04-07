@@ -58,8 +58,12 @@ def create_airflow_connection(
 
 def is_sql_connection(connection: Connection, conn_type: str | None = None) -> bool:
     from airflow.providers_manager import ProvidersManager
+    from airflow.utils.module_loading import import_string
 
-    hook_class = ProvidersManager().hooks.get(
+    hook_info = ProvidersManager().hooks.get(
         connection.conn_type or conn_type or "", None
     )
+    if hook_info is None:
+        return False
+    hook_class = import_string(hook_info.hook_class_name)
     return callable(getattr(hook_class, "get_sqlalchemy_engine", None))

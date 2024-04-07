@@ -15,7 +15,7 @@ from typing_extensions import override
 from airflow_fernet_secrets.core.config.common import ensure_fernet
 from airflow_fernet_secrets.core.config.server import load_secret_key
 from airflow_fernet_secrets.core.utils.cast import ensure_boolean
-from airflow_fernet_secrets.secrets.server import FernetLocalSecretsBackend
+from airflow_fernet_secrets.secrets.server import ServerFernetLocalSecretsBackend
 
 if TYPE_CHECKING:
     from airflow.utils.context import Context
@@ -50,11 +50,11 @@ class HasSecrets(BaseOperator):
             return self._fernet_secrets_key
         return load_secret_key(self.log)
 
-    def _backend(self) -> FernetLocalSecretsBackend:
+    def _backend(self) -> ServerFernetLocalSecretsBackend:
         if self._fernet_secrets_backend is not None:
             return self._fernet_secrets_backend
 
-        self._fernet_secrets_backend = FernetLocalSecretsBackend(
+        self._fernet_secrets_backend = ServerFernetLocalSecretsBackend(
             fernet_secrets_key=self._fernet_secrets_key,
             fernet_secrets_backend_file_path=self.fernet_secrets_backend_file,
         )
@@ -115,7 +115,10 @@ class HasConnIds(HasSecrets):
             self._execute_process(conn_id=conn_id, backend=backend, stacklevel=2)
 
     def _execute_process(
-        self, conn_id: str, backend: FernetLocalSecretsBackend, stacklevel: int = 1
+        self,
+        conn_id: str,
+        backend: ServerFernetLocalSecretsBackend,
+        stacklevel: int = 1,
     ) -> None:
         if not conn_id:
             self.log.warning("skip empty conn id.")

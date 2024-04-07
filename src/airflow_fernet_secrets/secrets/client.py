@@ -17,12 +17,12 @@ from airflow_fernet_secrets.secrets.common import (
 if TYPE_CHECKING:
     from airflow_fernet_secrets.core.model import Connection
 
-__all__ = ["FernetLocalSecretsBackend"]
+__all__ = ["ClientFernetLocalSecretsBackend"]
 
 ConnectionType: TypeAlias = URL
 
 
-class FernetLocalSecretsBackend(_CommonFernetLocalSecretsBackend[ConnectionType]):
+class ClientFernetLocalSecretsBackend(_CommonFernetLocalSecretsBackend[ConnectionType]):
     @override
     def set_connection(
         self, conn_id: str, conn_type: str | None, connection: ConnectionType

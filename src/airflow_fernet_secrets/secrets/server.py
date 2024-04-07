@@ -20,10 +20,10 @@ if TYPE_CHECKING:
 else:
     Connection = Any
 
-__all__ = ["FernetLocalSecretsBackend"]
+__all__ = ["ServerFernetLocalSecretsBackend"]
 
 
-class FernetLocalSecretsBackend(_CommonFernetLocalSecretsBackend[Connection]):
+class ServerFernetLocalSecretsBackend(_CommonFernetLocalSecretsBackend[Connection]):
     @override
     def set_connection(
         self, conn_id: str, conn_type: str | None, connection: Connection

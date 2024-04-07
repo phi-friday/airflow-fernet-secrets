@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from cryptography.fernet import Fernet
 
     from airflow_fernet_secrets.core.typeshed import PathType
-    from airflow_fernet_secrets.secrets.server import FernetLocalSecretsBackend
+    from airflow_fernet_secrets.secrets.server import ServerFernetLocalSecretsBackend
 
 
 __all__ = ["DumpConnectionsOperator"]
@@ -57,7 +57,10 @@ class DumpConnectionsOperator(HasConnIds):
             self._execute_process(conn_id=conn_id, backend=backend, stacklevel=2)
 
     def _execute_process(
-        self, conn_id: str, backend: FernetLocalSecretsBackend, stacklevel: int = 1
+        self,
+        conn_id: str,
+        backend: ServerFernetLocalSecretsBackend,
+        stacklevel: int = 1,
     ) -> None:
         if not conn_id:
             self.log.warning("skip empty conn id.")
