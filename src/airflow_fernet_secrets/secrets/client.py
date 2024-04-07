@@ -32,6 +32,14 @@ class ClientFernetLocalSecretsBackend(_CommonFernetLocalSecretsBackend[Connectio
         )
 
     @override
+    async def aset_connection(
+        self, conn_id: str, conn_type: str | None, connection: ConnectionType
+    ) -> None:
+        return await super().aset_connection(
+            conn_id=conn_id, conn_type="sql", connection=connection
+        )
+
+    @override
     def _deserialize_connection(
         self, conn_id: str, connection: ConnectionDict
     ) -> ConnectionType:

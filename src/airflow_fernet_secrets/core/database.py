@@ -53,7 +53,11 @@ def ensure_sqlite_url(url: str | URL, *, is_async: bool = False) -> URL:
         raise NotImplementedError
 
     if getattr(dialect, "is_async", False) is not is_async:
-        raise NotImplementedError
+        driver = url.get_driver_name()
+        if not driver and is_async:
+            url = url.set(drivername=f"{sqlite_dialect.name}+aiosqlite")
+        else:
+            raise NotImplementedError
 
     return url
 
@@ -70,7 +74,7 @@ def ensure_sqlite_sync_engine(
     if isinstance(connectable_or_url, (Engine, Connection)):
         return connectable_or_url.engine
     if isinstance(connectable_or_url, (str, URL)):
-        connectable_or_url = ensure_sqlite_url(connectable_or_url)
+        connectable_or_url = ensure_sqlite_url(connectable_or_url, is_async=False)
     if isinstance(connectable_or_url, URL):
         return cast("Engine", create_engine(connectable_or_url))
     if isinstance(connectable_or_url, Session):

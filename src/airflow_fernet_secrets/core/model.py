@@ -20,7 +20,9 @@ if TYPE_CHECKING:
     from sqlalchemy.engine import Connection as SqlalchemyConnection
     from sqlalchemy.engine import Engine
     from sqlalchemy.engine.result import Result
+    from sqlalchemy.ext.asyncio import AsyncSession
     from sqlalchemy.orm import Session, scoped_session, sessionmaker
+    from sqlalchemy.sql import Select, Update
 
 
 __all__ = ["Connection", "Variable", "migrate"]
@@ -77,6 +79,38 @@ class Encrypted(Base):
         as_bytes = _dump(value)
         return secret_key.encrypt(as_bytes)
 
+    def is_exists(self, session: Session) -> bool:
+        stmt = self._exists_stmt()
+        fetch: Result = session.execute(stmt)
+        count = fetch.scalars().one()
+        return count >= 1
+
+    async def is_aexists(self, session: AsyncSession) -> bool:
+        stmt = self._exists_stmt()
+        fetch: Result = await session.execute(stmt)
+        count = fetch.scalars().one()
+        return count >= 1
+
+    def _exists_stmt(self) -> Select:
+        raise NotImplementedError
+
+    def upsert(self, session: Session) -> None:
+        if not self.is_exists(session):
+            session.add(self)
+            return
+        stmt = self._upsert_stmt()
+        session.execute(stmt)
+
+    async def aupsert(self, session: AsyncSession) -> None:
+        if not await self.is_aexists(session):
+            session.add(self)  # type: ignore
+            return
+        stmt = self._upsert_stmt()
+        await session.execute(stmt)
+
+    def _upsert_stmt(self) -> Update:
+        raise NotImplementedError
+
 
 @mapper_registry.mapped
 @dataclass(**_DATACLASS_ARGS)
@@ -94,16 +128,51 @@ class Connection(Encrypted):
     ) -> Self | None:
         if isinstance(conn_id, int):
             return cast("Self", session.get(cls, conn_id))
+
+        stmt = cls._get_stmt(conn_id=conn_id, conn_type=conn_type)
+        fetch: Result = session.execute(stmt)
+        return fetch.scalar_one_or_none()
+
+    @classmethod
+    async def aget(
+        cls, session: AsyncSession, conn_id: int | str, conn_type: str | None = None
+    ) -> Self | None:
+        if isinstance(conn_id, int):
+            return await session.get(cls, conn_id)
+
+        stmt = cls._get_stmt(conn_id=conn_id, conn_type=conn_type)
+        fetch: Result = await session.execute(stmt)
+        return fetch.scalar_one_or_none()
+
+    @classmethod
+    def _get_stmt(cls, conn_id: int | str, conn_type: str | None = None) -> Select:
         stmt = sa.select(cls).where(cls.conn_id == conn_id)
         if conn_type:
             stmt = stmt.where(cls.conn_type == conn_type)
-
-        fetch: Result = session.execute(stmt)
-        return fetch.scalar_one_or_none()
+        return stmt
 
     @property
     def is_sql_connection(self) -> bool:
         return self.conn_type is not None and self.conn_type.lower().strip() == "sql"
+
+    @override
+    def _exists_stmt(self) -> Select:
+        model = type(self)
+        return sa.select(sa.func.count().label("count")).where(
+            model.conn_id == self.conn_id
+        )
+
+    @override
+    def _upsert_stmt(self) -> Update:
+        model = type(self)
+        table: sa.Table = self.__table__
+        pks: set[str] = set(table.primary_key.columns.keys())  # type: ignore
+        columns: list[str] = [x for x in table.columns.keys() if x not in pks]  # type: ignore  # noqa: SIM118
+        return (
+            sa.update(model)
+            .where(model.conn_id == self.conn_id)
+            .values(**{x: getattr(self, x) for x in columns})
+        )
 
 
 @mapper_registry.mapped
@@ -130,12 +199,37 @@ class Variable(Encrypted):
         return fetch.scalar_one_or_none()
 
     @classmethod
+    async def aget(cls, session: AsyncSession, key: int | str) -> Self | None:
+        if isinstance(key, int):
+            return await session.get(cls, key)
+        stmt = sa.select(cls).where(cls.key == key)
+        fetch: Result = await session.execute(stmt)
+        return fetch.scalar_one_or_none()
+
+    @classmethod
     def from_value(
         cls, key: str, value: Any, secret_key: str | bytes | Fernet | MultiFernet
     ) -> Self:
         secret_key = ensure_fernet(secret_key)
         as_bytes = cls.encrypt(value, secret_key)
         return cls(key=key, encrypted=as_bytes)
+
+    @override
+    def _exists_stmt(self) -> Select:
+        model = type(self)
+        return sa.select(sa.func.count().label("count")).where(model.key == self.key)
+
+    @override
+    def _upsert_stmt(self) -> Update:
+        model = type(self)
+        table: sa.Table = self.__table__
+        pks: set[str] = set(table.primary_key.columns.keys())  # type: ignore
+        columns: list[str] = [x for x in table.columns.keys() if x not in pks]  # type: ignore  # noqa: SIM118
+        return (
+            sa.update(model)
+            .where(model.key == self.key)
+            .values(**{x: getattr(self, x) for x in columns})
+        )
 
 
 def migrate(

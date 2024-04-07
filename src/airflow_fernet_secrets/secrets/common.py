@@ -14,7 +14,9 @@ from airflow_fernet_secrets.core.config import (
 )
 from airflow_fernet_secrets.core.database import (
     create_sqlite_url,
+    ensure_sqlite_async_engine,
     ensure_sqlite_sync_engine,
+    enter_async_database,
     enter_sync_database,
 )
 from airflow_fernet_secrets.core.log import LoggingMixin
@@ -27,6 +29,7 @@ if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
     from sqlalchemy.engine.result import Result
     from sqlalchemy.engine.url import URL
+    from sqlalchemy.ext.asyncio import AsyncEngine
 
     from airflow_fernet_secrets.connection import ConnectionDict
     from airflow_fernet_secrets.core.typeshed import PathType
@@ -59,17 +62,33 @@ class CommonFernetLocalSecretsBackend(
         self._fernet_secrets_key = (
             None if fernet_secrets_key is None else ensure_fernet(fernet_secrets_key)
         )
+        self._backend_async_engine_: AsyncEngine | None = None
 
     @cached_property
-    def _backend_url(self) -> URL:
+    def _backend_sync_url(self) -> URL:
         if self.fernet_secrets_backend_file is not None:
-            return create_sqlite_url(self.fernet_secrets_backend_file)
+            return create_sqlite_url(self.fernet_secrets_backend_file, is_async=False)
         file = load_backend_file(self.log)
-        return create_sqlite_url(file)
+        return create_sqlite_url(file, is_async=False)
+
+    @cached_property
+    def _backend_async_url(self) -> URL:
+        if self.fernet_secrets_backend_file is not None:
+            return create_sqlite_url(self.fernet_secrets_backend_file, is_async=True)
+        file = load_backend_file(self.log)
+        return create_sqlite_url(file, is_async=True)
 
     @cached_property
     def _backend_engine(self) -> Engine:
-        return ensure_sqlite_sync_engine(self._backend_url)
+        return ensure_sqlite_sync_engine(self._backend_sync_url)
+
+    async def _backend_async_engine(self) -> AsyncEngine:
+        if self._backend_async_engine_ is not None:
+            return self._backend_async_engine_
+        self._backend_async_engine_ = await ensure_sqlite_async_engine(
+            self._backend_async_url
+        )
+        return self._backend_async_engine_
 
     def _secret(self) -> MultiFernet:
         if self._fernet_secrets_key is not None:
@@ -80,12 +99,21 @@ class CommonFernetLocalSecretsBackend(
     def get_conn_value(self, conn_id: str) -> str | None:
         with enter_sync_database(self._backend_engine) as session:
             value = FernetConnection.get(session, conn_id)
-            if value is None:
-                return None
-            value = self._validate_connection(
-                conn_id=conn_id, connection=value, when="get"
-            )
-            return value.encrypted.decode("utf-8")
+            return self._get_conn_value_process(conn_id=conn_id, value=value)
+
+    async def aget_conn_value(self, conn_id: str) -> str | None:
+        engine = await self._backend_async_engine()
+        async with enter_async_database(engine) as session:
+            value = await FernetConnection.aget(session, conn_id)
+            return self._get_conn_value_process(conn_id=conn_id, value=value)
+
+    def _get_conn_value_process(
+        self, conn_id: str, value: FernetConnection | None
+    ) -> str | None:
+        if value is None:
+            return None
+        value = self._validate_connection(conn_id=conn_id, connection=value, when="get")
+        return value.encrypted.decode("utf-8")
 
     def set_conn_value(
         self, conn_id: str, conn_type: str | None, value: str | bytes
@@ -96,19 +124,46 @@ class CommonFernetLocalSecretsBackend(
             connection = FernetConnection.get(
                 session, conn_id=conn_id, conn_type=conn_type
             )
-            if connection is None:
-                connection = FernetConnection(
-                    encrypted=value, conn_id=conn_id, conn_type=conn_type
-                )
-            else:
-                secret_key = self._secret()
-                FernetConnection.decrypt(connection.encrypted, secret_key)
-                connection.encrypted = value
-            connection = self._validate_connection(
-                conn_id=conn_id, connection=connection, when="set"
+            connection = self._set_conn_value_process(
+                conn_id=conn_id, conn_type=conn_type, value=value, connection=connection
             )
-            session.add(connection)
+            connection.upsert(session)
             session.commit()
+
+    async def aset_conn_value(
+        self, conn_id: str, conn_type: str | None, value: str | bytes
+    ) -> None:
+        if isinstance(value, str):
+            value = value.encode("utf-8")
+        engine = await self._backend_async_engine()
+        async with enter_async_database(engine) as session:
+            connection = await FernetConnection.aget(
+                session, conn_id=conn_id, conn_type=conn_type
+            )
+            connection = self._set_conn_value_process(
+                conn_id=conn_id, conn_type=conn_type, value=value, connection=connection
+            )
+            await connection.aupsert(session)
+            await session.commit()
+
+    def _set_conn_value_process(
+        self,
+        conn_id: str,
+        conn_type: str | None,
+        value: bytes,
+        connection: FernetConnection | None,
+    ) -> FernetConnection:
+        if connection is None:
+            connection = FernetConnection(
+                encrypted=value, conn_id=conn_id, conn_type=conn_type
+            )
+        else:
+            secret_key = self._secret()
+            FernetConnection.decrypt(connection.encrypted, secret_key)
+            connection.encrypted = value
+        return self._validate_connection(
+            conn_id=conn_id, connection=connection, when="set"
+        )
 
     def _validate_connection(
         self,
@@ -165,11 +220,24 @@ class CommonFernetLocalSecretsBackend(
 
         return self.deserialize_connection(conn_id, value)
 
+    async def aget_connection(self, conn_id: str) -> ConnectionT | None:
+        value = await self.aget_conn_value(conn_id)
+        if value is None:
+            return None
+
+        return self.deserialize_connection(conn_id, value)
+
     def set_connection(
         self, conn_id: str, conn_type: str | None, connection: ConnectionT
     ) -> None:
         value = self.serialize_connection(conn_id, connection)
         self.set_conn_value(conn_id=conn_id, conn_type=conn_type, value=value)
+
+    async def aset_connection(
+        self, conn_id: str, conn_type: str | None, connection: ConnectionT
+    ) -> None:
+        value = self.serialize_connection(conn_id, connection)
+        await self.aset_conn_value(conn_id=conn_id, conn_type=conn_type, value=value)
 
     @override
     def get_variable(self, key: str) -> str | None:
@@ -178,6 +246,17 @@ class CommonFernetLocalSecretsBackend(
             if value is None:
                 return None
             session.expunge(value)
+
+        fernet = self._secret()
+        return FernetVariable.decrypt(value.encrypted, fernet)
+
+    async def aget_variable(self, key: str) -> str | None:
+        engine = await self._backend_async_engine()
+        async with enter_async_database(engine) as session:
+            value = await FernetVariable.aget(session, key)
+            if value is None:
+                return None
+            session.expunge(value)  # type: ignore
 
         fernet = self._secret()
         return FernetVariable.decrypt(value.encrypted, fernet)
@@ -191,8 +270,21 @@ class CommonFernetLocalSecretsBackend(
                 variable = FernetVariable(encrypted=as_bytes, key=key)
             else:
                 variable.encrypted = as_bytes
-            session.add(variable)
+            variable.upsert(session)
             session.commit()
+
+    async def aset_variable(self, key: str, value: str) -> None:
+        secret_key = self._secret()
+        engine = await self._backend_async_engine()
+        async with enter_async_database(engine) as session:
+            as_bytes = FernetVariable.encrypt(value, secret_key)
+            variable = await FernetVariable.aget(session, key)
+            if variable is None:
+                variable = FernetVariable(encrypted=as_bytes, key=key)
+            else:
+                variable.encrypted = as_bytes
+            await variable.aupsert(session)
+            await session.commit()
 
     @override
     def get_config(self, key: str) -> str | None:
@@ -202,25 +294,30 @@ class CommonFernetLocalSecretsBackend(
         self._rotate_connections()
         self._rotate_variables()
 
+    async def arotate(self) -> None:
+        await self._arotate_connections()
+        await self._arotate_variables()
+
     def _rotate_connections(self) -> None:
         secret_key = self._secret()
         do_rorate = False
+        limit = 100
+        offset = 0
         with enter_sync_database(self._backend_engine) as session:
-            fetch: Result = session.execute(sa.select(FernetConnection))
-
             while True:
-                connections = cast(
-                    "list[FernetConnection]", fetch.scalars().fetchmany(100)
+                fetch: Result = session.execute(
+                    sa.select(FernetConnection).limit(limit).offset(offset)
                 )
+                connections = cast("list[FernetConnection]", fetch.scalars().all())
                 if not connections:
                     break
 
                 for connection in connections:
                     connection.encrypted = secret_key.rotate(connection.encrypted)
-
-                session.add_all(connections)
+                    connection.upsert(session)
                 session.flush()
                 do_rorate = True
+                offset += limit
 
             if do_rorate:
                 session.commit()
@@ -228,20 +325,73 @@ class CommonFernetLocalSecretsBackend(
     def _rotate_variables(self) -> None:
         do_rorate = False
         secret_key = self._secret()
+        limit = 100
+        offset = 0
         with enter_sync_database(self._backend_engine) as session:
-            fetch: Result = session.execute(sa.select(FernetVariable))
-
             while True:
-                variables = cast("list[FernetVariable]", fetch.scalars().fetchmany(100))
+                fetch: Result = session.execute(
+                    sa.select(FernetVariable).limit(limit).offset(offset)
+                )
+                variables = cast("list[FernetVariable]", fetch.scalars().all())
                 if not variables:
                     break
 
                 for variable in variables:
                     variable.encrypted = secret_key.rotate(variable.encrypted)
-
-                session.add_all(variables)
+                    variable.upsert(session)
                 session.flush()
                 do_rorate = True
+                offset += limit
 
             if do_rorate:
                 session.commit()
+
+    async def _arotate_connections(self) -> None:
+        secret_key = self._secret()
+        do_rorate = False
+        engine = await self._backend_async_engine()
+        limit = 100
+        offset = 0
+        async with enter_async_database(engine) as session:
+            while True:
+                fetch: Result = await session.execute(
+                    sa.select(FernetConnection).limit(limit).offset(offset)
+                )
+                connections = cast("list[FernetConnection]", fetch.scalars().all())
+                if not connections:
+                    break
+
+                for connection in connections:
+                    connection.encrypted = secret_key.rotate(connection.encrypted)
+                    await connection.aupsert(session)
+                await session.flush()
+                do_rorate = True
+                offset += limit
+
+            if do_rorate:
+                await session.commit()
+
+    async def _arotate_variables(self) -> None:
+        do_rorate = False
+        secret_key = self._secret()
+        engine = await self._backend_async_engine()
+        limit = 100
+        offset = 0
+        async with enter_async_database(engine) as session:
+            while True:
+                fetch: Result = await session.execute(
+                    sa.select(FernetVariable).limit(limit).offset(offset)
+                )
+                variables = cast("list[FernetVariable]", fetch.scalars().all())
+                if not variables:
+                    break
+
+                for variable in variables:
+                    variable.encrypted = secret_key.rotate(variable.encrypted)
+                    await variable.aupsert(session)
+                await session.flush()
+                do_rorate = True
+                offset += limit
+
+            if do_rorate:
+                await session.commit()
