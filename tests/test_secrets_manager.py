@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import tempfile
 import warnings
 from pathlib import Path
 from uuid import uuid4
@@ -71,47 +70,44 @@ def test_server_connection_touch(server_backend, default_conn_id):
     assert values == [(1,)]
 
 
-def test_server_to_client(server_backend, client_backend):
+def test_server_to_client(server_backend, client_backend, temp_dir):
     conn_id = str(uuid4())
-    with tempfile.TemporaryDirectory() as temp_dir:
-        file = Path(temp_dir) / str(uuid4())
-        connection = Connection(
-            conn_id=conn_id,
-            conn_type="sqlite",
-            host=str(file),
-            extra={"some_key": "some_value"},
-        )
-        server_backend.set_connection(
-            conn_id=conn_id, conn_type=None, connection=connection
-        )
-        hook = get_hook(connection)
-        assert isinstance(hook, DbApiHook)
-        server_url = hook.get_uri()
+    file = temp_dir / str(uuid4())
+    connection = Connection(
+        conn_id=conn_id,
+        conn_type="sqlite",
+        host=str(file),
+        extra={"some_key": "some_value"},
+    )
+    server_backend.set_connection(
+        conn_id=conn_id, conn_type=None, connection=connection
+    )
+    hook = get_hook(connection)
+    assert isinstance(hook, DbApiHook)
+    server_url = hook.get_uri()
 
-        connection = client_backend.get_connection(conn_id=conn_id)
-        assert connection is not None
-        assert isinstance(connection, URL)
-        client_url = connection.render_as_string()
+    connection = client_backend.get_connection(conn_id=conn_id)
+    assert connection is not None
+    assert isinstance(connection, URL)
+    client_url = connection.render_as_string()
     assert server_url == client_url
 
 
-def test_client_to_server(server_backend, client_backend):
+def test_client_to_server(server_backend, client_backend, temp_dir):
     conn_id = str(uuid4())
-    with tempfile.TemporaryDirectory() as temp_dir:
-        file = Path(temp_dir) / str(uuid4())
-        client_url: str = URL.create(
-            "sqlite", database=str(file), query={"some_key": "some_value"}
-        ).render_as_string()
-        client_backend.set_connection(
-            conn_id=conn_id, conn_type=None, connection=client_url
-        )
+    file = Path(temp_dir) / str(uuid4())
+    client_url: str = URL.create(
+        "sqlite", database=str(file), query={"some_key": "some_value"}
+    ).render_as_string()
+    client_backend.set_connection(
+        conn_id=conn_id, conn_type=None, connection=client_url
+    )
 
-        connection = server_backend.get_connection(conn_id=conn_id)
-        assert connection is not None
-        hook = get_hook(connection)
-        assert isinstance(hook, DbApiHook)
-        server_url = hook.get_uri()
-
+    connection = server_backend.get_connection(conn_id=conn_id)
+    assert connection is not None
+    hook = get_hook(connection)
+    assert isinstance(hook, DbApiHook)
+    server_url = hook.get_uri()
     assert server_url == client_url
 
 

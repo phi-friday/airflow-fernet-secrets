@@ -102,3 +102,14 @@ def server_backend(secret_key, backend_path) -> ServerFernetLocalSecretsBackend:
     return ServerFernetLocalSecretsBackend(
         fernet_secrets_key=secret_key, fernet_secrets_backend_file_path=backend_path
     )
+
+
+@pytest.fixture()
+def temp_dir():
+    with TemporaryDirectory() as temp_dir_str:
+        yield Path(temp_dir_str)
+
+
+@pytest.fixture()
+def temp_file(temp_dir: Path):
+    return temp_dir / str(uuid4())
