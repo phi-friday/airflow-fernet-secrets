@@ -74,6 +74,6 @@ def create_url(connection: ConnectionDict) -> URL:
     )
 
     if driver.backend == sqlite_dialect.name:
-        url = url.set(host=None, database=url.host)
+        url = url.set(host="", database=url.host)
 
     return url
