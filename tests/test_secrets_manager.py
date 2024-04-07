@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import warnings
-from pathlib import Path
-from uuid import uuid4
 
 import pytest
 import sqlalchemy as sa
@@ -70,13 +68,12 @@ def test_server_connection_touch(server_backend, default_conn_id):
     assert values == [(1,)]
 
 
-def test_server_to_client(server_backend, client_backend, temp_dir):
-    conn_id = str(uuid4())
-    file = temp_dir / str(uuid4())
+def test_server_to_client(server_backend, client_backend, temp_file):
+    conn_id = temp_file.stem
     connection = Connection(
         conn_id=conn_id,
         conn_type="sqlite",
-        host=str(file),
+        host=str(temp_file),
         extra={"some_key": "some_value"},
     )
     server_backend.set_connection(
@@ -93,11 +90,10 @@ def test_server_to_client(server_backend, client_backend, temp_dir):
     assert server_url == client_url
 
 
-def test_client_to_server(server_backend, client_backend, temp_dir):
-    conn_id = str(uuid4())
-    file = Path(temp_dir) / str(uuid4())
+def test_client_to_server(server_backend, client_backend, temp_file):
+    conn_id = temp_file.stem
     client_url: str = URL.create(
-        "sqlite", database=str(file), query={"some_key": "some_value"}
+        "sqlite", database=str(temp_file), query={"some_key": "some_value"}
     ).render_as_string()
     client_backend.set_connection(
         conn_id=conn_id, conn_type=None, connection=client_url
