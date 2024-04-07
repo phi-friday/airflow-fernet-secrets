@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import json
 from functools import cached_property
-from typing import TYPE_CHECKING, Generic, Literal
+from typing import TYPE_CHECKING, Generic, Literal, cast
 
+import sqlalchemy as sa
 from typing_extensions import TypeVar, override
 
 from airflow_fernet_secrets.core.config import (
@@ -24,6 +25,7 @@ if TYPE_CHECKING:
     from airflow.secrets import BaseSecretsBackend
     from cryptography.fernet import Fernet, MultiFernet
     from sqlalchemy.engine import Engine
+    from sqlalchemy.engine.result import Result
     from sqlalchemy.engine.url import URL
 
     from airflow_fernet_secrets.connection import ConnectionDict
@@ -195,3 +197,51 @@ class CommonFernetLocalSecretsBackend(
     @override
     def get_config(self, key: str) -> str | None:
         return None
+
+    def rotate(self) -> None:
+        self._rotate_connections()
+        self._rotate_variables()
+
+    def _rotate_connections(self) -> None:
+        secret_key = self._secret()
+        do_rorate = False
+        with enter_database(self._backend_engine) as session:
+            fetch: Result = session.execute(sa.select(FernetConnection))
+
+            while True:
+                connections = cast(
+                    "list[FernetConnection]", fetch.scalars().fetchmany(100)
+                )
+                if not connections:
+                    break
+
+                for connection in connections:
+                    connection.encrypted = secret_key.rotate(connection.encrypted)
+
+                session.add_all(connections)
+                session.flush()
+                do_rorate = True
+
+            if do_rorate:
+                session.commit()
+
+    def _rotate_variables(self) -> None:
+        do_rorate = False
+        secret_key = self._secret()
+        with enter_database(self._backend_engine) as session:
+            fetch: Result = session.execute(sa.select(FernetVariable))
+
+            while True:
+                variables = cast("list[FernetVariable]", fetch.scalars().fetchmany(100))
+                if not variables:
+                    break
+
+                for variable in variables:
+                    variable.encrypted = secret_key.rotate(variable.encrypted)
+
+                session.add_all(variables)
+                session.flush()
+                do_rorate = True
+
+            if do_rorate:
+                session.commit()
