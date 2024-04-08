@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, Sequence
 from airflow.models.connection import Connection
 from typing_extensions import override
 
+from airflow_fernet_secrets.core.utils.cast import ensure_boolean
 from airflow_fernet_secrets.operators.base import HasConnIds
 
 if TYPE_CHECKING:
@@ -25,6 +26,7 @@ class DumpConnectionsOperator(HasConnIds):
         "fernet_secrets_conn_ids_separator",
         "fernet_secrets_key",
         "fernet_secrets_backend_file_path",
+        "fernet_secrets_overwrite",
     )
 
     def __init__(
@@ -35,6 +37,7 @@ class DumpConnectionsOperator(HasConnIds):
         fernet_secrets_conn_ids_separator: str = ",",
         fernet_secrets_key: str | bytes | Fernet | None = None,
         fernet_secrets_backend_file_path: PathType | None = None,
+        fernet_secrets_overwrite: str | bool = False,
         **kwargs: Any,
     ) -> None:
         super().__init__(
@@ -45,6 +48,8 @@ class DumpConnectionsOperator(HasConnIds):
             fernet_secrets_backend_file_path=fernet_secrets_backend_file_path,
             **kwargs,
         )
+        fernet_secrets_overwrite = ensure_boolean(fernet_secrets_overwrite)
+        self.fernet_secrets_overwrite = fernet_secrets_overwrite
 
     @override
     def execute(self, context: Context) -> Any:
@@ -67,7 +72,7 @@ class DumpConnectionsOperator(HasConnIds):
             return
 
         conn_value = backend.get_conn_value(conn_id)
-        if conn_value:
+        if conn_value and not self.fernet_secrets_overwrite:
             self.log.info(
                 "secret backend already has %s", conn_id, stacklevel=stacklevel
             )
