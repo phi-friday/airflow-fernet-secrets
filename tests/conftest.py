@@ -91,7 +91,7 @@ def client_backend(
     if value is not None:
         return backend
 
-    backend.set_connection(default_conn_id, None, default_conn)
+    backend.set_connection(default_conn_id, default_conn)
     return backend
 
 

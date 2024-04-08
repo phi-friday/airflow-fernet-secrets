@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
+from airflow.models.connection import Connection
 from typing_extensions import override
 
 from airflow_fernet_secrets.connection.server import (
@@ -9,6 +10,7 @@ from airflow_fernet_secrets.connection.server import (
     create_airflow_connection,
     is_sql_connection,
 )
+from airflow_fernet_secrets.core.config import const
 from airflow_fernet_secrets.secrets.common import (
     CommonFernetLocalSecretsBackend as _CommonFernetLocalSecretsBackend,
 )
@@ -25,34 +27,10 @@ __all__ = ["ServerFernetLocalSecretsBackend"]
 
 class ServerFernetLocalSecretsBackend(_CommonFernetLocalSecretsBackend[Connection]):
     @override
-    def set_connection(
-        self, conn_id: str, conn_type: str | None, connection: Connection
-    ) -> None:
-        conn_type_or_null: str | None = (
-            "sql"
-            if is_sql_connection(connection, conn_type=conn_type)
-            else conn_type
-            if connection.conn_type is None
-            else connection.conn_type
-        )
-        return super().set_connection(
-            conn_id=conn_id, conn_type=conn_type_or_null, connection=connection
-        )
-
-    @override
-    async def aset_connection(
-        self, conn_id: str, conn_type: str | None, connection: Connection
-    ) -> None:
-        conn_type_or_null: str | None = (
-            "sql"
-            if is_sql_connection(connection, conn_type=conn_type)
-            else conn_type
-            if connection.conn_type is None
-            else connection.conn_type
-        )
-        return await super().aset_connection(
-            conn_id=conn_id, conn_type=conn_type_or_null, connection=connection
-        )
+    def _get_conn_type(self, connection: Connection) -> str:
+        if is_sql_connection(connection):
+            return const.SQL_CONN_TYPE
+        return cast("str", connection.conn_type)
 
     @override
     def _deserialize_connection(

@@ -115,15 +115,11 @@ class CommonFernetLocalSecretsBackend(
         value = self._validate_connection(conn_id=conn_id, connection=value, when="get")
         return value.encrypted.decode("utf-8")
 
-    def set_conn_value(
-        self, conn_id: str, conn_type: str | None, value: str | bytes
-    ) -> None:
+    def set_conn_value(self, conn_id: str, conn_type: str, value: str | bytes) -> None:
         if isinstance(value, str):
             value = value.encode("utf-8")
         with enter_sync_database(self._backend_engine) as session:
-            connection = FernetConnection.get(
-                session, conn_id=conn_id, conn_type=conn_type
-            )
+            connection = FernetConnection.get(session, conn_id=conn_id)
             connection = self._set_conn_value_process(
                 conn_id=conn_id, conn_type=conn_type, value=value, connection=connection
             )
@@ -131,15 +127,13 @@ class CommonFernetLocalSecretsBackend(
             session.commit()
 
     async def aset_conn_value(
-        self, conn_id: str, conn_type: str | None, value: str | bytes
+        self, conn_id: str, conn_type: str, value: str | bytes
     ) -> None:
         if isinstance(value, str):
             value = value.encode("utf-8")
         engine = await self._backend_async_engine()
         async with enter_async_database(engine) as session:
-            connection = await FernetConnection.aget(
-                session, conn_id=conn_id, conn_type=conn_type
-            )
+            connection = await FernetConnection.aget(session, conn_id=conn_id)
             connection = self._set_conn_value_process(
                 conn_id=conn_id, conn_type=conn_type, value=value, connection=connection
             )
@@ -149,7 +143,7 @@ class CommonFernetLocalSecretsBackend(
     def _set_conn_value_process(
         self,
         conn_id: str,
-        conn_type: str | None,
+        conn_type: str,
         value: bytes,
         connection: FernetConnection | None,
     ) -> FernetConnection:
@@ -165,14 +159,6 @@ class CommonFernetLocalSecretsBackend(
             conn_id=conn_id, connection=connection, when="set"
         )
 
-    def _validate_connection(
-        self,
-        conn_id: str,  # noqa: ARG002
-        connection: FernetConnection,
-        when: Literal["get", "set"],  # noqa: ARG002
-    ) -> FernetConnection:
-        return connection
-
     @override
     def deserialize_connection(self, conn_id: str, value: str | bytes) -> ConnectionT:
         secret_key = self._secret()
@@ -182,11 +168,6 @@ class CommonFernetLocalSecretsBackend(
             conn_id=conn_id, connection=as_dict, when="deserialize"
         )
         return self._deserialize_connection(conn_id=conn_id, connection=as_dict)
-
-    def _deserialize_connection(
-        self, conn_id: str, connection: ConnectionDict
-    ) -> ConnectionT:
-        raise NotImplementedError
 
     def serialize_connection(
         self, conn_id: str, connection: ConnectionT
@@ -198,19 +179,6 @@ class CommonFernetLocalSecretsBackend(
         )
         value = json.dumps(as_dict)
         return secret_key.encrypt(value.encode("utf-8"))
-
-    def _serialize_connection(
-        self, conn_id: str, connection: ConnectionT
-    ) -> ConnectionDict:
-        raise NotImplementedError
-
-    def _validate_connection_dict(
-        self,
-        conn_id: str,  # noqa: ARG002
-        connection: ConnectionDict,
-        when: Literal["serialize", "deserialize"],  # noqa: ARG002
-    ) -> ConnectionDict:
-        return connection
 
     @override
     def get_connection(self, conn_id: str) -> ConnectionT | None:
@@ -227,15 +195,13 @@ class CommonFernetLocalSecretsBackend(
 
         return self.deserialize_connection(conn_id, value)
 
-    def set_connection(
-        self, conn_id: str, conn_type: str | None, connection: ConnectionT
-    ) -> None:
+    def set_connection(self, conn_id: str, connection: ConnectionT) -> None:
+        conn_type = self._get_conn_type(connection)
         value = self.serialize_connection(conn_id, connection)
         self.set_conn_value(conn_id=conn_id, conn_type=conn_type, value=value)
 
-    async def aset_connection(
-        self, conn_id: str, conn_type: str | None, connection: ConnectionT
-    ) -> None:
+    async def aset_connection(self, conn_id: str, connection: ConnectionT) -> None:
+        conn_type = self._get_conn_type(connection)
         value = self.serialize_connection(conn_id, connection)
         await self.aset_conn_value(conn_id=conn_id, conn_type=conn_type, value=value)
 
@@ -395,3 +361,36 @@ class CommonFernetLocalSecretsBackend(
 
             if do_rorate:
                 await session.commit()
+
+    # abc
+
+    def _deserialize_connection(
+        self, conn_id: str, connection: ConnectionDict
+    ) -> ConnectionT:
+        raise NotImplementedError
+
+    def _serialize_connection(
+        self, conn_id: str, connection: ConnectionT
+    ) -> ConnectionDict:
+        raise NotImplementedError
+
+    def _get_conn_type(self, connection: ConnectionT) -> str:
+        raise NotImplementedError
+
+    # validate
+
+    def _validate_connection(
+        self,
+        conn_id: str,  # noqa: ARG002
+        connection: FernetConnection,
+        when: Literal["get", "set"],  # noqa: ARG002
+    ) -> FernetConnection:
+        return connection
+
+    def _validate_connection_dict(
+        self,
+        conn_id: str,  # noqa: ARG002
+        connection: ConnectionDict,
+        when: Literal["serialize", "deserialize"],  # noqa: ARG002
+    ) -> ConnectionDict:
+        return connection

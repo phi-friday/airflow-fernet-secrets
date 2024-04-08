@@ -10,6 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import declared_attr, registry
 from typing_extensions import Self, TypeGuard, override
 
+from airflow_fernet_secrets.core.config import const
 from airflow_fernet_secrets.core.config.common import ensure_fernet
 from airflow_fernet_secrets.core.utils.re import camel_to_snake
 
@@ -139,44 +140,40 @@ class Encrypted(Base):
 @dataclass(**_DATACLASS_ARGS)
 class Connection(Encrypted):
     conn_id: str = field(
-        metadata={"sa": sa.Column(sa.String(2**8), index=True, unique=True)}
+        metadata={
+            "sa": sa.Column(sa.String(2**8), index=True, unique=True, nullable=False)
+        }
     )
-    conn_type: str | None = field(
-        metadata={"sa": sa.Column(sa.String(2**8), nullable=True)}
-    )
+    conn_type: str = field(metadata={"sa": sa.Column(sa.String(2**8), nullable=False)})
 
     @classmethod
-    def get(
-        cls, session: Session, conn_id: int | str, conn_type: str | None = None
-    ) -> Self | None:
+    def get(cls, session: Session, conn_id: int | str) -> Self | None:
         if isinstance(conn_id, int):
             return cast("Self", session.get(cls, conn_id))
 
-        stmt = cls._get_stmt(conn_id=conn_id, conn_type=conn_type)
+        stmt = cls._get_stmt(conn_id=conn_id)
         fetch: Result = session.execute(stmt)
         return fetch.scalar_one_or_none()
 
     @classmethod
-    async def aget(
-        cls, session: AsyncSession, conn_id: int | str, conn_type: str | None = None
-    ) -> Self | None:
+    async def aget(cls, session: AsyncSession, conn_id: int | str) -> Self | None:
         if isinstance(conn_id, int):
             return await session.get(cls, conn_id)
 
-        stmt = cls._get_stmt(conn_id=conn_id, conn_type=conn_type)
+        stmt = cls._get_stmt(conn_id=conn_id)
         fetch: Result = await session.execute(stmt)
         return fetch.scalar_one_or_none()
 
     @classmethod
-    def _get_stmt(cls, conn_id: int | str, conn_type: str | None = None) -> Select:
-        stmt = sa.select(cls).where(cls.conn_id == conn_id)
-        if conn_type:
-            stmt = stmt.where(cls.conn_type == conn_type)
-        return stmt
+    def _get_stmt(cls, conn_id: int | str) -> Select:
+        return sa.select(cls).where(cls.conn_id == conn_id)
 
     @property
     def is_sql_connection(self) -> bool:
-        return self.conn_type is not None and self.conn_type.lower().strip() == "sql"
+        return (
+            self.conn_type is not None
+            and self.conn_type.lower().strip() == const.SQL_CONN_TYPE
+        )
 
     @override
     def _exists_stmt(self) -> Select:
@@ -207,7 +204,9 @@ class Connection(Encrypted):
 @dataclass(**_DATACLASS_ARGS)
 class Variable(Encrypted):
     key: str = field(
-        metadata={"sa": sa.Column(sa.String(2**8), index=True, unique=True)}
+        metadata={
+            "sa": sa.Column(sa.String(2**8), index=True, unique=True, nullable=False)
+        }
     )
 
     @staticmethod
@@ -324,7 +323,7 @@ def _run_as_json(value: AirflowConnection) -> str:
 
 
 def _get_variable(value: AirflowVariable) -> str:
-    return value.val
+    return cast(str, value.val)
 
 
 def _fullname(value: type[Any]) -> str:

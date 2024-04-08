@@ -10,6 +10,7 @@ from airflow_fernet_secrets.connection.client import (
     convert_connectable_to_dict,
     create_url,
 )
+from airflow_fernet_secrets.core.config import const
 from airflow_fernet_secrets.secrets.common import (
     CommonFernetLocalSecretsBackend as _CommonFernetLocalSecretsBackend,
 )
@@ -24,20 +25,8 @@ ConnectionType: TypeAlias = URL
 
 class ClientFernetLocalSecretsBackend(_CommonFernetLocalSecretsBackend[ConnectionType]):
     @override
-    def set_connection(
-        self, conn_id: str, conn_type: str | None, connection: ConnectionType
-    ) -> None:
-        return super().set_connection(
-            conn_id=conn_id, conn_type="sql", connection=connection
-        )
-
-    @override
-    async def aset_connection(
-        self, conn_id: str, conn_type: str | None, connection: ConnectionType
-    ) -> None:
-        return await super().aset_connection(
-            conn_id=conn_id, conn_type="sql", connection=connection
-        )
+    def _get_conn_type(self, connection: URL) -> str:
+        return const.SQL_CONN_TYPE
 
     @override
     def _deserialize_connection(

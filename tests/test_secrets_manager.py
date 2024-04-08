@@ -76,9 +76,7 @@ def test_server_to_client(server_backend, client_backend, temp_file):
         host=str(temp_file),
         extra={"some_key": "some_value"},
     )
-    server_backend.set_connection(
-        conn_id=conn_id, conn_type=None, connection=connection
-    )
+    server_backend.set_connection(conn_id=conn_id, connection=connection)
     hook = get_hook(connection)
     assert isinstance(hook, DbApiHook)
     server_url = hook.get_uri()
@@ -95,9 +93,7 @@ def test_client_to_server(server_backend, client_backend, temp_file):
     client_url: str = URL.create(
         "sqlite", database=str(temp_file), query={"some_key": "some_value"}
     ).render_as_string()
-    client_backend.set_connection(
-        conn_id=conn_id, conn_type=None, connection=client_url
-    )
+    client_backend.set_connection(conn_id=conn_id, connection=client_url)
 
     connection = server_backend.get_connection(conn_id=conn_id)
     assert connection is not None

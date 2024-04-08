@@ -23,13 +23,14 @@ __all__ = [
 
 def convert_connection_to_dict(connection: Connection) -> ConnectionDict:
     as_dict = connection.to_dict()
+    conn_type = _get_conn_type(connection)
     if is_sql_connection(connection):
         uri = connection.get_uri()
         url = cast("URL", make_url(uri))
         backend = url.get_backend_name()
-        driver = create_driver(backend=backend, conn_type=connection.conn_type)
+        driver = create_driver(backend=backend, conn_type=conn_type)
     else:
-        driver = create_driver(conn_type=connection.conn_type)
+        driver = create_driver(conn_type=conn_type)
 
     result: ConnectionDict = {"driver": driver, "extra": as_dict["extra"]}
 
@@ -56,14 +57,17 @@ def create_airflow_connection(
     return Connection.from_json(as_json, conn_id=conn_id)
 
 
-def is_sql_connection(connection: Connection, conn_type: str | None = None) -> bool:
+def is_sql_connection(connection: Connection) -> bool:
     from airflow.providers_manager import ProvidersManager
     from airflow.utils.module_loading import import_string
 
-    hook_info = ProvidersManager().hooks.get(
-        connection.conn_type or conn_type or "", None
-    )
+    conn_type = _get_conn_type(connection)
+    hook_info = ProvidersManager().hooks.get(conn_type, None)
     if hook_info is None:
         return False
     hook_class = import_string(hook_info.hook_class_name)
     return callable(getattr(hook_class, "get_sqlalchemy_engine", None))
+
+
+def _get_conn_type(connection: Connection) -> str:
+    return cast(str, connection.conn_type)

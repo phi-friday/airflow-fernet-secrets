@@ -27,3 +27,5 @@ RE_CONNECTION_TYPE_DRIVER_FORMAT = (
     rf":(?P<dialect>{_ASCII}*?)"
     rf":(?P<conn_type>{_ASCII}+)"
 )
+
+SQL_CONN_TYPE = "sql"

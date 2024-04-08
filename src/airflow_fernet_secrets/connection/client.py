@@ -1,21 +1,20 @@
 from __future__ import annotations
 
-from typing import cast
-
 from sqlalchemy.dialects.sqlite import dialect as sqlite_dialect
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.url import URL, make_url
-from sqlalchemy.orm import Session, scoped_session, sessionmaker
+from sqlalchemy.orm import Session
 
 from airflow_fernet_secrets.connection import (
     ConnectionDict,
     create_driver,
     parse_driver,
 )
+from airflow_fernet_secrets.core.database import SessionMaker
 
 
 def convert_url_to_dict(url: str | URL) -> ConnectionDict:
-    url = cast("URL", make_url(url))
+    url = make_url(url)
     backend = url.get_backend_name()
     dialect = url.get_driver_name()
     driver = create_driver(backend=backend, dialect=dialect)
@@ -25,8 +24,11 @@ def convert_url_to_dict(url: str | URL) -> ConnectionDict:
         result["host"] = url.host
     if url.username:
         result["login"] = url.username
-    if url.password:
-        result["password"] = url.password
+    if url.password is not None:
+        if isinstance(url.password, str):
+            result["password"] = url.password
+        else:
+            result["password"] = str(url.password)
     if url.database:
         if backend == sqlite_dialect.name:
             result["host"] = url.database
@@ -39,17 +41,11 @@ def convert_url_to_dict(url: str | URL) -> ConnectionDict:
 
 
 def convert_connectable_to_dict(
-    connectable: Engine
-    | Connection
-    | sessionmaker
-    | scoped_session
-    | Session
-    | URL
-    | str,
+    connectable: Engine | Connection | SessionMaker[Session] | Session | URL | str,
 ) -> ConnectionDict:
     if isinstance(connectable, (Engine, Connection)):
         return convert_url_to_dict(connectable.engine.url)
-    if isinstance(connectable, (sessionmaker, scoped_session)):
+    if isinstance(connectable, SessionMaker):
         connectable = connectable()
     if isinstance(connectable, Session):
         connection: Connection = connectable.connection()
