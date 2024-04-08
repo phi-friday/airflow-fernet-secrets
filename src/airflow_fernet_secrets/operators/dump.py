@@ -74,4 +74,4 @@ class DumpConnectionsOperator(HasConnIds):
             return
 
         connection = Connection.get_connection_from_secrets(conn_id)
-        backend.set_connection(conn_id, connection.conn_type, connection)
+        backend.set_connection(conn_id, connection)
