@@ -97,39 +97,57 @@ class Encrypted(Base):
         count = fetch.scalars().one()
         return count >= 1
 
-    def _exists_stmt(self) -> Select:
-        raise NotImplementedError
-
-    def upsert(self, session: Session) -> None:
+    def upsert(
+        self, session: Session, secret_key: str | bytes | Fernet | MultiFernet
+    ) -> None:
+        secret_key = ensure_fernet(secret_key)
+        secret_key.decrypt(self.encrypted)
         if not self.is_exists(session):
             session.add(self)
             return
         stmt = self._upsert_stmt().execution_options(synchronize_session="fetch")
         session.execute(stmt)
 
-    async def aupsert(self, session: AsyncSession) -> None:
+    async def aupsert(
+        self, session: AsyncSession, secret_key: str | bytes | Fernet | MultiFernet
+    ) -> None:
+        secret_key = ensure_fernet(secret_key)
+        secret_key.decrypt(self.encrypted)
         if not await self.is_aexists(session):
             session.add(self)
             return
         stmt = self._upsert_stmt().execution_options(synchronize_session="fetch")
         await session.execute(stmt)
 
-    def _upsert_stmt(self) -> Update:
-        raise NotImplementedError
-
-    def delete(self, session: Session) -> None:
+    def delete(
+        self, session: Session, secret_key: str | bytes | Fernet | MultiFernet
+    ) -> None:
+        secret_key = ensure_fernet(secret_key)
+        secret_key.decrypt(self.encrypted)
         if self.is_exists(session):
             session.delete(self)
             return
         stmt = self._delete_stmt().execution_options(synchronize_session="fetch")
         session.execute(stmt)
 
-    async def adelete(self, session: AsyncSession) -> None:
+    async def adelete(
+        self, session: AsyncSession, secret_key: str | bytes | Fernet | MultiFernet
+    ) -> None:
+        secret_key = ensure_fernet(secret_key)
+        secret_key.decrypt(self.encrypted)
         if await self.is_aexists(session):
             await session.delete(self)
             return
         stmt = self._delete_stmt().execution_options(synchronize_session="fetch")
         await session.execute(stmt)
+
+    # abc
+
+    def _exists_stmt(self) -> Select:
+        raise NotImplementedError
+
+    def _upsert_stmt(self) -> Update:
+        raise NotImplementedError
 
     def _delete_stmt(self) -> Delete:
         raise NotImplementedError
@@ -173,6 +191,8 @@ class Connection(Encrypted):
             self.conn_type is not None
             and self.conn_type.lower().strip() == const.SQL_CONN_TYPE
         )
+
+    # abc
 
     @override
     def _exists_stmt(self) -> Select:
@@ -225,6 +245,10 @@ class Variable(Encrypted):
         return fetch.scalar_one_or_none()
 
     @classmethod
+    def _get_stmt(cls, key: str) -> Select:
+        return sa.select(cls).where(cls.key == key)
+
+    @classmethod
     async def aget(cls, session: AsyncSession, key: int | str) -> Self | None:
         if isinstance(key, int):
             return await session.get(cls, key)
@@ -239,6 +263,8 @@ class Variable(Encrypted):
         secret_key = ensure_fernet(secret_key)
         as_bytes = cls.encrypt(value, secret_key)
         return cls(key=key, encrypted=as_bytes)
+
+    # abc
 
     @override
     def _exists_stmt(self) -> Select:

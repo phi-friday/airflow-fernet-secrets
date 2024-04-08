@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import warnings
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Generator
 
 import pytest
@@ -164,6 +165,87 @@ async def test_aset_server_connection(secret_key, backend_path, temp_file):
     old_str = old.get_uri()
     new_str = new.get_uri()
     assert old_str == new_str
+
+
+@pytest.mark.parametrize("side", ["client", "server"])
+def test_delete_connection(
+    side: str, secret_key: bytes, backend_path: Path, temp_file: Path
+) -> None:
+    setup(is_server=side == "server")
+
+    from airflow_fernet_secrets.core.database import create_sqlite_url
+    from airflow_fernet_secrets.secrets import FernetLocalSecretsBackend
+
+    backend = FernetLocalSecretsBackend(
+        fernet_secrets_key=secret_key, fernet_secrets_backend_file_path=backend_path
+    )
+
+    conn_id = temp_file.stem
+    conn = backend.get_connection(conn_id)
+    assert conn is None
+
+    if side == "client":
+        connection = create_sqlite_url(
+            temp_file, is_async=False, query={"some_key": "some_value"}
+        )
+    elif side == "server":
+        connection = Connection(
+            conn_id=conn_id,
+            conn_type="sqlite",
+            host=str(temp_file),
+            extra={"some_key": "some_value"},
+        )
+    else:
+        raise NotImplementedError
+    backend.set_connection(conn_id=conn_id, connection=connection)
+
+    conn = backend.get_connection(conn_id)
+    assert conn is not None
+
+    backend.delete_connection(conn_id)
+    conn = backend.get_connection(conn_id)
+    assert conn is None
+
+
+@pytest.mark.parametrize("side", ["client", "server"])
+@pytest.mark.anyio()
+async def test_adelete_connection(
+    side: str, secret_key: bytes, backend_path: Path, temp_file: Path
+) -> None:
+    setup(is_server=side == "server")
+
+    from airflow_fernet_secrets.core.database import create_sqlite_url
+    from airflow_fernet_secrets.secrets import FernetLocalSecretsBackend
+
+    backend = FernetLocalSecretsBackend(
+        fernet_secrets_key=secret_key, fernet_secrets_backend_file_path=backend_path
+    )
+
+    conn_id = temp_file.stem
+    conn = await backend.aget_connection(conn_id)
+    assert conn is None
+
+    if side == "client":
+        connection = create_sqlite_url(
+            temp_file, is_async=False, query={"some_key": "some_value"}
+        )
+    elif side == "server":
+        connection = Connection(
+            conn_id=conn_id,
+            conn_type="sqlite",
+            host=str(temp_file),
+            extra={"some_key": "some_value"},
+        )
+    else:
+        raise NotImplementedError
+    await backend.aset_connection(conn_id=conn_id, connection=connection)
+
+    conn = await backend.aget_connection(conn_id)
+    assert conn is not None
+
+    await backend.adelete_connection(conn_id)
+    conn = await backend.aget_connection(conn_id)
+    assert conn is None
 
 
 def test_client_connection_touch(client_backend, default_conn_id):
