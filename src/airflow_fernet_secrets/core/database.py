@@ -8,6 +8,7 @@ from typing import (
     Callable,
     Generator,
     Protocol,
+    overload,
     runtime_checkable,
 )
 
@@ -24,12 +25,15 @@ from sqlalchemy.orm import Session
 from typing_extensions import TypeVar
 
 if TYPE_CHECKING:
+    from sqlalchemy.engine.interfaces import Dialect
+
     from airflow_fernet_secrets.core.typeshed import PathType
 
 __all__ = [
     "SessionMaker",
     "create_sqlite_url",
     "ensure_sqlite_url",
+    "ensure_sqlite_engine",
     "ensure_sqlite_sync_engine",
     "ensure_sqlite_async_engine",
     "enter_sync_database",
@@ -59,7 +63,7 @@ def ensure_sqlite_url(url: str | URL, *, is_async: bool = False) -> URL:
     if dialect.name != sqlite_dialect.name:
         raise NotImplementedError
 
-    if getattr(dialect, "is_async", False) is not is_async:
+    if _is_async_dialect(dialect) is not is_async:
         driver = url.get_driver_name()
         if not driver and is_async:
             url = url.set(drivername=f"{dialect.name}+aiosqlite")
@@ -67,6 +71,76 @@ def ensure_sqlite_url(url: str | URL, *, is_async: bool = False) -> URL:
             raise NotImplementedError
 
     return url
+
+
+@overload
+def ensure_sqlite_engine(connectable_or_url: URL | str) -> Engine | AsyncEngine: ...
+
+
+@overload
+def ensure_sqlite_engine(
+    connectable_or_url: Engine
+    | Connection
+    | SessionMaker[Session]
+    | Session
+    | URL
+    | str,
+) -> Engine: ...
+
+
+@overload
+def ensure_sqlite_engine(
+    connectable_or_url: AsyncEngine
+    | AsyncConnection
+    | SessionMaker[AsyncSession]
+    | AsyncSession
+    | URL
+    | str,
+) -> AsyncEngine: ...
+
+
+@overload
+def ensure_sqlite_engine(
+    connectable_or_url: Engine
+    | AsyncEngine
+    | AsyncConnection
+    | SessionMaker[AsyncSession]
+    | AsyncSession
+    | Connection
+    | SessionMaker[Session]
+    | Session
+    | URL
+    | str,
+) -> Engine | AsyncEngine: ...
+
+
+def ensure_sqlite_engine(
+    connectable_or_url: Engine
+    | AsyncEngine
+    | AsyncConnection
+    | SessionMaker[AsyncSession]
+    | AsyncSession
+    | Connection
+    | SessionMaker[Session]
+    | Session
+    | URL
+    | str,
+) -> Engine | AsyncEngine:
+    if isinstance(connectable_or_url, (AsyncEngine, AsyncConnection, AsyncSession)):
+        return ensure_sqlite_async_engine(connectable_or_url)
+    if isinstance(connectable_or_url, (Engine, Connection, Session)):
+        return ensure_sqlite_sync_engine(connectable_or_url)
+    if isinstance(connectable_or_url, str):
+        connectable_or_url = ensure_sqlite_url(connectable_or_url)
+    if isinstance(connectable_or_url, URL):
+        dialect = connectable_or_url.get_dialect()
+        if _is_async_dialect(dialect):
+            return ensure_sqlite_async_engine(connectable_or_url)
+        return ensure_sqlite_sync_engine(connectable_or_url)
+    if isinstance(connectable_or_url, SessionMaker):
+        connectable_or_url = connectable_or_url()
+        return ensure_sqlite_engine(connectable_or_url)
+    raise NotImplementedError
 
 
 def ensure_sqlite_sync_engine(
@@ -83,19 +157,15 @@ def ensure_sqlite_sync_engine(
         connectable_or_url = ensure_sqlite_url(connectable_or_url, is_async=False)
     if isinstance(connectable_or_url, URL):
         return create_engine(connectable_or_url)
-    if isinstance(connectable_or_url, Session):
-        conn = connectable_or_url.connection()
-        return ensure_sqlite_sync_engine(conn)
     if isinstance(connectable_or_url, SessionMaker):
-        session = connectable_or_url()
-        try:
-            return ensure_sqlite_sync_engine(session)
-        finally:
-            session.close()
+        connectable_or_url = connectable_or_url()
+    if isinstance(connectable_or_url, Session):
+        bind = connectable_or_url.get_bind()
+        return ensure_sqlite_sync_engine(bind)
     raise NotImplementedError
 
 
-async def ensure_sqlite_async_engine(
+def ensure_sqlite_async_engine(
     connectable_or_url: AsyncEngine
     | AsyncConnection
     | SessionMaker[AsyncSession]
@@ -109,15 +179,11 @@ async def ensure_sqlite_async_engine(
         connectable_or_url = ensure_sqlite_url(connectable_or_url, is_async=True)
     if isinstance(connectable_or_url, URL):
         return create_async_engine(connectable_or_url)
-    if isinstance(connectable_or_url, AsyncSession):
-        conn = await connectable_or_url.connection()
-        return await ensure_sqlite_async_engine(conn)
     if isinstance(connectable_or_url, SessionMaker):
-        session = connectable_or_url()
-        try:
-            return await ensure_sqlite_async_engine(session)
-        finally:
-            await session.close()
+        connectable_or_url = connectable_or_url()
+    if isinstance(connectable_or_url, AsyncSession):
+        bind = connectable_or_url.get_bind()
+        return ensure_sqlite_async_engine(bind)
     raise NotImplementedError
 
 
@@ -166,3 +232,7 @@ async def enter_async_database(
         raise
     finally:
         await session.close()
+
+
+def _is_async_dialect(dialect: type[Dialect] | Dialect) -> bool:
+    return getattr(dialect, "is_async", False) is True

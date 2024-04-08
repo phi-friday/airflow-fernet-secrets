@@ -62,7 +62,6 @@ class CommonFernetLocalSecretsBackend(
         self._fernet_secrets_key = (
             None if fernet_secrets_key is None else ensure_fernet(fernet_secrets_key)
         )
-        self._backend_async_engine_: AsyncEngine | None = None
 
     @cached_property
     def _backend_sync_url(self) -> URL:
@@ -82,13 +81,9 @@ class CommonFernetLocalSecretsBackend(
     def _backend_engine(self) -> Engine:
         return ensure_sqlite_sync_engine(self._backend_sync_url)
 
-    async def _backend_async_engine(self) -> AsyncEngine:
-        if self._backend_async_engine_ is not None:
-            return self._backend_async_engine_
-        self._backend_async_engine_ = await ensure_sqlite_async_engine(
-            self._backend_async_url
-        )
-        return self._backend_async_engine_
+    @cached_property
+    def _backend_async_engine(self) -> AsyncEngine:
+        return ensure_sqlite_async_engine(self._backend_async_url)
 
     def _secret(self) -> MultiFernet:
         if self._fernet_secrets_key is not None:
@@ -102,8 +97,7 @@ class CommonFernetLocalSecretsBackend(
             return self._get_conn_value_process(conn_id=conn_id, value=value)
 
     async def aget_conn_value(self, conn_id: str) -> str | None:
-        engine = await self._backend_async_engine()
-        async with enter_async_database(engine) as session:
+        async with enter_async_database(self._backend_async_engine) as session:
             value = await FernetConnection.aget(session, conn_id)
             return self._get_conn_value_process(conn_id=conn_id, value=value)
 
@@ -131,8 +125,7 @@ class CommonFernetLocalSecretsBackend(
     ) -> None:
         if isinstance(value, str):
             value = value.encode("utf-8")
-        engine = await self._backend_async_engine()
-        async with enter_async_database(engine) as session:
+        async with enter_async_database(self._backend_async_engine) as session:
             connection = await FernetConnection.aget(session, conn_id=conn_id)
             connection = self._set_conn_value_process(
                 conn_id=conn_id, conn_type=conn_type, value=value, connection=connection
@@ -217,8 +210,7 @@ class CommonFernetLocalSecretsBackend(
         return FernetVariable.decrypt(value.encrypted, fernet)
 
     async def aget_variable(self, key: str) -> str | None:
-        engine = await self._backend_async_engine()
-        async with enter_async_database(engine) as session:
+        async with enter_async_database(self._backend_async_engine) as session:
             value = await FernetVariable.aget(session, key)
             if value is None:
                 return None
@@ -241,8 +233,7 @@ class CommonFernetLocalSecretsBackend(
 
     async def aset_variable(self, key: str, value: str) -> None:
         secret_key = self._secret()
-        engine = await self._backend_async_engine()
-        async with enter_async_database(engine) as session:
+        async with enter_async_database(self._backend_async_engine) as session:
             as_bytes = FernetVariable.encrypt(value, secret_key)
             variable = await FernetVariable.aget(session, key)
             if variable is None:
@@ -315,10 +306,9 @@ class CommonFernetLocalSecretsBackend(
     async def _arotate_connections(self) -> None:
         secret_key = self._secret()
         do_rorate = False
-        engine = await self._backend_async_engine()
         limit = 100
         offset = 0
-        async with enter_async_database(engine) as session:
+        async with enter_async_database(self._backend_async_engine) as session:
             while True:
                 fetch: Result = await session.execute(
                     sa.select(FernetConnection).limit(limit).offset(offset)
@@ -340,10 +330,9 @@ class CommonFernetLocalSecretsBackend(
     async def _arotate_variables(self) -> None:
         do_rorate = False
         secret_key = self._secret()
-        engine = await self._backend_async_engine()
         limit = 100
         offset = 0
-        async with enter_async_database(engine) as session:
+        async with enter_async_database(self._backend_async_engine) as session:
             while True:
                 fetch: Result = await session.execute(
                     sa.select(FernetVariable).limit(limit).offset(offset)

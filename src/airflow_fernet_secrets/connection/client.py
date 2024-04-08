@@ -3,6 +3,7 @@ from __future__ import annotations
 from sqlalchemy.dialects.sqlite import dialect as sqlite_dialect
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.url import URL, make_url
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession
 from sqlalchemy.orm import Session
 
 from airflow_fernet_secrets.connection import (
@@ -41,15 +42,24 @@ def convert_url_to_dict(url: str | URL) -> ConnectionDict:
 
 
 def convert_connectable_to_dict(
-    connectable: Engine | Connection | SessionMaker[Session] | Session | URL | str,
+    connectable: Engine
+    | Connection
+    | SessionMaker[Session]
+    | Session
+    | AsyncEngine
+    | AsyncConnection
+    | SessionMaker[AsyncSession]
+    | AsyncSession
+    | URL
+    | str,
 ) -> ConnectionDict:
-    if isinstance(connectable, (Engine, Connection)):
+    if isinstance(connectable, (Engine, Connection, AsyncEngine, AsyncConnection)):
         return convert_url_to_dict(connectable.engine.url)
     if isinstance(connectable, SessionMaker):
         connectable = connectable()
-    if isinstance(connectable, Session):
-        connection: Connection = connectable.connection()
-        return convert_url_to_dict(connection.engine.url)
+    if isinstance(connectable, (Session, AsyncSession)):
+        bind = connectable.get_bind()
+        return convert_url_to_dict(bind.engine.url)
     return convert_url_to_dict(connectable)
 
 
