@@ -127,7 +127,7 @@ def default_async_conn(default_conn: URL) -> URL:
 
 
 @pytest.fixture()
-def client_backend(
+def client_backend(  # noqa: PLR0913
     secret_key,
     backend_path,
     default_conn_id,
@@ -350,9 +350,10 @@ def create_dag_fixture(  # noqa: C901
                         DagModel,
                         TaskMap,
                     ):
+                        table: sa.Table = model.__table__
                         self.session.execute(
                             sa.delete(model)
-                            .where(model.dag_id.in_(dag_ids))  # type: ignore # FIXME: sqlalchemy2
+                            .where(table.c["dag_id"].in_(dag_ids))
                             .execution_options(synchronize_session=False)
                         )
                     self.session.execute(
