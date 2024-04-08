@@ -110,7 +110,7 @@ class Encrypted(Base):
 
     async def aupsert(self, session: AsyncSession) -> None:
         if not await self.is_aexists(session):
-            session.add(self)  # type: ignore
+            session.add(self)
             return
         stmt = self._upsert_stmt().execution_options(synchronize_session="fetch")
         await session.execute(stmt)
@@ -186,8 +186,8 @@ class Connection(Encrypted):
     def _upsert_stmt(self) -> Update:
         model = type(self)
         table: sa.Table = self.__table__
-        pks: set[str] = set(table.primary_key.columns.keys())  # type: ignore
-        columns: list[str] = [x for x in table.columns.keys() if x not in pks]  # type: ignore  # noqa: SIM118
+        pks: set[str] = set(table.primary_key.columns.keys())
+        columns: list[str] = [x for x in table.columns.keys() if x not in pks]  # noqa: SIM118
         return (
             sa.update(model)
             .where(model.conn_id == self.conn_id)
@@ -250,8 +250,8 @@ class Variable(Encrypted):
     def _upsert_stmt(self) -> Update:
         model = type(self)
         table: sa.Table = self.__table__
-        pks: set[str] = set(table.primary_key.columns.keys())  # type: ignore
-        columns: list[str] = [x for x in table.columns.keys() if x not in pks]  # type: ignore  # noqa: SIM118
+        pks: set[str] = set(table.primary_key.columns.keys())
+        columns: list[str] = [x for x in table.columns.keys() if x not in pks]  # noqa: SIM118
         return (
             sa.update(model)
             .where(model.key == self.key)

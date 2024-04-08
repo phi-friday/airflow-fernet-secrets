@@ -214,7 +214,7 @@ class CommonFernetLocalSecretsBackend(
             value = await FernetVariable.aget(session, key)
             if value is None:
                 return None
-            session.expunge(value)  # type: ignore
+            session.expunge(value)
 
         fernet = self._secret()
         return FernetVariable.decrypt(value.encrypted, fernet)
