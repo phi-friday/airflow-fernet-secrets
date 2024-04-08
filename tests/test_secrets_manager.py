@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import warnings
+from contextlib import contextmanager
+from typing import Generator
 
 import pytest
 import sqlalchemy as sa
@@ -70,6 +72,98 @@ async def test_aget_connection(
         assert isinstance(connection, Connection)
     else:
         raise NotImplementedError
+
+
+def test_set_client_connection(secret_key, backend_path, temp_file):
+    setup(is_server=False)
+
+    from airflow_fernet_secrets.core.database import create_sqlite_url
+    from airflow_fernet_secrets.secrets.client import ClientFernetLocalSecretsBackend
+
+    backend = ClientFernetLocalSecretsBackend(
+        fernet_secrets_key=secret_key, fernet_secrets_backend_file_path=backend_path
+    )
+
+    conn_id = temp_file.stem
+    old = create_sqlite_url(temp_file, is_async=False, query={"some_key": "some_value"})
+    backend.set_connection(conn_id, old)
+    new = backend.get_connection(conn_id)
+    assert new is not None
+    old_str = old.render_as_string(hide_password=False)
+    new_str = new.render_as_string(hide_password=False)
+    assert old_str == new_str
+
+
+def test_set_server_connection(secret_key, backend_path, temp_file):
+    setup(is_server=False)
+
+    from airflow_fernet_secrets.secrets.server import ServerFernetLocalSecretsBackend
+
+    backend = ServerFernetLocalSecretsBackend(
+        fernet_secrets_key=secret_key, fernet_secrets_backend_file_path=backend_path
+    )
+
+    conn_id = temp_file.stem
+    old = Connection(
+        conn_id=conn_id,
+        conn_type="sqlite",
+        host=str(temp_file),
+        extra={"some_key": "some_value"},
+    )
+    with ignore_warnings():
+        backend.set_connection(conn_id, old)
+    new = backend.get_connection(conn_id)
+    assert new is not None
+    old_str = old.get_uri()
+    new_str = new.get_uri()
+    assert old_str == new_str
+
+
+@pytest.mark.anyio()
+async def test_aset_client_connection(secret_key, backend_path, temp_file):
+    setup(is_server=False)
+
+    from airflow_fernet_secrets.core.database import create_sqlite_url
+    from airflow_fernet_secrets.secrets.client import ClientFernetLocalSecretsBackend
+
+    backend = ClientFernetLocalSecretsBackend(
+        fernet_secrets_key=secret_key, fernet_secrets_backend_file_path=backend_path
+    )
+
+    conn_id = temp_file.stem
+    old = create_sqlite_url(temp_file, is_async=False, query={"some_key": "some_value"})
+    await backend.aset_connection(conn_id, old)
+    new = await backend.aget_connection(conn_id)
+    assert new is not None
+    old_str = old.render_as_string(hide_password=False)
+    new_str = new.render_as_string(hide_password=False)
+    assert old_str == new_str
+
+
+@pytest.mark.anyio()
+async def test_aset_server_connection(secret_key, backend_path, temp_file):
+    setup(is_server=False)
+
+    from airflow_fernet_secrets.secrets.server import ServerFernetLocalSecretsBackend
+
+    backend = ServerFernetLocalSecretsBackend(
+        fernet_secrets_key=secret_key, fernet_secrets_backend_file_path=backend_path
+    )
+
+    conn_id = temp_file.stem
+    old = Connection(
+        conn_id=conn_id,
+        conn_type="sqlite",
+        host=str(temp_file),
+        extra={"some_key": "some_value"},
+    )
+    with ignore_warnings():
+        await backend.aset_connection(conn_id, old)
+    new = await backend.aget_connection(conn_id)
+    assert new is not None
+    old_str = old.get_uri()
+    new_str = new.get_uri()
+    assert old_str == new_str
 
 
 def test_client_connection_touch(client_backend, default_conn_id):
@@ -189,7 +283,13 @@ def setup(*, is_server: bool) -> None:
     )
 
 
-def get_hook(connection: Connection) -> BaseHook:
+@contextmanager
+def ignore_warnings() -> Generator[None, None, None]:
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", DeprecationWarning)
+        yield
+
+
+def get_hook(connection: Connection) -> BaseHook:
+    with ignore_warnings():
         return connection.get_hook()
