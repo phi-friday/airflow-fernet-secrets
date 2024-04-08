@@ -10,7 +10,7 @@ from airflow_fernet_secrets.operators.base import HasConnIds
 
 if TYPE_CHECKING:
     from airflow.utils.context import Context
-    from cryptography.fernet import Fernet
+    from cryptography.fernet import Fernet, MultiFernet
 
     from airflow_fernet_secrets.core.typeshed import PathType
     from airflow_fernet_secrets.secrets.server import ServerFernetLocalSecretsBackend
@@ -35,7 +35,7 @@ class DumpConnectionsOperator(HasConnIds):
         fernet_secrets_conn_ids: str | list[str] | tuple[str, ...] | None = None,
         fernet_secrets_conn_ids_separate: str | bool = False,
         fernet_secrets_conn_ids_separator: str = ",",
-        fernet_secrets_key: str | bytes | Fernet | None = None,
+        fernet_secrets_key: str | bytes | Fernet | MultiFernet | None = None,
         fernet_secrets_backend_file_path: PathType | None = None,
         fernet_secrets_overwrite: str | bool = False,
         **kwargs: Any,
