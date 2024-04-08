@@ -23,8 +23,8 @@ __all__ = [
 
 def convert_connection_to_dict(connection: Connection) -> ConnectionDict:
     as_dict = connection.to_dict()
-    as_dict["is_encrypted"] = connection.is_encrypted
-    as_dict["is_extra_encrypted"] = connection.is_extra_encrypted
+    as_dict["is_encrypted"] = getattr(connection, "is_encrypted", False)
+    as_dict["is_extra_encrypted"] = getattr(connection, "is_extra_encrypted", False)
 
     conn_type = _get_conn_type(connection)
     if is_sql_connection(connection):
@@ -57,12 +57,17 @@ def create_airflow_connection(
     as_dict.pop("driver")
     as_dict["conn_type"] = conn_type
 
-    is_encrypted: bool = as_dict.pop("is_encrypted", False)
-    is_extra_encrypted: bool = as_dict.pop("is_extra_encrypted", False)
+    registry: dict[str, bool] = {}
+    keys = ("is_encrypted", "is_extra_encrypted")
+    for key in keys:
+        registry[key] = as_dict.pop(key, False)
+
     as_json = json.dumps(as_dict)
     result = Connection.from_json(as_json, conn_id=conn_id)
-    result.is_encrypted = is_encrypted
-    result.is_extra_encrypted = is_extra_encrypted
+
+    for key in keys:
+        if hasattr(result, key):
+            setattr(result, key, registry[key])
     return result
 
 
