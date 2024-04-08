@@ -26,6 +26,16 @@ def _set_backend_kwargs(key: str, value: Any) -> None:
     environ["AIRFLOW__SECRETS__BACKEND_KWARGS"] = json.dumps(kwargs)
 
 
+@pytest.fixture(
+    params=[
+        pytest.param(("asyncio", {"use_uvloop": False}), id="asyncio"),
+        pytest.param(("asyncio", {"use_uvloop": True}), id="asyncio-uvloop"),
+    ]
+)
+def anyio_backend(request) -> tuple[str, dict[str, Any]]:
+    return request.param
+
+
 @pytest.fixture(scope="session")
 def _init_envs() -> None:
     environ["AIRFLOW__SECRETS__BACKEND"] = (
@@ -72,14 +82,29 @@ def default_conn_id():
 
 
 @pytest.fixture(scope="session")
+def default_async_conn_id(default_conn_id):
+    return f"{default_conn_id}-async"
+
+
+@pytest.fixture(scope="session")
 def default_conn(temp_path: Path) -> URL:
     file = temp_path / str(uuid4())
     return URL.create("sqlite", database=str(file))
 
 
+@pytest.fixture(scope="session")
+def default_async_conn(default_conn: URL) -> URL:
+    return default_conn.set(drivername="sqlite+aiosqlite")
+
+
 @pytest.fixture()
 def client_backend(
-    secret_key, backend_path, default_conn_id, default_conn
+    secret_key,
+    backend_path,
+    default_conn_id,
+    default_conn,
+    default_async_conn_id,
+    default_async_conn,
 ) -> ClientFernetLocalSecretsBackend:
     from airflow_fernet_secrets.secrets.client import ClientFernetLocalSecretsBackend
 
@@ -92,6 +117,7 @@ def client_backend(
         return backend
 
     backend.set_connection(default_conn_id, default_conn)
+    backend.set_connection(default_async_conn_id, default_async_conn)
     return backend
 
 

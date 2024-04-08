@@ -20,7 +20,6 @@ if TYPE_CHECKING:
     from cryptography.fernet import Fernet, MultiFernet
     from sqlalchemy.engine import Connection as SqlalchemyConnection
     from sqlalchemy.engine import Engine
-    from sqlalchemy.engine.result import Result
     from sqlalchemy.ext.asyncio import AsyncSession
     from sqlalchemy.orm import Session, scoped_session, sessionmaker
     from sqlalchemy.sql import Delete, Select, Update
@@ -85,8 +84,8 @@ class Encrypted(Base):
             return False
 
         stmt = self._exists_stmt()
-        fetch: Result = session.execute(stmt)
-        count = fetch.scalars().one()
+        fetch = session.execute(stmt)
+        count: int = fetch.scalars().one()
         return count >= 1
 
     async def is_aexists(self, session: AsyncSession) -> bool:
@@ -94,7 +93,7 @@ class Encrypted(Base):
             return False
 
         stmt = self._exists_stmt()
-        fetch: Result = await session.execute(stmt)
+        fetch = await session.execute(stmt)
         count = fetch.scalars().one()
         return count >= 1
 
@@ -152,7 +151,7 @@ class Connection(Encrypted):
             return cast("Self", session.get(cls, conn_id))
 
         stmt = cls._get_stmt(conn_id=conn_id)
-        fetch: Result = session.execute(stmt)
+        fetch = session.execute(stmt)
         return fetch.scalar_one_or_none()
 
     @classmethod
@@ -161,7 +160,7 @@ class Connection(Encrypted):
             return await session.get(cls, conn_id)
 
         stmt = cls._get_stmt(conn_id=conn_id)
-        fetch: Result = await session.execute(stmt)
+        fetch = await session.execute(stmt)
         return fetch.scalar_one_or_none()
 
     @classmethod
@@ -222,7 +221,7 @@ class Variable(Encrypted):
         if isinstance(key, int):
             return cast("Self", session.get(cls, key))
         stmt = sa.select(cls).where(cls.key == key)
-        fetch: Result = session.execute(stmt)
+        fetch = session.execute(stmt)
         return fetch.scalar_one_or_none()
 
     @classmethod
@@ -230,7 +229,7 @@ class Variable(Encrypted):
         if isinstance(key, int):
             return await session.get(cls, key)
         stmt = sa.select(cls).where(cls.key == key)
-        fetch: Result = await session.execute(stmt)
+        fetch = await session.execute(stmt)
         return fetch.scalar_one_or_none()
 
     @classmethod

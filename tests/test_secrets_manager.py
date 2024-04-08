@@ -9,6 +9,7 @@ from airflow.models.connection import Connection
 from airflow.providers.common.sql.hooks.sql import DbApiHook
 from sqlalchemy.engine import Engine
 from sqlalchemy.engine.url import URL
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import Session
 
 
@@ -41,6 +42,36 @@ def test_get_connection(
         raise NotImplementedError
 
 
+@pytest.mark.parametrize("side", ["client", "server"])
+@pytest.mark.anyio()
+async def test_aget_connection(
+    side: str,
+    secret_key,
+    backend_path,
+    default_conn_id,
+    client_backend,  # noqa: ARG001 # init
+):
+    setup(is_server=side == "server")
+
+    from airflow_fernet_secrets.secrets import FernetLocalSecretsBackend
+
+    backend = FernetLocalSecretsBackend(
+        fernet_secrets_key=secret_key, fernet_secrets_backend_file_path=backend_path
+    )
+    conn_value = await backend.aget_conn_value(default_conn_id)
+    assert conn_value is not None
+
+    connection = await backend.aget_connection(default_conn_id)
+    assert connection is not None
+
+    if side == "client":
+        assert isinstance(connection, URL)
+    elif side == "server":
+        assert isinstance(connection, Connection)
+    else:
+        raise NotImplementedError
+
+
 def test_client_connection_touch(client_backend, default_conn_id):
     connection = client_backend.get_connection(default_conn_id)
     assert connection is not None
@@ -49,6 +80,20 @@ def test_client_connection_touch(client_backend, default_conn_id):
     engine = sa.create_engine(connection)
     with Session(engine) as session:
         values = session.execute(sa.text("select 1")).all()
+
+    assert values == [(1,)]
+
+
+@pytest.mark.anyio()
+async def test_client_connection_atouch(client_backend, default_async_conn_id):
+    connection = await client_backend.aget_connection(default_async_conn_id)
+    assert connection is not None
+    assert isinstance(connection, URL)
+
+    engine = create_async_engine(connection)
+    async with AsyncSession(engine) as session:
+        fetch = await session.execute(sa.text("select 1"))
+        values = fetch.all()
 
     assert values == [(1,)]
 
@@ -66,6 +111,12 @@ def test_server_connection_touch(server_backend, default_conn_id):
         values = session.execute(sa.text("select 1")).all()
 
     assert values == [(1,)]
+
+
+""" airflow does not support async url
+@pytest.mark.anyio()
+def test_server_connection_atouch(server_backend, default_conn_id): ...
+"""
 
 
 def test_server_to_client(server_backend, client_backend, temp_file):
@@ -88,6 +139,13 @@ def test_server_to_client(server_backend, client_backend, temp_file):
     assert server_url == client_url
 
 
+""" airflow does not support async url
+@pytest.mark.anyio()
+async def test_server_ato_client(server_backend, client_backend, temp_file):
+    ...
+"""
+
+
 def test_client_to_server(server_backend, client_backend, temp_file):
     conn_id = temp_file.stem
     client_url: str = URL.create(
@@ -101,6 +159,13 @@ def test_client_to_server(server_backend, client_backend, temp_file):
     assert isinstance(hook, DbApiHook)
     server_url = hook.get_uri()
     assert server_url == client_url
+
+
+""" airflow does not support async url
+@pytest.mark.anyio()
+def test_client_ato_server(server_backend, client_backend, temp_file):
+    ...
+"""
 
 
 def setup(*, is_server: bool) -> None:

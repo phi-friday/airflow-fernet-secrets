@@ -38,6 +38,8 @@ dev-dependencies = [
     "ipykernel>=6.29.4",
     "pytest>=8.1.1",
     "sqlalchemy2-stubs>=0.0.2a38",
+    "anyio",
+    "uvloop; platform_system != 'Windows'"
 ]
 
 [project.scripts]
