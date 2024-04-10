@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from airflow_fernet_secrets.core.config import HAS_AIRFLOW, IS_SERVER_FLAG
+from airflow_fernet_secrets.config import HAS_AIRFLOW, IS_SERVER_FLAG
 
 if not HAS_AIRFLOW or not IS_SERVER_FLAG:
     raise NotImplementedError
@@ -12,16 +12,16 @@ from airflow.models import BaseOperator
 from airflow.models.connection import Connection
 from typing_extensions import override
 
-from airflow_fernet_secrets.core.config.common import ensure_fernet
-from airflow_fernet_secrets.core.config.server import load_secret_key
-from airflow_fernet_secrets.core.utils.cast import ensure_boolean
+from airflow_fernet_secrets.config.common import ensure_fernet
+from airflow_fernet_secrets.config.server import load_secret_key
 from airflow_fernet_secrets.secrets.server import ServerFernetLocalSecretsBackend
+from airflow_fernet_secrets.utils.cast import ensure_boolean
 
 if TYPE_CHECKING:
     from airflow.utils.context import Context
     from cryptography.fernet import Fernet, MultiFernet
 
-    from airflow_fernet_secrets.core.typeshed import PathType
+    from airflow_fernet_secrets._typeshed import PathType
 
 
 class HasSecrets(BaseOperator):

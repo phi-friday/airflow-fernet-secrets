@@ -78,11 +78,11 @@ def temp_path():
 
 @pytest.fixture(scope="session")
 def backend_path(temp_path: Path, _init_envs):
-    from airflow_fernet_secrets.core.database import (
+    from airflow_fernet_secrets.database.connect import (
         create_sqlite_url,
         ensure_sqlite_sync_engine,
     )
-    from airflow_fernet_secrets.core.model import migrate
+    from airflow_fernet_secrets.database.model import migrate
 
     file = temp_path / str(uuid4())
     file.touch()

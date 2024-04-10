@@ -11,7 +11,7 @@ from airflow_fernet_secrets.connection import (
     create_driver,
     parse_driver,
 )
-from airflow_fernet_secrets.core.database import SessionMaker
+from airflow_fernet_secrets.database.connect import SessionMaker
 
 
 def convert_url_to_dict(url: str | URL) -> ConnectionDict:

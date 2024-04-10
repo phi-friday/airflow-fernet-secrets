@@ -74,7 +74,7 @@ def copy_provider_info_schema(file: Path | None = None) -> Path | None:
 
 
 def _get_provider_schema_path() -> Path | None:
-    from airflow_fernet_secrets.core.log.common import get_logger
+    from airflow_fernet_secrets.log.common import get_logger
 
     logger = get_logger()
 

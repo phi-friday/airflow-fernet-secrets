@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from typing_extensions import override
 
-from airflow_fernet_secrets.core.log.common import CommonLoggingMixin
+from airflow_fernet_secrets.log.common import CommonLoggingMixin
 
 if TYPE_CHECKING:
     import logging

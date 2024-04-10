@@ -5,12 +5,12 @@ from typing import TYPE_CHECKING, Any, cast
 from airflow.models.connection import Connection
 from typing_extensions import override
 
+from airflow_fernet_secrets.config import const
 from airflow_fernet_secrets.connection.server import (
     convert_connection_to_dict,
     create_airflow_connection,
     is_sql_connection,
 )
-from airflow_fernet_secrets.core.config import const
 from airflow_fernet_secrets.secrets.common import (
     CommonFernetLocalSecretsBackend as _CommonFernetLocalSecretsBackend,
 )

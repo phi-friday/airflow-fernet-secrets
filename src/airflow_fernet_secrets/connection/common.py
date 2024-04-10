@@ -5,13 +5,13 @@ from typing import Any
 
 from typing_extensions import NamedTuple, Required, TypedDict
 
-from airflow_fernet_secrets.core.config.const import (
+from airflow_fernet_secrets.config.const import (
     CONNECTION_DRIVER_FORMAT as _CONNECTION_DRIVER_FORMAT,
 )
-from airflow_fernet_secrets.core.config.const import (
+from airflow_fernet_secrets.config.const import (
     RE_CONNECTION_BACKEND_DRIVER_FORMAT as _RE_CONNECTION_BACKEND_DRIVER_FORMAT,
 )
-from airflow_fernet_secrets.core.config.const import (
+from airflow_fernet_secrets.config.const import (
     RE_CONNECTION_TYPE_DRIVER_FORMAT as _RE_CONNECTION_TYPE_DRIVER_FORMAT,
 )
 

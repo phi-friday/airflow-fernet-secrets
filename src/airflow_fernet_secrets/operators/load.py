@@ -8,15 +8,15 @@ from airflow.models.connection import Connection
 from airflow.utils.session import create_session
 from typing_extensions import override
 
-from airflow_fernet_secrets.core.utils.cast import ensure_boolean
 from airflow_fernet_secrets.operators.base import HasConnIds
+from airflow_fernet_secrets.utils.cast import ensure_boolean
 
 if TYPE_CHECKING:
     from airflow.utils.context import Context
     from cryptography.fernet import Fernet, MultiFernet
     from sqlalchemy.orm import Session
 
-    from airflow_fernet_secrets.core.typeshed import PathType
+    from airflow_fernet_secrets._typeshed import PathType
     from airflow_fernet_secrets.secrets.server import ServerFernetLocalSecretsBackend
 
 __all__ = ["LoadConnectionsOperator"]

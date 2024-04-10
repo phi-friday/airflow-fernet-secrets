@@ -78,7 +78,7 @@ async def test_aget_connection(
 def test_set_client_connection(secret_key, backend_path, temp_file):
     setup(is_server=False)
 
-    from airflow_fernet_secrets.core.database import create_sqlite_url
+    from airflow_fernet_secrets.database.connect import create_sqlite_url
     from airflow_fernet_secrets.secrets.client import ClientFernetLocalSecretsBackend
 
     backend = ClientFernetLocalSecretsBackend(
@@ -124,7 +124,7 @@ def test_set_server_connection(secret_key, backend_path, temp_file):
 async def test_aset_client_connection(secret_key, backend_path, temp_file):
     setup(is_server=False)
 
-    from airflow_fernet_secrets.core.database import create_sqlite_url
+    from airflow_fernet_secrets.database.connect import create_sqlite_url
     from airflow_fernet_secrets.secrets.client import ClientFernetLocalSecretsBackend
 
     backend = ClientFernetLocalSecretsBackend(
@@ -173,7 +173,7 @@ def test_delete_connection(
 ) -> None:
     setup(is_server=side == "server")
 
-    from airflow_fernet_secrets.core.database import create_sqlite_url
+    from airflow_fernet_secrets.database.connect import create_sqlite_url
     from airflow_fernet_secrets.secrets import FernetLocalSecretsBackend
 
     backend = FernetLocalSecretsBackend(
@@ -214,7 +214,7 @@ async def test_adelete_connection(
 ) -> None:
     setup(is_server=side == "server")
 
-    from airflow_fernet_secrets.core.database import create_sqlite_url
+    from airflow_fernet_secrets.database.connect import create_sqlite_url
     from airflow_fernet_secrets.secrets import FernetLocalSecretsBackend
 
     backend = FernetLocalSecretsBackend(
@@ -347,14 +347,14 @@ def test_client_ato_server(server_backend, client_backend, temp_file):
 def setup(*, is_server: bool) -> None:
     import os
 
-    from airflow_fernet_secrets.core.config import const
-    from airflow_fernet_secrets.core.utils.reload import reload
+    from airflow_fernet_secrets.config import const
+    from airflow_fernet_secrets.utils.reload import reload
 
     key = (const.CLIENT_ENV_PREFIX + const.ENV_IS_SERVER).upper()
     os.environ[key] = str(is_server)
     reload()
 
-    from airflow_fernet_secrets.core.config import IS_SERVER_FLAG
+    from airflow_fernet_secrets.config import IS_SERVER_FLAG
     from airflow_fernet_secrets.secrets import FernetLocalSecretsBackend
 
     assert IS_SERVER_FLAG is is_server

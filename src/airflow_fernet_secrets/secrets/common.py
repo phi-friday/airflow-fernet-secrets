@@ -7,21 +7,21 @@ from typing import TYPE_CHECKING, Generic, Literal, cast
 import sqlalchemy as sa
 from typing_extensions import TypeVar, override
 
-from airflow_fernet_secrets.core.config import (
+from airflow_fernet_secrets.config import (
     ensure_fernet,
     load_backend_file,
     load_secret_key,
 )
-from airflow_fernet_secrets.core.database import (
+from airflow_fernet_secrets.database.connect import (
     create_sqlite_url,
     ensure_sqlite_async_engine,
     ensure_sqlite_sync_engine,
     enter_async_database,
     enter_sync_database,
 )
-from airflow_fernet_secrets.core.log import LoggingMixin
-from airflow_fernet_secrets.core.model import Connection as FernetConnection
-from airflow_fernet_secrets.core.model import Variable as FernetVariable
+from airflow_fernet_secrets.database.model import Connection as FernetConnection
+from airflow_fernet_secrets.database.model import Variable as FernetVariable
+from airflow_fernet_secrets.log import LoggingMixin
 
 if TYPE_CHECKING:
     from airflow.secrets import BaseSecretsBackend
@@ -31,8 +31,8 @@ if TYPE_CHECKING:
     from sqlalchemy.engine.url import URL
     from sqlalchemy.ext.asyncio import AsyncEngine
 
+    from airflow_fernet_secrets._typeshed import PathType
     from airflow_fernet_secrets.connection import ConnectionDict
-    from airflow_fernet_secrets.core.typeshed import PathType
 
     class BaseFernetLocalSecretsBackend(BaseSecretsBackend, LoggingMixin): ...
 

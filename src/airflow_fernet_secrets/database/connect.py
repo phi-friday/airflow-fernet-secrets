@@ -27,7 +27,7 @@ from typing_extensions import TypeVar
 if TYPE_CHECKING:
     from sqlalchemy.engine.interfaces import Dialect
 
-    from airflow_fernet_secrets.core.typeshed import PathType
+    from airflow_fernet_secrets._typeshed import PathType
 
 __all__ = [
     "SessionMaker",
