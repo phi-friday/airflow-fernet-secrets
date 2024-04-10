@@ -63,7 +63,7 @@ def anyio_backend(request) -> tuple[str, dict[str, Any]]:
     return request.param
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="session", autouse=True)
 def _init_envs() -> None:
     environ["AIRFLOW__SECRETS__BACKEND"] = (
         "airflow.providers.fernet_secrets.secrets.secret_manager.FernetLocalSecretsBackend"
@@ -77,7 +77,7 @@ def temp_path():
 
 
 @pytest.fixture(scope="session")
-def backend_path(temp_path: Path, _init_envs):
+def backend_path(temp_path: Path):
     from airflow_fernet_secrets.database.connect import (
         create_sqlite_url,
         ensure_sqlite_sync_engine,
@@ -97,7 +97,7 @@ def backend_path(temp_path: Path, _init_envs):
 
 
 @pytest.fixture(scope="session")
-def secret_key(_init_envs):
+def secret_key():
     key = Fernet.generate_key()
     _set_backend_kwargs("fernet_secrets_key", key.decode("utf-8"))
     return key
