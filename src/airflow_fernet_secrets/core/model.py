@@ -44,7 +44,7 @@ def _get_class(value: Any) -> type[Any]:
 
 @dataclass(**_DATACLASS_ARGS)
 class Base:
-    __sa_dataclass_metadata_key__: ClassVar[str] = "sa"
+    __sa_dataclass_metadata_key__: ClassVar[str] = const.SA_DATACLASS_METADATA_KEY
     __table__: ClassVar[sa.Table]
     __tablename__: ClassVar[str]
 
@@ -57,14 +57,20 @@ class Base:
 
     id: Mapped[int] = field(
         init=False,
-        metadata={"sa": sa.Column(sa.Integer(), primary_key=True, autoincrement=True)},
+        metadata={
+            const.SA_DATACLASS_METADATA_KEY: sa.Column(
+                sa.Integer(), primary_key=True, autoincrement=True
+            )
+        },
     )
 
 
 @dataclass(**_DATACLASS_ARGS)
 class Encrypted(Base):
     __abstract__: ClassVar[bool] = True
-    encrypted: Mapped[bytes] = field(metadata={"sa": sa.Column(sa.LargeBinary())})
+    encrypted: Mapped[bytes] = field(
+        metadata={const.SA_DATACLASS_METADATA_KEY: sa.Column(sa.LargeBinary())}
+    )
 
     @staticmethod
     def decrypt(
@@ -158,11 +164,15 @@ class Encrypted(Base):
 class Connection(Encrypted):
     conn_id: Mapped[str] = field(
         metadata={
-            "sa": sa.Column(sa.String(2**8), index=True, unique=True, nullable=False)
+            const.SA_DATACLASS_METADATA_KEY: sa.Column(
+                sa.String(2**8), index=True, unique=True, nullable=False
+            )
         }
     )
     conn_type: Mapped[str] = field(
-        metadata={"sa": sa.Column(sa.String(2**8), nullable=False)}
+        metadata={
+            const.SA_DATACLASS_METADATA_KEY: sa.Column(sa.String(2**8), nullable=False)
+        }
     )
 
     @classmethod
@@ -226,7 +236,9 @@ class Connection(Encrypted):
 class Variable(Encrypted):
     key: Mapped[str] = field(
         metadata={
-            "sa": sa.Column(sa.String(2**8), index=True, unique=True, nullable=False)
+            const.SA_DATACLASS_METADATA_KEY: sa.Column(
+                sa.String(2**8), index=True, unique=True, nullable=False
+            )
         }
     )
 
