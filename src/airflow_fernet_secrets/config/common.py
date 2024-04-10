@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Callable
 
 from cryptography.fernet import Fernet, MultiFernet
 
-from airflow_fernet_secrets.config import const
+from airflow_fernet_secrets import const
 
 if TYPE_CHECKING:
     from logging import Logger

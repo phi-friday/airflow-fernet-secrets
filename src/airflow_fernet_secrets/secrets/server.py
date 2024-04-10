@@ -5,12 +5,15 @@ from typing import TYPE_CHECKING, Any, cast
 from airflow.models.connection import Connection
 from typing_extensions import override
 
-from airflow_fernet_secrets.config import const
+from airflow_fernet_secrets import const
+from airflow_fernet_secrets.config.server import load_backend_file as _load_backend_file
+from airflow_fernet_secrets.config.server import load_secret_key as _load_secret_key
 from airflow_fernet_secrets.connection.server import (
     convert_connection_to_dict,
     create_airflow_connection,
     is_sql_connection,
 )
+from airflow_fernet_secrets.log.server import LoggingMixin
 from airflow_fernet_secrets.secrets.common import (
     CommonFernetLocalSecretsBackend as _CommonFernetLocalSecretsBackend,
 )
@@ -25,7 +28,12 @@ else:
 __all__ = ["ServerFernetLocalSecretsBackend"]
 
 
-class ServerFernetLocalSecretsBackend(_CommonFernetLocalSecretsBackend[Connection]):
+class ServerFernetLocalSecretsBackend(
+    _CommonFernetLocalSecretsBackend[Connection], LoggingMixin
+):
+    load_backend_file = staticmethod(_load_backend_file)
+    load_secret_key = staticmethod(_load_secret_key)
+
     @override
     def _get_conn_type(self, connection: Connection) -> str:
         if is_sql_connection(connection):

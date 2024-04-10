@@ -5,12 +5,15 @@ from typing import TYPE_CHECKING, Literal
 from sqlalchemy.engine.url import URL
 from typing_extensions import TypeAlias, override
 
-from airflow_fernet_secrets.config import const
+from airflow_fernet_secrets import const
+from airflow_fernet_secrets.config.client import load_backend_file as _load_backend_file
+from airflow_fernet_secrets.config.client import load_secret_key as _load_secret_key
 from airflow_fernet_secrets.connection import ConnectionDict, parse_driver
 from airflow_fernet_secrets.connection.client import (
     convert_connectable_to_dict,
     create_url,
 )
+from airflow_fernet_secrets.log.client import LoggingMixin
 from airflow_fernet_secrets.secrets.common import (
     CommonFernetLocalSecretsBackend as _CommonFernetLocalSecretsBackend,
 )
@@ -23,7 +26,12 @@ __all__ = ["ClientFernetLocalSecretsBackend"]
 ConnectionType: TypeAlias = URL
 
 
-class ClientFernetLocalSecretsBackend(_CommonFernetLocalSecretsBackend[ConnectionType]):
+class ClientFernetLocalSecretsBackend(
+    _CommonFernetLocalSecretsBackend[ConnectionType], LoggingMixin
+):
+    load_backend_file = staticmethod(_load_backend_file)
+    load_secret_key = staticmethod(_load_secret_key)
+
     @override
     def _get_conn_type(self, connection: URL) -> str:
         return const.SQL_CONN_TYPE

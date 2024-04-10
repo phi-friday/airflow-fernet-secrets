@@ -3,7 +3,7 @@ from __future__ import annotations
 from contextlib import suppress
 from typing import TYPE_CHECKING
 
-from airflow_fernet_secrets.config import const
+from airflow_fernet_secrets import const
 from airflow_fernet_secrets.config.common import (
     create_backend_file,
     ensure_fernet_return,

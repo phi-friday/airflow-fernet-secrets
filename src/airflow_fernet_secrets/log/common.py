@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from airflow_fernet_secrets.config.const import LOGGER_NAME
+from airflow_fernet_secrets.const import LOGGER_NAME
 
 __all__ = ["CommonLoggingMixin", "get_logger"]
 

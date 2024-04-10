@@ -7,11 +7,7 @@ from typing import TYPE_CHECKING, Generic, Literal, cast
 import sqlalchemy as sa
 from typing_extensions import TypeVar, override
 
-from airflow_fernet_secrets.config import (
-    ensure_fernet,
-    load_backend_file,
-    load_secret_key,
-)
+from airflow_fernet_secrets.config.common import ensure_fernet
 from airflow_fernet_secrets.database.connect import (
     create_sqlite_url,
     ensure_sqlite_async_engine,
@@ -21,9 +17,10 @@ from airflow_fernet_secrets.database.connect import (
 )
 from airflow_fernet_secrets.database.model import Connection as FernetConnection
 from airflow_fernet_secrets.database.model import Variable as FernetVariable
-from airflow_fernet_secrets.log import LoggingMixin
 
 if TYPE_CHECKING:
+    from logging import Logger
+
     from airflow.secrets import BaseSecretsBackend
     from cryptography.fernet import Fernet, MultiFernet
     from sqlalchemy.engine import Engine
@@ -33,12 +30,13 @@ if TYPE_CHECKING:
 
     from airflow_fernet_secrets._typeshed import PathType
     from airflow_fernet_secrets.connection import ConnectionDict
+    from airflow_fernet_secrets.log.common import CommonLoggingMixin
 
-    class BaseFernetLocalSecretsBackend(BaseSecretsBackend, LoggingMixin): ...
+    class BaseFernetLocalSecretsBackend(BaseSecretsBackend, CommonLoggingMixin): ...
 
 else:
 
-    class BaseFernetLocalSecretsBackend(LoggingMixin): ...
+    class BaseFernetLocalSecretsBackend: ...
 
 
 __all__ = ["CommonFernetLocalSecretsBackend"]
@@ -50,6 +48,9 @@ ConnectionT = TypeVar("ConnectionT", infer_variance=True)
 class CommonFernetLocalSecretsBackend(
     BaseFernetLocalSecretsBackend, Generic[ConnectionT]
 ):
+    load_backend_file: staticmethod[[Logger], str]
+    load_secret_key: staticmethod[[Logger], MultiFernet]
+
     def __init__(
         self,
         *,
@@ -67,14 +68,14 @@ class CommonFernetLocalSecretsBackend(
     def _backend_sync_url(self) -> URL:
         if self.fernet_secrets_backend_file is not None:
             return create_sqlite_url(self.fernet_secrets_backend_file, is_async=False)
-        file = load_backend_file(self.log)
+        file = self.load_backend_file(self.log)
         return create_sqlite_url(file, is_async=False)
 
     @cached_property
     def _backend_async_url(self) -> URL:
         if self.fernet_secrets_backend_file is not None:
             return create_sqlite_url(self.fernet_secrets_backend_file, is_async=True)
-        file = load_backend_file(self.log)
+        file = self.load_backend_file(self.log)
         return create_sqlite_url(file, is_async=True)
 
     @cached_property
@@ -88,7 +89,7 @@ class CommonFernetLocalSecretsBackend(
     def _secret(self) -> MultiFernet:
         if self._fernet_secrets_key is not None:
             return self._fernet_secrets_key
-        return load_secret_key(self.log)
+        return self.load_secret_key(self.log)
 
     @override
     def get_conn_value(self, conn_id: str) -> str | None:

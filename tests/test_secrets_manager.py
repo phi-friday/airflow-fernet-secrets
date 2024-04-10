@@ -24,9 +24,16 @@ def test_get_connection(
     default_conn_id,
     client_backend,  # noqa: ARG001 # init
 ):
-    setup(is_server=side == "server")
-
-    from airflow_fernet_secrets.secrets import FernetLocalSecretsBackend
+    if side == "client":
+        from airflow_fernet_secrets.secrets.client import (
+            ClientFernetLocalSecretsBackend as FernetLocalSecretsBackend,
+        )
+    elif side == "server":
+        from airflow_fernet_secrets.secrets.server import (
+            ServerFernetLocalSecretsBackend as FernetLocalSecretsBackend,
+        )
+    else:
+        raise NotImplementedError
 
     backend = FernetLocalSecretsBackend(
         fernet_secrets_key=secret_key, fernet_secrets_backend_file_path=backend_path
@@ -54,9 +61,16 @@ async def test_aget_connection(
     default_conn_id,
     client_backend,  # noqa: ARG001 # init
 ):
-    setup(is_server=side == "server")
-
-    from airflow_fernet_secrets.secrets import FernetLocalSecretsBackend
+    if side == "client":
+        from airflow_fernet_secrets.secrets.client import (
+            ClientFernetLocalSecretsBackend as FernetLocalSecretsBackend,
+        )
+    elif side == "server":
+        from airflow_fernet_secrets.secrets.server import (
+            ServerFernetLocalSecretsBackend as FernetLocalSecretsBackend,
+        )
+    else:
+        raise NotImplementedError
 
     backend = FernetLocalSecretsBackend(
         fernet_secrets_key=secret_key, fernet_secrets_backend_file_path=backend_path
@@ -76,8 +90,6 @@ async def test_aget_connection(
 
 
 def test_set_client_connection(secret_key, backend_path, temp_file):
-    setup(is_server=False)
-
     from airflow_fernet_secrets.database.connect import create_sqlite_url
     from airflow_fernet_secrets.secrets.client import ClientFernetLocalSecretsBackend
 
@@ -96,8 +108,6 @@ def test_set_client_connection(secret_key, backend_path, temp_file):
 
 
 def test_set_server_connection(secret_key, backend_path, temp_file):
-    setup(is_server=False)
-
     from airflow_fernet_secrets.secrets.server import ServerFernetLocalSecretsBackend
 
     backend = ServerFernetLocalSecretsBackend(
@@ -122,8 +132,6 @@ def test_set_server_connection(secret_key, backend_path, temp_file):
 
 @pytest.mark.anyio()
 async def test_aset_client_connection(secret_key, backend_path, temp_file):
-    setup(is_server=False)
-
     from airflow_fernet_secrets.database.connect import create_sqlite_url
     from airflow_fernet_secrets.secrets.client import ClientFernetLocalSecretsBackend
 
@@ -143,8 +151,6 @@ async def test_aset_client_connection(secret_key, backend_path, temp_file):
 
 @pytest.mark.anyio()
 async def test_aset_server_connection(secret_key, backend_path, temp_file):
-    setup(is_server=False)
-
     from airflow_fernet_secrets.secrets.server import ServerFernetLocalSecretsBackend
 
     backend = ServerFernetLocalSecretsBackend(
@@ -171,10 +177,18 @@ async def test_aset_server_connection(secret_key, backend_path, temp_file):
 def test_delete_connection(
     side: str, secret_key: bytes, backend_path: Path, temp_file: Path
 ) -> None:
-    setup(is_server=side == "server")
-
     from airflow_fernet_secrets.database.connect import create_sqlite_url
-    from airflow_fernet_secrets.secrets import FernetLocalSecretsBackend
+
+    if side == "client":
+        from airflow_fernet_secrets.secrets.client import (
+            ClientFernetLocalSecretsBackend as FernetLocalSecretsBackend,
+        )
+    elif side == "server":
+        from airflow_fernet_secrets.secrets.server import (
+            ServerFernetLocalSecretsBackend as FernetLocalSecretsBackend,
+        )
+    else:
+        raise NotImplementedError
 
     backend = FernetLocalSecretsBackend(
         fernet_secrets_key=secret_key, fernet_secrets_backend_file_path=backend_path
@@ -212,10 +226,18 @@ def test_delete_connection(
 async def test_adelete_connection(
     side: str, secret_key: bytes, backend_path: Path, temp_file: Path
 ) -> None:
-    setup(is_server=side == "server")
-
     from airflow_fernet_secrets.database.connect import create_sqlite_url
-    from airflow_fernet_secrets.secrets import FernetLocalSecretsBackend
+
+    if side == "client":
+        from airflow_fernet_secrets.secrets.client import (
+            ClientFernetLocalSecretsBackend as FernetLocalSecretsBackend,
+        )
+    elif side == "server":
+        from airflow_fernet_secrets.secrets.server import (
+            ServerFernetLocalSecretsBackend as FernetLocalSecretsBackend,
+        )
+    else:
+        raise NotImplementedError
 
     backend = FernetLocalSecretsBackend(
         fernet_secrets_key=secret_key, fernet_secrets_backend_file_path=backend_path
@@ -342,27 +364,6 @@ def test_client_to_server(server_backend, client_backend, temp_file):
 def test_client_ato_server(server_backend, client_backend, temp_file):
     ...
 """
-
-
-def setup(*, is_server: bool) -> None:
-    import os
-
-    from airflow_fernet_secrets.config import const
-    from airflow_fernet_secrets.utils.reload import reload
-
-    key = (const.CLIENT_ENV_PREFIX + const.ENV_IS_SERVER).upper()
-    os.environ[key] = str(is_server)
-    reload()
-
-    from airflow_fernet_secrets.config import IS_SERVER_FLAG
-    from airflow_fernet_secrets.secrets import FernetLocalSecretsBackend
-
-    assert IS_SERVER_FLAG is is_server
-    assert (
-        FernetLocalSecretsBackend.__module__.split(".")[-1] == "server"
-        if is_server
-        else "client"
-    )
 
 
 @contextmanager

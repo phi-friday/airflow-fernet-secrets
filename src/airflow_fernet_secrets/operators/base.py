@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from airflow_fernet_secrets.config import HAS_AIRFLOW, IS_SERVER_FLAG
+from airflow_fernet_secrets.dynamic import HAS_AIRFLOW, IS_SERVER_FLAG
 
 if not HAS_AIRFLOW or not IS_SERVER_FLAG:
     raise NotImplementedError

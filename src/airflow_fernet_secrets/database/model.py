@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, declared_attr, registry
 from typing_extensions import Self, TypeGuard, override
 
-from airflow_fernet_secrets.config import const
+from airflow_fernet_secrets import const
 from airflow_fernet_secrets.config.common import ensure_fernet
 from airflow_fernet_secrets.utils.re import camel_to_snake
 
