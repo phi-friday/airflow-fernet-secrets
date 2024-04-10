@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from typing_extensions import Self
 
     from airflow_fernet_secrets.secrets.client import ClientFernetLocalSecretsBackend
+    from airflow_fernet_secrets.secrets.common import CommonFernetLocalSecretsBackend
     from airflow_fernet_secrets.secrets.server import ServerFernetLocalSecretsBackend
 
     class DagMaker(Protocol):
@@ -31,7 +32,7 @@ if TYPE_CHECKING:
         ) -> None: ...
         def create_dagrun(self, **kwargs: Any) -> DagRun: ...
         def create_dagrun_after(self, dagrun: DagRun, **kwargs: Any) -> DagRun: ...
-        def __call__(  # noqa: PLR0913
+        def __call__(
             self,
             *,
             dag_id: str = ...,
@@ -76,8 +77,9 @@ def temp_path():
         yield Path(temp_dir)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="session", autouse=True)
 def backend_path(temp_path: Path):
+    from airflow_fernet_secrets import const
     from airflow_fernet_secrets.database.connect import (
         create_sqlite_url,
         ensure_sqlite_sync_engine,
@@ -92,14 +94,22 @@ def backend_path(temp_path: Path):
     migrate(engine)
 
     _set_backend_kwargs("fernet_secrets_backend_file_path", str(file))
+    environ.setdefault(
+        const.CLIENT_ENV_PREFIX + const.ENV_BACKEND_FILE.upper(), str(file)
+    )
 
     return file
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="session", autouse=True)
 def secret_key():
+    from airflow_fernet_secrets import const
+
     key = Fernet.generate_key()
     _set_backend_kwargs("fernet_secrets_key", key.decode("utf-8"))
+    environ.setdefault(
+        const.CLIENT_ENV_PREFIX + const.ENV_SECRET_KEY.upper(), key.decode("utf-8")
+    )
     return key
 
 
@@ -126,28 +136,32 @@ def default_async_conn(default_conn: URL) -> URL:
     return default_conn.set(drivername="sqlite+aiosqlite")
 
 
-@pytest.fixture()
-def client_backend(  # noqa: PLR0913
+@pytest.fixture(scope="session", autouse=True)
+def _init_connections(
     secret_key,
     backend_path,
     default_conn_id,
     default_conn,
     default_async_conn_id,
     default_async_conn,
-) -> ClientFernetLocalSecretsBackend:
+) -> None:
     from airflow_fernet_secrets.secrets.client import ClientFernetLocalSecretsBackend
 
     backend = ClientFernetLocalSecretsBackend(
         fernet_secrets_key=secret_key, fernet_secrets_backend_file_path=backend_path
     )
 
-    value = backend.get_conn_value(default_conn_id)
-    if value is not None:
-        return backend
-
     backend.set_connection(default_conn_id, default_conn)
     backend.set_connection(default_async_conn_id, default_async_conn)
-    return backend
+
+
+@pytest.fixture()
+def client_backend(secret_key, backend_path) -> ClientFernetLocalSecretsBackend:
+    from airflow_fernet_secrets.secrets.client import ClientFernetLocalSecretsBackend
+
+    return ClientFernetLocalSecretsBackend(
+        fernet_secrets_key=secret_key, fernet_secrets_backend_file_path=backend_path
+    )
 
 
 @pytest.fixture()
@@ -157,6 +171,18 @@ def server_backend(secret_key, backend_path) -> ServerFernetLocalSecretsBackend:
     return ServerFernetLocalSecretsBackend(
         fernet_secrets_key=secret_key, fernet_secrets_backend_file_path=backend_path
     )
+
+
+@pytest.fixture()
+def backend(
+    request: pytest.FixtureRequest, client_backend, server_backend
+) -> CommonFernetLocalSecretsBackend:
+    side = request.param
+    if side == "client":
+        return client_backend
+    if side == "server":
+        return server_backend
+    raise NotImplementedError
 
 
 @pytest.fixture()
@@ -300,7 +326,7 @@ def create_dag_fixture(  # noqa: C901
                 **kwargs,
             )
 
-        def __call__(  # noqa: PLR0913
+        def __call__(
             self,
             *,
             dag_id: str = "test_dag",
