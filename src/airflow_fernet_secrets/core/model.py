@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Callable, ClassVar, cast
 
 import sqlalchemy as sa
-from sqlalchemy.orm import declared_attr, registry
+from sqlalchemy.orm import Mapped, declared_attr, registry
 from typing_extensions import Self, TypeGuard, override
 
 from airflow_fernet_secrets.core.config import const
@@ -55,7 +55,7 @@ class Base:
             cls = _get_class(self)
             return camel_to_snake(cls.__name__)
 
-    id: int = field(
+    id: Mapped[int] = field(
         init=False,
         metadata={"sa": sa.Column(sa.Integer(), primary_key=True, autoincrement=True)},
     )
@@ -64,7 +64,7 @@ class Base:
 @dataclass(**_DATACLASS_ARGS)
 class Encrypted(Base):
     __abstract__: ClassVar[bool] = True
-    encrypted: bytes = field(metadata={"sa": sa.Column(sa.LargeBinary())})
+    encrypted: Mapped[bytes] = field(metadata={"sa": sa.Column(sa.LargeBinary())})
 
     @staticmethod
     def decrypt(
@@ -156,12 +156,14 @@ class Encrypted(Base):
 @mapper_registry.mapped
 @dataclass(**_DATACLASS_ARGS)
 class Connection(Encrypted):
-    conn_id: str = field(
+    conn_id: Mapped[str] = field(
         metadata={
             "sa": sa.Column(sa.String(2**8), index=True, unique=True, nullable=False)
         }
     )
-    conn_type: str = field(metadata={"sa": sa.Column(sa.String(2**8), nullable=False)})
+    conn_type: Mapped[str] = field(
+        metadata={"sa": sa.Column(sa.String(2**8), nullable=False)}
+    )
 
     @classmethod
     def get(cls, session: Session, conn_id: int | str) -> Self | None:
@@ -222,7 +224,7 @@ class Connection(Encrypted):
 @mapper_registry.mapped
 @dataclass(**_DATACLASS_ARGS)
 class Variable(Encrypted):
-    key: str = field(
+    key: Mapped[str] = field(
         metadata={
             "sa": sa.Column(sa.String(2**8), index=True, unique=True, nullable=False)
         }
