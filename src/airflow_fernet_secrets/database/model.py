@@ -3,6 +3,7 @@ from __future__ import annotations
 import inspect
 import json
 import sys
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Callable, ClassVar, cast
 
@@ -43,10 +44,10 @@ def _get_class(value: Any) -> type[Any]:
 
 
 @dataclass(**_DATACLASS_ARGS)
-class Base:
+class Base(ABC):
     __sa_dataclass_metadata_key__: ClassVar[str] = const.SA_DATACLASS_METADATA_KEY
     __table__: ClassVar[sa.Table]
-    __tablename__: ClassVar[str]
+    __tablename__: ClassVar[str] = ""
 
     if not TYPE_CHECKING:
 
@@ -149,14 +150,14 @@ class Encrypted(Base):
 
     # abc
 
-    def _exists_stmt(self) -> Select:
-        raise NotImplementedError
+    @abstractmethod
+    def _exists_stmt(self) -> Select: ...
 
-    def _upsert_stmt(self) -> Update:
-        raise NotImplementedError
+    @abstractmethod
+    def _upsert_stmt(self) -> Update: ...
 
-    def _delete_stmt(self) -> Delete:
-        raise NotImplementedError
+    @abstractmethod
+    def _delete_stmt(self) -> Delete: ...
 
 
 @mapper_registry.mapped

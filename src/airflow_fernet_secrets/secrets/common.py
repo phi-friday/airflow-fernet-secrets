@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from abc import ABC, abstractmethod
 from functools import cached_property
 from typing import TYPE_CHECKING, Generic, Literal, cast
 
@@ -32,11 +33,13 @@ if TYPE_CHECKING:
     from airflow_fernet_secrets.connection import ConnectionDict
     from airflow_fernet_secrets.log.common import CommonLoggingMixin
 
-    class BaseFernetLocalSecretsBackend(BaseSecretsBackend, CommonLoggingMixin): ...
+    class BaseFernetLocalSecretsBackend(
+        BaseSecretsBackend, CommonLoggingMixin, ABC
+    ): ...
 
 else:
 
-    class BaseFernetLocalSecretsBackend: ...
+    class BaseFernetLocalSecretsBackend(ABC): ...
 
 
 __all__ = ["CommonFernetLocalSecretsBackend"]
@@ -390,23 +393,7 @@ class CommonFernetLocalSecretsBackend(
             if do_rorate:
                 await session.commit()
 
-    # abc
-
-    def _deserialize_connection(
-        self, conn_id: str, connection: ConnectionDict
-    ) -> ConnectionT:
-        raise NotImplementedError
-
-    def _serialize_connection(
-        self, conn_id: str, connection: ConnectionT
-    ) -> ConnectionDict:
-        raise NotImplementedError
-
-    def _get_conn_type(self, connection: ConnectionT) -> str:
-        raise NotImplementedError
-
     # validate
-
     def _validate_connection(
         self,
         conn_id: str,  # noqa: ARG002
@@ -422,3 +409,17 @@ class CommonFernetLocalSecretsBackend(
         when: Literal["serialize", "deserialize"],  # noqa: ARG002
     ) -> ConnectionDict:
         return connection
+
+    # abc
+    @abstractmethod
+    def _deserialize_connection(
+        self, conn_id: str, connection: ConnectionDict
+    ) -> ConnectionT: ...
+
+    @abstractmethod
+    def _serialize_connection(
+        self, conn_id: str, connection: ConnectionT
+    ) -> ConnectionDict: ...
+
+    @abstractmethod
+    def _get_conn_type(self, connection: ConnectionT) -> str: ...
