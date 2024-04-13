@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from uuid import uuid4
 
 import pytest
 import sqlalchemy as sa
@@ -78,6 +79,53 @@ class TestSyncClientAndServer(BaseTestClientAndServer):
         conn = self.backend.get_connection(conn_id)
         assert conn is None
 
+    def test_get_variable(self, secret_key):
+        from airflow_fernet_secrets.database.connect import enter_sync_database
+        from airflow_fernet_secrets.database.model import Variable
+
+        key, value = str(uuid4()), str(uuid4())
+        variable = Variable.from_value(key, value, secret_key)
+        with enter_sync_database(self.backend._backend_sync_engine) as session:  # noqa: SLF001
+            session.add(variable)
+            session.commit()
+
+        check = self.backend.get_variable(key)
+        assert check is not None
+        assert check == value
+
+    def test_set_variable(self):
+        key, value = str(uuid4()), str(uuid4())
+        check = self.backend.get_variable(key)
+        assert check is None
+
+        self.backend.set_variable(key, value)
+        check = self.backend.get_variable(key)
+        assert check is not None
+        assert check == value
+
+    def test_delete_variable(self):
+        key, value = str(uuid4()), str(uuid4())
+        self.backend.set_variable(key, value)
+        check = self.backend.get_variable(key)
+        assert check is not None
+
+        self.backend.delete_variable(key)
+        check = self.backend.get_variable(key)
+        assert check is None
+
+    def test_has_variable(self):
+        key, value = str(uuid4()), str(uuid4())
+        check = self.backend.get_variable(key)
+        assert check is None
+        check = self.backend.has_variable(key)
+        assert check is False
+
+        self.backend.set_variable(key, value)
+        check = self.backend.get_variable(key)
+        assert check is not None
+        check = self.backend.has_variable(key)
+        assert check is True
+
 
 @pytest.mark.parametrize("backend_class", ["client", "server"], indirect=True)
 @pytest.mark.anyio()
@@ -145,6 +193,53 @@ class TestAsyncClientAndServer(BaseTestClientAndServer):
         assert check is False
         conn = await self.backend.aget_connection(conn_id)
         assert conn is None
+
+    async def test_aget_variable(self, secret_key):
+        from airflow_fernet_secrets.database.connect import enter_async_database
+        from airflow_fernet_secrets.database.model import Variable
+
+        key, value = str(uuid4()), str(uuid4())
+        variable = Variable.from_value(key, value, secret_key)
+        async with enter_async_database(self.backend._backend_async_engine) as session:  # noqa: SLF001
+            session.add(variable)
+            await session.commit()
+
+        check = await self.backend.aget_variable(key)
+        assert check is not None
+        assert check == value
+
+    async def test_aset_variable(self):
+        key, value = str(uuid4()), str(uuid4())
+        check = await self.backend.aget_variable(key)
+        assert check is None
+
+        await self.backend.aset_variable(key, value)
+        check = await self.backend.aget_variable(key)
+        assert check is not None
+        assert check == value
+
+    async def test_adelete_variable(self):
+        key, value = str(uuid4()), str(uuid4())
+        await self.backend.aset_variable(key, value)
+        check = await self.backend.aget_variable(key)
+        assert check is not None
+
+        await self.backend.adelete_variable(key)
+        check = await self.backend.aget_variable(key)
+        assert check is None
+
+    async def test_ahas_variable(self):
+        key, value = str(uuid4()), str(uuid4())
+        check = await self.backend.aget_variable(key)
+        assert check is None
+        check = await self.backend.ahas_variable(key)
+        assert check is False
+
+        await self.backend.aset_variable(key, value)
+        check = await self.backend.aget_variable(key)
+        assert check is not None
+        check = await self.backend.ahas_variable(key)
+        assert check is True
 
 
 def test_server_to_client(server_backend, client_backend, temp_file):
