@@ -10,6 +10,7 @@ from itertools import chain
 from typing import TYPE_CHECKING, Any, Sequence
 
 from airflow.models import BaseOperator
+from typing_extensions import TypedDict
 
 from airflow_fernet_secrets.config.common import ensure_fernet
 from airflow_fernet_secrets.config.server import load_secret_key
@@ -20,6 +21,11 @@ if TYPE_CHECKING:
     from cryptography.fernet import Fernet, MultiFernet
 
     from airflow_fernet_secrets._typeshed import PathType
+
+
+class OperatorResult(TypedDict, total=True):
+    connection: list[str]
+    variable: list[str]
 
 
 class HasSecrets(BaseOperator):
@@ -63,11 +69,12 @@ class HasSecrets(BaseOperator):
         return self._fernet_secrets_backend
 
 
-class HasConnIds(HasSecrets):
+class HasIds(HasSecrets):
     template_fields: Sequence[str] = (
         "fernet_secrets_conn_ids",
-        "fernet_secrets_conn_ids_separate",
-        "fernet_secrets_conn_ids_separator",
+        "fernet_secrets_var_ids",
+        "fernet_secrets_separate",
+        "fernet_secrets_separator",
         "fernet_secrets_key",
         "fernet_secrets_backend_file_path",
     )
@@ -76,8 +83,9 @@ class HasConnIds(HasSecrets):
         self,
         *,
         fernet_secrets_conn_ids: str | list[str] | tuple[str, ...] | None = None,
-        fernet_secrets_conn_ids_separate: str | bool = False,
-        fernet_secrets_conn_ids_separator: str = ",",
+        fernet_secrets_var_ids: str | list[str] | tuple[str, ...] | None = None,
+        fernet_secrets_separate: str | bool = False,
+        fernet_secrets_separator: str = ",",
         fernet_secrets_key: str | bytes | Fernet | MultiFernet | None = None,
         fernet_secrets_backend_file_path: PathType | None = None,
         **kwargs: Any,
@@ -89,31 +97,40 @@ class HasConnIds(HasSecrets):
         )
 
         self.fernet_secrets_conn_ids = fernet_secrets_conn_ids
-        self.fernet_secrets_conn_ids_separate = fernet_secrets_conn_ids_separate
-        self.fernet_secrets_conn_ids_separator = fernet_secrets_conn_ids_separator
+        self.fernet_secrets_var_ids = fernet_secrets_var_ids
+        self.fernet_secrets_separate = fernet_secrets_separate
+        self.fernet_secrets_separator = fernet_secrets_separator
 
     @cached_property
     def _separated_conn_ids(self) -> tuple[str, ...]:
-        fernet_secrets_conn_ids_separate = ensure_boolean(
-            self.fernet_secrets_conn_ids_separate
+        return _separated_ids(
+            self.fernet_secrets_conn_ids,
+            self.fernet_secrets_separate,
+            self.fernet_secrets_separator,
         )
 
-        fernet_secrets_conn_ids = self.fernet_secrets_conn_ids
-        if fernet_secrets_conn_ids is None:
-            fernet_secrets_conn_ids = ""
-        if isinstance(fernet_secrets_conn_ids, str):
-            fernet_secrets_conn_ids = (fernet_secrets_conn_ids,)
-        if fernet_secrets_conn_ids_separate:
-            fernet_secrets_conn_ids = tuple(
-                chain.from_iterable(
-                    (
-                        x.strip()
-                        for x in conn_id.split(self.fernet_secrets_conn_ids_separator)
-                    )
-                    for conn_id in fernet_secrets_conn_ids
-                )
-            )
-        else:
-            fernet_secrets_conn_ids = tuple(fernet_secrets_conn_ids)
+    @cached_property
+    def _separated_var_ids(self) -> tuple[str, ...]:
+        return _separated_ids(
+            self.fernet_secrets_var_ids,
+            self.fernet_secrets_separate,
+            self.fernet_secrets_separator,
+        )
 
-        return fernet_secrets_conn_ids
+
+def _separated_ids(
+    ids: str | list[str] | tuple[str, ...] | None, separate: str | bool, separator: str
+) -> tuple[str, ...]:
+    separate = ensure_boolean(separate)
+
+    if ids is None:
+        ids = ""
+    if isinstance(ids, str):
+        ids = (ids,)
+    if separate:
+        return tuple(
+            chain.from_iterable(
+                (x.strip() for x in sub.split(separator)) for sub in ids
+            )
+        )
+    return tuple(ids)

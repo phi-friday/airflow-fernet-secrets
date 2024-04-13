@@ -3,12 +3,13 @@ from __future__ import annotations
 import pytest
 import sqlalchemy as sa
 from airflow import DAG
+from airflow.models.xcom import XCom
 from airflow.utils.db import initdb
 from airflow.utils.state import DagRunState
 from airflow.utils.types import DagRunType
 from pendulum.datetime import DateTime
 
-from tests.base import BackendType, BaseTestClientAndServer, ignore_warnings
+from tests.base import BaseTestClientAndServer, ignore_warnings
 
 
 @pytest.mark.parametrize("backend_class", ["server"], indirect=True)
@@ -18,21 +19,14 @@ class TestOeprator(BaseTestClientAndServer):
         with ignore_warnings():
             initdb()
 
-    def test_dump_connection(
-        self, backend_class: BackendType, secret_key, backend_path, temp_file
-    ):
+    def test_dump_connection(self, secret_key, backend_path, temp_file):
         from airflow.models.connection import Connection
         from airflow.utils.session import create_session
 
         from airflow_fernet_secrets.operators.dump import DumpConnectionsOperator
 
-        backend = backend_class(
-            fernet_secrets_key=secret_key, fernet_secrets_backend_file_path=backend_path
-        )
-
         conn_id = temp_file.stem
-        check = backend.get_conn_value(conn_id=conn_id)
-        assert check is None
+        assert not self.backend.has_connection(conn_id)
 
         conn = Connection(conn_id=conn_id, conn_type="fs", extra={"fs": str(temp_file)})
         with ignore_warnings(), create_session() as session:
@@ -45,7 +39,7 @@ class TestOeprator(BaseTestClientAndServer):
 
         now = DateTime.utcnow()
         dag = DAG(dag_id="test_dump", schedule=None)
-        dag.create_dagrun(
+        dag_run = dag.create_dagrun(
             run_type=DagRunType.MANUAL,
             execution_date=now,
             start_date=now,
@@ -67,24 +61,28 @@ class TestOeprator(BaseTestClientAndServer):
             ignore_ti_state=True,
         )
 
-        check = backend.get_connection(conn_id=conn_id)
+        check = self.backend.get_connection(conn_id=conn_id)
         assert check is not None
 
         assert conn.conn_id == check.conn_id
         assert conn.conn_type == check.conn_type
         assert conn.extra_dejson == check.extra_dejson
 
-    def test_load_connection(
-        self, backend_class: BackendType, secret_key, backend_path, temp_file
-    ):
+        output = XCom.get_one(
+            dag_id=task.dag_id, task_id=task.task_id, run_id=str(dag_run.run_id)
+        )
+        assert isinstance(output, dict)
+        assert "connection" in output
+        output_connection = output["connection"]
+        assert isinstance(output_connection, list)
+        assert len(output_connection) == 1
+        assert output_connection[0] == conn_id
+
+    def test_load_connection(self, secret_key, backend_path, temp_file):
         from airflow.models.connection import Connection
         from airflow.utils.session import create_session
 
         from airflow_fernet_secrets.operators.load import LoadConnectionsOperator
-
-        backend = backend_class(
-            fernet_secrets_key=secret_key, fernet_secrets_backend_file_path=backend_path
-        )
 
         conn_id = temp_file.stem
         select = sa.select(Connection).where(Connection.conn_id == conn_id)
@@ -93,7 +91,7 @@ class TestOeprator(BaseTestClientAndServer):
         assert check is None
 
         conn = Connection(conn_id=conn_id, conn_type="fs", extra={"fs": str(temp_file)})
-        backend.set_connection(conn_id=conn_id, connection=conn)
+        self.backend.set_connection(conn_id=conn_id, connection=conn)
 
         with create_session() as session:
             check = session.scalars(select).one_or_none()
@@ -101,7 +99,7 @@ class TestOeprator(BaseTestClientAndServer):
 
         now = DateTime.utcnow()
         dag = DAG(dag_id="test_load", schedule=None)
-        dag.create_dagrun(
+        dag_run = dag.create_dagrun(
             run_type=DagRunType.MANUAL,
             execution_date=now,
             start_date=now,
@@ -130,3 +128,13 @@ class TestOeprator(BaseTestClientAndServer):
         assert conn.conn_id == check.conn_id
         assert conn.conn_type == check.conn_type
         assert conn.extra_dejson == check.extra_dejson
+
+        output = XCom.get_one(
+            dag_id=task.dag_id, task_id=task.task_id, run_id=str(dag_run.run_id)
+        )
+        assert isinstance(output, dict)
+        assert "connection" in output
+        output_connection = output["connection"]
+        assert isinstance(output_connection, list)
+        assert len(output_connection) == 1
+        assert output_connection[0] == conn_id
