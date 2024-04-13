@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Generator, Literal
 import pytest
 import sqlalchemy as sa
 from airflow.hooks.base import BaseHook
+from airflow.hooks.filesystem import FSHook
 from airflow.models.connection import Connection
 from airflow.providers.common.sql.hooks.sql import DbApiHook
 from sqlalchemy.engine import Engine
@@ -365,6 +366,23 @@ def test_client_to_server(server_backend, client_backend, temp_file):
 def test_client_ato_server(server_backend, client_backend, temp_file):
     ...
 """
+
+
+def test_filesystem_connection(server_backend, temp_file):
+    conn_id = temp_file.stem
+    connection = Connection(
+        conn_id=conn_id, conn_type="fs", extra={"path": str(temp_file)}
+    )
+    server_backend.set_connection(conn_id=conn_id, connection=connection)
+
+    load = server_backend.get_connection(conn_id=conn_id)
+    assert load is not None
+    assert load.conn_type == "fs"
+
+    hook = load.get_hook()
+    assert isinstance(hook, FSHook)
+    path = hook.get_path()
+    assert path == str(temp_file)
 
 
 @contextmanager

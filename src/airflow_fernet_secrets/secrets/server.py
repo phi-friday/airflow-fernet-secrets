@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, cast
 
-from airflow.models.connection import Connection
-from typing_extensions import override
+from typing_extensions import TypeAlias, override
 
 from airflow_fernet_secrets import const
 from airflow_fernet_secrets.config.server import load_backend_file as _load_backend_file
@@ -26,6 +25,8 @@ else:
     Connection = Any
 
 __all__ = ["ServerFernetLocalSecretsBackend"]
+
+ConnectionType: TypeAlias = "Connection"
 
 
 class ServerFernetLocalSecretsBackend(

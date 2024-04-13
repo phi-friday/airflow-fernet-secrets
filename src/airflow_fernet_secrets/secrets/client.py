@@ -34,7 +34,7 @@ class ClientFernetLocalSecretsBackend(
     load_secret_key = staticmethod(_load_secret_key)
 
     @override
-    def _get_conn_type(self, connection: URL) -> str:
+    def _get_conn_type(self, connection: ConnectionType) -> str:
         return const.SQL_CONN_TYPE
 
     @override
@@ -75,4 +75,28 @@ class ClientFernetLocalSecretsBackend(
         driver = parse_driver(connection["driver"])
         if not driver.backend:
             raise NotImplementedError
+        return connection
+
+
+class DirectFernetLocalSecretsBackend(
+    _CommonFernetLocalSecretsBackend[ConnectionDict], LoggingMixin
+):
+    load_backend_file = staticmethod(_load_backend_file)
+    load_secret_key = staticmethod(_load_secret_key)
+
+    @override
+    def _get_conn_type(self, connection: ConnectionDict) -> str:
+        driver = parse_driver(connection["driver"])
+        return driver.conn_type
+
+    @override
+    def _deserialize_connection(
+        self, conn_id: str, connection: ConnectionDict
+    ) -> ConnectionDict:
+        return connection
+
+    @override
+    def _serialize_connection(
+        self, conn_id: str, connection: ConnectionDict
+    ) -> ConnectionDict:
         return connection
