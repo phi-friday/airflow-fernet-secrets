@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal
 
-from sqlalchemy.engine.url import URL
 from typing_extensions import TypeAlias, override
 
 from airflow_fernet_secrets import const
@@ -19,11 +18,13 @@ from airflow_fernet_secrets.secrets.common import (
 )
 
 if TYPE_CHECKING:
+    from sqlalchemy.engine.url import URL
+
     from airflow_fernet_secrets.database.model import Connection
 
 __all__ = ["ClientFernetLocalSecretsBackend"]
 
-ConnectionType: TypeAlias = URL
+ConnectionType: TypeAlias = "URL"
 
 
 class ClientFernetLocalSecretsBackend(
