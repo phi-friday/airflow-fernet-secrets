@@ -404,3 +404,25 @@ def create_dag_fixture(  # noqa: C901
 @pytest.fixture()
 def create_dag(create_dag_fixture) -> DagMaker:
     return create_dag_fixture
+
+
+@pytest.fixture()
+def backend_class(
+    request: pytest.FixtureRequest,
+) -> type[CommonFernetLocalSecretsBackend]:
+    side = request.param
+    if side == "client":
+        from airflow_fernet_secrets.secrets.client import (
+            ClientFernetLocalSecretsBackend as FernetLocalSecretsBackend,
+        )
+    elif side == "server":
+        from airflow_fernet_secrets.secrets.server import (
+            ServerFernetLocalSecretsBackend as FernetLocalSecretsBackend,
+        )
+    elif side == "direct":
+        from airflow_fernet_secrets.secrets.client import (
+            DirectFernetLocalSecretsBackend as FernetLocalSecretsBackend,
+        )
+    else:
+        raise NotImplementedError
+    return FernetLocalSecretsBackend

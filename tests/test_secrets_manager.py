@@ -3,7 +3,7 @@ from __future__ import annotations
 import warnings
 from contextlib import contextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Generator, Literal
+from typing import TYPE_CHECKING, Generator
 
 import pytest
 import sqlalchemy as sa
@@ -11,130 +11,17 @@ from airflow.hooks.base import BaseHook
 from airflow.hooks.filesystem import FSHook
 from airflow.models.connection import Connection
 from airflow.providers.common.sql.hooks.sql import DbApiHook
-from sqlalchemy.engine import Engine
 from sqlalchemy.engine.url import URL
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import Session
 
+from tests.base import BaseTestClientAndServer
+
 if TYPE_CHECKING:
-    from airflow_fernet_secrets._typeshed import PathType
     from airflow_fernet_secrets.secrets.common import CommonFernetLocalSecretsBackend
 
 
-@pytest.fixture()
-def backend_class(
-    request: pytest.FixtureRequest,
-) -> type[CommonFernetLocalSecretsBackend]:
-    side = request.param
-    if side == "client":
-        from airflow_fernet_secrets.secrets.client import (
-            ClientFernetLocalSecretsBackend as FernetLocalSecretsBackend,
-        )
-    elif side == "server":
-        from airflow_fernet_secrets.secrets.server import (
-            ServerFernetLocalSecretsBackend as FernetLocalSecretsBackend,
-        )
-    else:
-        raise NotImplementedError
-    return FernetLocalSecretsBackend
-
-
 @pytest.mark.parametrize("backend_class", ["client", "server"], indirect=True)
-class BaseTestClientAndServer:
-    @staticmethod
-    def find_backend_side(
-        backend_class: type[CommonFernetLocalSecretsBackend],
-    ) -> Literal["client", "server"]:
-        side = backend_class.__module__.split(".")[-1]
-        if side == "client" or side == "server":  # noqa: PLR1714
-            return side
-        raise NotImplementedError
-
-    @classmethod
-    def backend(
-        cls, backend_class: type[CommonFernetLocalSecretsBackend]
-    ) -> CommonFernetLocalSecretsBackend:
-        side = cls.find_backend_side(backend_class)
-        if side == "client":
-            from airflow_fernet_secrets.secrets.client import (
-                ClientFernetLocalSecretsBackend as FernetLocalSecretsBackend,
-            )
-        elif side == "server":
-            from airflow_fernet_secrets.secrets.server import (
-                ServerFernetLocalSecretsBackend as FernetLocalSecretsBackend,
-            )
-        else:
-            raise NotImplementedError
-        return FernetLocalSecretsBackend()
-
-    @classmethod
-    def assert_connection_type(
-        cls, backend_class: type[CommonFernetLocalSecretsBackend], connection: Any
-    ) -> None:
-        side = cls.find_backend_side(backend_class)
-        if side == "client":
-            assert isinstance(connection, URL)
-        elif side == "server":
-            assert isinstance(connection, Connection)
-        else:
-            raise NotImplementedError
-
-    @classmethod
-    def create_connection(
-        cls,
-        backend_class: type[CommonFernetLocalSecretsBackend],
-        *,
-        conn_id: str | None,
-        file: PathType,
-        extra: dict[str, Any] | None = None,
-        is_async: bool = False,
-        **kwargs: Any,
-    ) -> Any:
-        side = cls.find_backend_side(backend_class)
-        if side == "client":
-            from airflow_fernet_secrets.database.connect import create_sqlite_url
-
-            return create_sqlite_url(file, is_async=is_async, query=extra, **kwargs)
-        if side == "server":
-            return Connection(
-                conn_id=conn_id,
-                conn_type="sqlite",
-                host=str(file),
-                extra=extra,
-                **kwargs,
-            )
-        raise NotImplementedError
-
-    @classmethod
-    def dump_connection(
-        cls, backend_class: type[CommonFernetLocalSecretsBackend], connection: Any
-    ) -> str:
-        side = cls.find_backend_side(backend_class)
-        if side == "client":
-            assert isinstance(connection, URL)
-            return connection.render_as_string(hide_password=False)
-        if side == "server":
-            assert isinstance(connection, Connection)
-            return connection.get_uri()
-        raise NotImplementedError
-
-    @classmethod
-    def create_engine(
-        cls, backend_class: type[CommonFernetLocalSecretsBackend], connection: Any
-    ) -> Engine:
-        side = cls.find_backend_side(backend_class)
-        if side == "client":
-            assert isinstance(connection, URL)
-            return sa.create_engine(connection)
-        if side == "server":
-            hook = get_hook(connection)
-            assert isinstance(hook, DbApiHook)
-            engine = hook.get_sqlalchemy_engine()
-            assert isinstance(engine, Engine)
-            return engine
-        raise NotImplementedError
-
-
 class TestSyncClientAndServer(BaseTestClientAndServer):
     def test_get_connection(
         self,
@@ -223,6 +110,7 @@ class TestSyncClientAndServer(BaseTestClientAndServer):
         assert values == [(1,)]
 
 
+@pytest.mark.parametrize("backend_class", ["client", "server"], indirect=True)
 @pytest.mark.anyio()
 class TestAsyncClientAndServer(BaseTestClientAndServer):
     async def test_aget_connection(
