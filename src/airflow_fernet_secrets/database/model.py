@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Callable, ClassVar, cast
 
 import sqlalchemy as sa
-from sqlalchemy.orm import Mapped, declared_attr, registry
+from sqlalchemy.orm import Mapped, registry
 from typing_extensions import Self, TypeGuard, override
 
 from airflow_fernet_secrets import const
@@ -49,12 +49,12 @@ class Base(ABC):
     __table__: ClassVar[sa.Table]
     __tablename__: ClassVar[str] = ""
 
-    if not TYPE_CHECKING:
-
-        @declared_attr
-        def __tablename__(self) -> str:
-            cls = _get_class(self)
-            return camel_to_snake(cls.__name__)
+    @classmethod
+    def __table_cls__(
+        cls, name: str, metadata: sa.MetaData, *args: Any, **kwargs: Any
+    ) -> sa.Table:
+        name = camel_to_snake(name or cls.__name__)
+        return sa.Table(name, metadata, *args, **kwargs)
 
     id: Mapped[int] = field(
         init=False,
