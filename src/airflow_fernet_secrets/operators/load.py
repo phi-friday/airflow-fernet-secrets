@@ -100,12 +100,16 @@ class LoadConnectionsOperator(HasConnIds):
             session.flush()
             return
 
-        exclude = {"id", "conn_id"}
-        table: sa.Table = Connection.__table__
         unset = object()
-        for col in table.columns.keys():  # noqa: SIM118
-            if col in exclude:
-                continue
+        for col in (
+            "description",
+            "host",
+            "login",
+            "password",
+            "schema",
+            "port",
+            "extra",
+        ):
             new = getattr(connection, col, unset)
             if new is unset:
                 continue
