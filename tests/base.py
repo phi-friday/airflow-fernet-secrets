@@ -16,15 +16,18 @@ from airflow_fernet_secrets.utils.re import camel_to_snake
 
 if TYPE_CHECKING:
     from airflow.hooks.base import BaseHook
+    from typing_extensions import TypeAlias
 
     from airflow_fernet_secrets._typeshed import PathType
     from airflow_fernet_secrets.secrets.common import CommonFernetLocalSecretsBackend
+
+BackendType: TypeAlias = "type[CommonFernetLocalSecretsBackend]"
 
 
 class BaseTestClientAndServer:
     @staticmethod
     def find_backend_side(
-        backend_class: type[CommonFernetLocalSecretsBackend],
+        backend_class: BackendType,
     ) -> Literal["client", "server", "direct"]:
         side = backend_class.__module__.split(".")[-1]
         if side == "server":
@@ -40,9 +43,7 @@ class BaseTestClientAndServer:
         raise NotImplementedError
 
     @classmethod
-    def backend(
-        cls, backend_class: type[CommonFernetLocalSecretsBackend]
-    ) -> CommonFernetLocalSecretsBackend:
+    def backend(cls, backend_class: BackendType) -> CommonFernetLocalSecretsBackend:
         side = cls.find_backend_side(backend_class)
         if side == "client":
             from airflow_fernet_secrets.secrets.client import (
@@ -62,7 +63,7 @@ class BaseTestClientAndServer:
 
     @classmethod
     def assert_connection_type(
-        cls, backend_class: type[CommonFernetLocalSecretsBackend], connection: Any
+        cls, backend_class: BackendType, connection: Any
     ) -> None:
         side = cls.find_backend_side(backend_class)
         if side == "client":
@@ -77,7 +78,7 @@ class BaseTestClientAndServer:
     @classmethod
     def create_connection(
         cls,
-        backend_class: type[CommonFernetLocalSecretsBackend],
+        backend_class: BackendType,
         *,
         conn_id: str | None,
         conn_type: str = "sqlite",
@@ -111,9 +112,7 @@ class BaseTestClientAndServer:
         raise NotImplementedError
 
     @classmethod
-    def dump_connection(
-        cls, backend_class: type[CommonFernetLocalSecretsBackend], connection: Any
-    ) -> str:
+    def dump_connection(cls, backend_class: BackendType, connection: Any) -> str:
         side = cls.find_backend_side(backend_class)
         if side == "client":
             assert isinstance(connection, URL)
@@ -127,9 +126,7 @@ class BaseTestClientAndServer:
         raise NotImplementedError
 
     @classmethod
-    def create_engine(
-        cls, backend_class: type[CommonFernetLocalSecretsBackend], connection: Any
-    ) -> Engine:
+    def create_engine(cls, backend_class: BackendType, connection: Any) -> Engine:
         side = cls.find_backend_side(backend_class)
         if side == "client":
             assert isinstance(connection, URL)

@@ -1,13 +1,9 @@
 from __future__ import annotations
 
-import warnings
-from contextlib import contextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING, Generator
 
 import pytest
 import sqlalchemy as sa
-from airflow.hooks.base import BaseHook
 from airflow.hooks.filesystem import FSHook
 from airflow.models.connection import Connection
 from airflow.providers.common.sql.hooks.sql import DbApiHook
@@ -15,20 +11,13 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import Session
 
-from tests.base import BaseTestClientAndServer
-
-if TYPE_CHECKING:
-    from airflow_fernet_secrets.secrets.common import CommonFernetLocalSecretsBackend
+from tests.base import BackendType, BaseTestClientAndServer, get_hook, ignore_warnings
 
 
 @pytest.mark.parametrize("backend_class", ["client", "server"], indirect=True)
 class TestSyncClientAndServer(BaseTestClientAndServer):
     def test_get_connection(
-        self,
-        backend_class: type[CommonFernetLocalSecretsBackend],
-        secret_key,
-        backend_path,
-        default_conn_id,
+        self, backend_class: BackendType, secret_key, backend_path, default_conn_id
     ):
         backend = backend_class(
             fernet_secrets_key=secret_key, fernet_secrets_backend_file_path=backend_path
@@ -42,7 +31,7 @@ class TestSyncClientAndServer(BaseTestClientAndServer):
 
     def test_delete_connection(
         self,
-        backend_class: type[CommonFernetLocalSecretsBackend],
+        backend_class: BackendType,
         secret_key: bytes,
         backend_path: Path,
         temp_file: Path,
@@ -72,11 +61,7 @@ class TestSyncClientAndServer(BaseTestClientAndServer):
         assert conn is None
 
     def test_set_connection(
-        self,
-        backend_class: type[CommonFernetLocalSecretsBackend],
-        secret_key,
-        backend_path,
-        temp_file,
+        self, backend_class: BackendType, secret_key, backend_path, temp_file
     ):
         backend = backend_class(
             fernet_secrets_key=secret_key, fernet_secrets_backend_file_path=backend_path
@@ -114,11 +99,7 @@ class TestSyncClientAndServer(BaseTestClientAndServer):
 @pytest.mark.anyio()
 class TestAsyncClientAndServer(BaseTestClientAndServer):
     async def test_aget_connection(
-        self,
-        backend_class: type[CommonFernetLocalSecretsBackend],
-        secret_key,
-        backend_path,
-        default_conn_id,
+        self, backend_class: BackendType, secret_key, backend_path, default_conn_id
     ):
         backend = backend_class(
             fernet_secrets_key=secret_key, fernet_secrets_backend_file_path=backend_path
@@ -132,7 +113,7 @@ class TestAsyncClientAndServer(BaseTestClientAndServer):
 
     async def test_adelete_connection(
         self,
-        backend_class: type[CommonFernetLocalSecretsBackend],
+        backend_class: BackendType,
         secret_key: bytes,
         backend_path: Path,
         temp_file: Path,
@@ -161,11 +142,7 @@ class TestAsyncClientAndServer(BaseTestClientAndServer):
         assert conn is None
 
     async def test_aset_connection(
-        self,
-        backend_class: type[CommonFernetLocalSecretsBackend],
-        secret_key,
-        backend_path,
-        temp_file,
+        self, backend_class: BackendType, secret_key, backend_path, temp_file
     ):
         backend = backend_class(
             fernet_secrets_key=secret_key, fernet_secrets_backend_file_path=backend_path
@@ -186,9 +163,7 @@ class TestAsyncClientAndServer(BaseTestClientAndServer):
         assert old_str == new_str
 
     async def test_connection_atouch(
-        self,
-        backend_class: type[CommonFernetLocalSecretsBackend],
-        default_async_conn_id,
+        self, backend_class: BackendType, default_async_conn_id
     ):
         side = self.find_backend_side(backend_class)
         if side == "server":
@@ -271,15 +246,3 @@ def test_filesystem_connection(server_backend, temp_file):
     assert isinstance(hook, FSHook)
     path = hook.get_path()
     assert path == str(temp_file)
-
-
-@contextmanager
-def ignore_warnings() -> Generator[None, None, None]:
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", DeprecationWarning)
-        yield
-
-
-def get_hook(connection: Connection) -> BaseHook:
-    with ignore_warnings():
-        return connection.get_hook()

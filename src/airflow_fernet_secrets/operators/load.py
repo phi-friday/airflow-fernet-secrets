@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Sequence
 
 import sqlalchemy as sa
-from airflow.exceptions import AirflowNotFoundException
 from airflow.models.connection import Connection
 from airflow.utils.session import create_session
 from typing_extensions import override
@@ -51,27 +50,34 @@ class LoadConnectionsOperator(HasConnIds):
             fernet_secrets_backend_file_path=fernet_secrets_backend_file_path,
             **kwargs,
         )
-        fernet_secrets_overwrite = ensure_boolean(fernet_secrets_overwrite)
+
         self.fernet_secrets_overwrite = fernet_secrets_overwrite
 
     @override
     def execute(self, context: Context) -> Any:
-        if not self.fernet_secrets_conn_ids:
+        if not self._separated_conn_ids:
             self.log.warning("skip empty conn ids.")
             return
 
+        overwrite = ensure_boolean(self.fernet_secrets_overwrite)
         backend = self._backend()
         with create_session() as session:
-            for conn_id in self.fernet_secrets_conn_ids:
+            for conn_id in self._separated_conn_ids:
                 self._execute_process(
-                    conn_id=conn_id, backend=backend, session=session, stacklevel=2
+                    conn_id=conn_id,
+                    backend=backend,
+                    overwrite=overwrite,
+                    session=session,
+                    stacklevel=2,
                 )
             session.commit()
 
     def _execute_process(
         self,
+        *,
         conn_id: str,
         backend: ServerFernetLocalSecretsBackend,
+        overwrite: bool,
         session: Session,
         stacklevel: int = 1,
     ) -> None:
@@ -80,18 +86,19 @@ class LoadConnectionsOperator(HasConnIds):
             return
 
         stmt = sa.select(Connection).where(Connection.conn_id == conn_id)
-        try:
-            old: Connection = session.execute(stmt).scalar_one()
-        except AirflowNotFoundException:
-            pass
-        else:
-            if not self.fernet_secrets_overwrite:
-                self.log.info("airflow already has %s", conn_id, stacklevel=stacklevel)
-                return
+        old: Connection | None = session.execute(stmt).scalar_one_or_none()
+        if old is not None and not overwrite:
+            self.log.info("airflow already has %s", conn_id, stacklevel=stacklevel)
+            return
 
         connection = backend.get_connection(conn_id=conn_id)
         if connection is None:
             raise NotImplementedError
+
+        if old is None:
+            session.add(connection)
+            session.flush()
+            return
 
         exclude = {"id", "conn_id"}
         table: sa.Table = Connection.__table__
@@ -105,3 +112,4 @@ class LoadConnectionsOperator(HasConnIds):
             setattr(old, col, new)
 
         session.add(old)
+        session.flush()

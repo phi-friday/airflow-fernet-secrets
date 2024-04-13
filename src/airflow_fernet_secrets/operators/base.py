@@ -5,12 +5,11 @@ from airflow_fernet_secrets.dynamic import HAS_AIRFLOW, IS_SERVER_FLAG
 if not HAS_AIRFLOW or not IS_SERVER_FLAG:
     raise NotImplementedError
 
+from functools import cached_property
 from itertools import chain
 from typing import TYPE_CHECKING, Any, Sequence
 
 from airflow.models import BaseOperator
-from airflow.models.connection import Connection
-from typing_extensions import override
 
 from airflow_fernet_secrets.config.common import ensure_fernet
 from airflow_fernet_secrets.config.server import load_secret_key
@@ -18,7 +17,6 @@ from airflow_fernet_secrets.secrets.server import ServerFernetLocalSecretsBacken
 from airflow_fernet_secrets.utils.cast import ensure_boolean
 
 if TYPE_CHECKING:
-    from airflow.utils.context import Context
     from cryptography.fernet import Fernet, MultiFernet
 
     from airflow_fernet_secrets._typeshed import PathType
@@ -38,16 +36,20 @@ class HasSecrets(BaseOperator):
         **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
-        self.fernet_secrets_backend_file = fernet_secrets_backend_file_path
+        self.fernet_secrets_key = fernet_secrets_key
+        self.fernet_secrets_backend_file_path = fernet_secrets_backend_file_path
 
-        self._fernet_secrets_key = (
-            None if fernet_secrets_key is None else ensure_fernet(fernet_secrets_key)
-        )
         self._fernet_secrets_backend = None
 
+    def _load_secret_from_attr(self) -> MultiFernet | None:
+        if self.fernet_secrets_key is None:
+            return None
+        return ensure_fernet(self.fernet_secrets_key)
+
     def _secret(self) -> MultiFernet:
-        if self._fernet_secrets_key is not None:
-            return self._fernet_secrets_key
+        fernet_secrets_key = self._load_secret_from_attr()
+        if fernet_secrets_key is not None:
+            return fernet_secrets_key
         return load_secret_key(self.log)
 
     def _backend(self) -> ServerFernetLocalSecretsBackend:
@@ -55,8 +57,8 @@ class HasSecrets(BaseOperator):
             return self._fernet_secrets_backend
 
         self._fernet_secrets_backend = ServerFernetLocalSecretsBackend(
-            fernet_secrets_key=self._fernet_secrets_key,
-            fernet_secrets_backend_file_path=self.fernet_secrets_backend_file,
+            fernet_secrets_key=self.fernet_secrets_key,
+            fernet_secrets_backend_file_path=self.fernet_secrets_backend_file_path,
         )
         return self._fernet_secrets_backend
 
@@ -86,9 +88,17 @@ class HasConnIds(HasSecrets):
             **kwargs,
         )
 
+        self.fernet_secrets_conn_ids = fernet_secrets_conn_ids
+        self.fernet_secrets_conn_ids_separate = fernet_secrets_conn_ids_separate
+        self.fernet_secrets_conn_ids_separator = fernet_secrets_conn_ids_separator
+
+    @cached_property
+    def _separated_conn_ids(self) -> tuple[str, ...]:
         fernet_secrets_conn_ids_separate = ensure_boolean(
-            fernet_secrets_conn_ids_separate
+            self.fernet_secrets_conn_ids_separate
         )
+
+        fernet_secrets_conn_ids = self.fernet_secrets_conn_ids
         if fernet_secrets_conn_ids is None:
             fernet_secrets_conn_ids = ""
         if isinstance(fernet_secrets_conn_ids, str):
@@ -98,7 +108,7 @@ class HasConnIds(HasSecrets):
                 chain.from_iterable(
                     (
                         x.strip()
-                        for x in conn_id.split(fernet_secrets_conn_ids_separator)
+                        for x in conn_id.split(self.fernet_secrets_conn_ids_separator)
                     )
                     for conn_id in fernet_secrets_conn_ids
                 )
@@ -106,30 +116,4 @@ class HasConnIds(HasSecrets):
         else:
             fernet_secrets_conn_ids = tuple(fernet_secrets_conn_ids)
 
-        self.fernet_secrets_conn_ids = fernet_secrets_conn_ids
-
-    @override
-    def execute(self, context: Context) -> Any:
-        backend = self._backend()
-        for conn_id in self.fernet_secrets_conn_ids:
-            self._execute_process(conn_id=conn_id, backend=backend, stacklevel=2)
-
-    def _execute_process(
-        self,
-        conn_id: str,
-        backend: ServerFernetLocalSecretsBackend,
-        stacklevel: int = 1,
-    ) -> None:
-        if not conn_id:
-            self.log.warning("skip empty conn id.")
-            return
-
-        conn_value = backend.get_conn_value(conn_id)
-        if conn_value:
-            self.log.info(
-                "secret backend already has %s", conn_id, stacklevel=stacklevel
-            )
-            return
-
-        connection = Connection.get_connection_from_secrets(conn_id)
-        backend.set_connection(conn_id, connection)
+        return fernet_secrets_conn_ids
