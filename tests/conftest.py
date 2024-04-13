@@ -150,7 +150,7 @@ def server_backend(secret_key, backend_path) -> ServerFernetLocalSecretsBackend:
 @pytest.fixture()
 def backend(
     request: pytest.FixtureRequest, client_backend, server_backend
-) -> CommonFernetLocalSecretsBackend:
+) -> CommonFernetLocalSecretsBackend[Any]:
     side = request.param
     if side == "client":
         return client_backend
@@ -170,10 +170,10 @@ def temp_file(temp_dir: Path):
     return temp_dir / str(uuid4())
 
 
-@pytest.fixture()
+@pytest.fixture(scope="class")
 def backend_class(
     request: pytest.FixtureRequest,
-) -> type[CommonFernetLocalSecretsBackend]:
+) -> type[CommonFernetLocalSecretsBackend[Any]]:
     side = request.param
     if side == "client":
         from airflow_fernet_secrets.secrets.client import (

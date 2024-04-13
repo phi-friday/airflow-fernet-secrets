@@ -100,6 +100,24 @@ class CommonFernetLocalSecretsBackend(
             value = FernetConnection.get(session, conn_id)
             return self._get_conn_value_process(conn_id=conn_id, value=value)
 
+    def has_connection(self, conn_id: str) -> bool:
+        with enter_sync_database(self._backend_sync_engine) as session:
+            count: int = session.scalar(
+                sa.select(sa.func.count(FernetConnection.id)).where(
+                    FernetConnection.conn_id == conn_id
+                )
+            )
+            return count > 0
+
+    async def ahas_connection(self, conn_id: str) -> bool:
+        async with enter_async_database(self._backend_async_engine) as session:
+            count: int = await session.scalar(
+                sa.select(sa.func.count(FernetConnection.id)).where(
+                    FernetConnection.conn_id == conn_id
+                )
+            )
+            return count > 0
+
     async def aget_conn_value(self, conn_id: str) -> str | None:
         async with enter_async_database(self._backend_async_engine) as session:
             value = await FernetConnection.aget(session, conn_id)
@@ -284,6 +302,24 @@ class CommonFernetLocalSecretsBackend(
                 return
             await variable.adelete(session, secret_key=secret_key)
             await session.commit()
+
+    def has_variable(self, key: str) -> bool:
+        with enter_sync_database(self._backend_sync_engine) as session:
+            count: int = session.scalar(
+                sa.select(sa.func.count(FernetVariable.id)).where(
+                    FernetVariable.key == key
+                )
+            )
+            return count > 0
+
+    async def ahas_variable(self, key: str) -> bool:
+        async with enter_async_database(self._backend_async_engine) as session:
+            count: int = await session.scalar(
+                sa.select(sa.func.count(FernetVariable.id)).where(
+                    FernetVariable.key == key
+                )
+            )
+            return count > 0
 
     @override
     def get_config(self, key: str) -> str | None:

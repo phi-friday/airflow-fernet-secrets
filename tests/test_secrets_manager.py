@@ -11,166 +11,119 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import Session
 
-from tests.base import BackendType, BaseTestClientAndServer, get_hook, ignore_warnings
+from tests.base import BaseTestClientAndServer, get_hook, ignore_warnings
 
 
 @pytest.mark.parametrize("backend_class", ["client", "server"], indirect=True)
 class TestSyncClientAndServer(BaseTestClientAndServer):
-    def test_get_connection(
-        self, backend_class: BackendType, secret_key, backend_path, default_conn_id
-    ):
-        backend = backend_class(
-            fernet_secrets_key=secret_key, fernet_secrets_backend_file_path=backend_path
-        )
-        conn_value = backend.get_conn_value(default_conn_id)
+    def test_get_connection(self, default_conn_id):
+        conn_value = self.backend.get_conn_value(default_conn_id)
         assert conn_value is not None
 
-        connection = backend.get_connection(default_conn_id)
+        connection = self.backend.get_connection(default_conn_id)
         assert connection is not None
-        self.assert_connection_type(backend_class, connection)
+        self.assert_connection_type(connection)
 
-    def test_delete_connection(
-        self,
-        backend_class: BackendType,
-        secret_key: bytes,
-        backend_path: Path,
-        temp_file: Path,
-    ) -> None:
-        backend = backend_class(
-            fernet_secrets_key=secret_key, fernet_secrets_backend_file_path=backend_path
-        )
-
+    def test_delete_connection(self, temp_file: Path) -> None:
         conn_id = temp_file.stem
-        conn = backend.get_connection(conn_id)
+        conn = self.backend.get_connection(conn_id)
         assert conn is None
 
         connection = self.create_connection(
-            backend_class,
-            conn_id=conn_id,
-            file=temp_file,
-            extra={"some_key": "some_value"},
+            conn_id=conn_id, file=temp_file, extra={"some_key": "some_value"}
         )
         with ignore_warnings():
-            backend.set_connection(conn_id=conn_id, connection=connection)
+            self.backend.set_connection(conn_id=conn_id, connection=connection)
 
-        conn = backend.get_connection(conn_id)
+        conn = self.backend.get_connection(conn_id)
         assert conn is not None
 
-        backend.delete_connection(conn_id)
-        conn = backend.get_connection(conn_id)
+        self.backend.delete_connection(conn_id)
+        conn = self.backend.get_connection(conn_id)
         assert conn is None
 
-    def test_set_connection(
-        self, backend_class: BackendType, secret_key, backend_path, temp_file
-    ):
-        backend = backend_class(
-            fernet_secrets_key=secret_key, fernet_secrets_backend_file_path=backend_path
-        )
-
+    def test_set_connection(self, temp_file):
         conn_id = temp_file.stem
         old = self.create_connection(
-            backend_class,
-            conn_id=conn_id,
-            file=temp_file,
-            extra={"some_key": "some_value"},
+            conn_id=conn_id, file=temp_file, extra={"some_key": "some_value"}
         )
         with ignore_warnings():
-            backend.set_connection(conn_id, old)
-        new = backend.get_connection(conn_id)
+            self.backend.set_connection(conn_id, old)
+        new = self.backend.get_connection(conn_id)
         assert new is not None
-        old_str = self.dump_connection(backend_class, old)
-        new_str = self.dump_connection(backend_class, new)
+        old_str = self.dump_connection(old)
+        new_str = self.dump_connection(new)
         assert old_str == new_str
 
-    def test_connection_touch(self, backend_class, default_conn_id):
-        backend = self.backend(backend_class)
-        connection = backend.get_connection(default_conn_id)
+    def test_connection_touch(self, default_conn_id):
+        connection = self.backend.get_connection(default_conn_id)
         assert connection is not None
-        self.assert_connection_type(backend_class, connection)
+        self.assert_connection_type(connection)
 
-        engine = self.create_engine(backend_class, connection)
+        engine = self.create_engine(connection)
         with Session(engine) as session:
             values = session.execute(sa.text("select 1")).all()
 
         assert values == [(1,)]
 
+    def test_has_connection(self, default_conn_id, temp_file):
+        check = self.backend.has_connection(default_conn_id)
+        assert check is True
+        conn = self.backend.get_connection(default_conn_id)
+        assert conn is not None
+
+        conn_id = temp_file.stem
+        check = self.backend.has_connection(conn_id)
+        assert check is False
+        conn = self.backend.get_connection(conn_id)
+        assert conn is None
+
 
 @pytest.mark.parametrize("backend_class", ["client", "server"], indirect=True)
 @pytest.mark.anyio()
 class TestAsyncClientAndServer(BaseTestClientAndServer):
-    async def test_aget_connection(
-        self, backend_class: BackendType, secret_key, backend_path, default_conn_id
-    ):
-        backend = backend_class(
-            fernet_secrets_key=secret_key, fernet_secrets_backend_file_path=backend_path
-        )
-        conn_value = await backend.aget_conn_value(default_conn_id)
+    async def test_aget_connection(self, default_conn_id):
+        conn_value = await self.backend.aget_conn_value(default_conn_id)
         assert conn_value is not None
 
-        connection = await backend.aget_connection(default_conn_id)
+        connection = await self.backend.aget_connection(default_conn_id)
         assert connection is not None
-        self.assert_connection_type(backend_class, connection)
+        self.assert_connection_type(connection)
 
-    async def test_adelete_connection(
-        self,
-        backend_class: BackendType,
-        secret_key: bytes,
-        backend_path: Path,
-        temp_file: Path,
-    ) -> None:
-        backend = backend_class(
-            fernet_secrets_key=secret_key, fernet_secrets_backend_file_path=backend_path
-        )
-
+    async def test_adelete_connection(self, temp_file: Path) -> None:
         conn_id = temp_file.stem
-        conn = await backend.aget_connection(conn_id)
+        conn = await self.backend.aget_connection(conn_id)
         assert conn is None
 
         connection = self.create_connection(
-            backend_class,
-            conn_id=conn_id,
-            file=temp_file,
-            extra={"some_key": "some_value"},
+            conn_id=conn_id, file=temp_file, extra={"some_key": "some_value"}
         )
-        await backend.aset_connection(conn_id=conn_id, connection=connection)
+        await self.backend.aset_connection(conn_id=conn_id, connection=connection)
 
-        conn = await backend.aget_connection(conn_id)
+        conn = await self.backend.aget_connection(conn_id)
         assert conn is not None
 
-        await backend.adelete_connection(conn_id)
-        conn = await backend.aget_connection(conn_id)
+        await self.backend.adelete_connection(conn_id)
+        conn = await self.backend.aget_connection(conn_id)
         assert conn is None
 
-    async def test_aset_connection(
-        self, backend_class: BackendType, secret_key, backend_path, temp_file
-    ):
-        backend = backend_class(
-            fernet_secrets_key=secret_key, fernet_secrets_backend_file_path=backend_path
-        )
-
+    async def test_aset_connection(self, temp_file):
         conn_id = temp_file.stem
         old = self.create_connection(
-            backend_class,
-            conn_id=conn_id,
-            file=temp_file,
-            extra={"some_key": "some_value"},
+            conn_id=conn_id, file=temp_file, extra={"some_key": "some_value"}
         )
-        await backend.aset_connection(conn_id, old)
-        new = await backend.aget_connection(conn_id)
+        await self.backend.aset_connection(conn_id, old)
+        new = await self.backend.aget_connection(conn_id)
         assert new is not None
-        old_str = self.dump_connection(backend_class, old)
-        new_str = self.dump_connection(backend_class, new)
+        old_str = self.dump_connection(old)
+        new_str = self.dump_connection(new)
         assert old_str == new_str
 
-    async def test_connection_atouch(
-        self, backend_class: BackendType, default_async_conn_id
-    ):
-        side = self.find_backend_side(backend_class)
-        if side == "server":
+    async def test_connection_atouch(self, default_async_conn_id):
+        if self.side == "server":
             pytest.skip()
 
-        backend = self.backend(backend_class)
-        connection = await backend.aget_connection(default_async_conn_id)
+        connection = await self.backend.aget_connection(default_async_conn_id)
         assert connection is not None
         assert isinstance(connection, URL)
 
@@ -180,6 +133,18 @@ class TestAsyncClientAndServer(BaseTestClientAndServer):
             values = fetch.all()
 
         assert values == [(1,)]
+
+    async def test_ahas_connection(self, default_conn_id, temp_file):
+        check = await self.backend.ahas_connection(default_conn_id)
+        assert check is True
+        conn = await self.backend.aget_connection(default_conn_id)
+        assert conn is not None
+
+        conn_id = temp_file.stem
+        check = await self.backend.ahas_connection(conn_id)
+        assert check is False
+        conn = await self.backend.aget_connection(conn_id)
+        assert conn is None
 
 
 def test_server_to_client(server_backend, client_backend, temp_file):
