@@ -28,8 +28,10 @@ def convert_connection_to_dict(connection: Connection) -> ConnectionDict:
     if is_sql_connection(connection):
         uri = connection.get_uri()
         url = cast("URL", make_url(uri))
-        backend = url.get_backend_name()
-        driver = create_driver(backend=backend, conn_type=conn_type)
+        dialect = url.get_dialect()
+        driver = create_driver(
+            backend=dialect.name, dialect=dialect.driver, conn_type=conn_type
+        )
     else:
         driver = create_driver(conn_type=conn_type)
 

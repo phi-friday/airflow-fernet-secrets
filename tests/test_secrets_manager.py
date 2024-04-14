@@ -258,7 +258,10 @@ def test_server_to_client(server_backend, client_backend, temp_file):
     connection = client_backend.get_connection(conn_id=conn_id)
     assert connection is not None
     assert isinstance(connection, URL)
-    client_url = connection.render_as_string()
+    client_url = connection.set(
+        drivername=connection.get_backend_name()
+    ).render_as_string()
+
     assert server_url == client_url
 
 
