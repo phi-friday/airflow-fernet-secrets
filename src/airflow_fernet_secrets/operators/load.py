@@ -19,10 +19,10 @@ if TYPE_CHECKING:
     from airflow_fernet_secrets._typeshed import PathType
     from airflow_fernet_secrets.secrets.server import ServerFernetLocalSecretsBackend
 
-__all__ = ["LoadConnectionsOperator"]
+__all__ = ["LoadSecretsOperator"]
 
 
-class LoadConnectionsOperator(HasIds):
+class LoadSecretsOperator(HasIds):
     template_fields: Sequence[str] = (
         "fernet_secrets_conn_ids",
         "fernet_secrets_var_ids",

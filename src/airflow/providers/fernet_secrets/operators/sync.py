@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from airflow_fernet_secrets.operators import (
-    DumpConnectionsOperator,
-    LoadConnectionsOperator,
-)
+from airflow_fernet_secrets.operators import DumpSecretsOperator, LoadSecretsOperator
 
-__all__ = ["DumpConnectionsOperator", "LoadConnectionsOperator"]
+__all__ = ["DumpSecretsOperator", "LoadSecretsOperator"]

@@ -21,10 +21,10 @@ if TYPE_CHECKING:
     from airflow_fernet_secrets.secrets.server import ServerFernetLocalSecretsBackend
 
 
-__all__ = ["DumpConnectionsOperator"]
+__all__ = ["DumpSecretsOperator"]
 
 
-class DumpConnectionsOperator(HasIds):
+class DumpSecretsOperator(HasIds):
     template_fields: Sequence[str] = (
         "fernet_secrets_conn_ids",
         "fernet_secrets_var_ids",

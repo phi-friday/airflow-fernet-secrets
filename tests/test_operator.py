@@ -24,7 +24,7 @@ class TestOeprator(BaseTestClientAndServer):
             initdb()
 
     def test_dump_connection(self, secret_key, backend_path, temp_file):
-        from airflow_fernet_secrets.operators.dump import DumpConnectionsOperator
+        from airflow_fernet_secrets.operators.dump import DumpSecretsOperator
 
         conn_id = temp_file.stem
         assert not self.backend.has_connection(conn_id)
@@ -38,7 +38,7 @@ class TestOeprator(BaseTestClientAndServer):
 
         dag = self.dag(dag_id="test_dump", schedule=None)
         dag_run, now = self.create_dagrun(dag)
-        task = DumpConnectionsOperator(
+        task = DumpSecretsOperator(
             task_id="dump",
             dag=dag,
             fernet_secrets_conn_ids=conn_id,
@@ -57,7 +57,7 @@ class TestOeprator(BaseTestClientAndServer):
         self.check_task_output(dag_run, task, [conn_id])
 
     def test_dump_variable(self, secret_key, backend_path):
-        from airflow_fernet_secrets.operators.dump import DumpConnectionsOperator
+        from airflow_fernet_secrets.operators.dump import DumpSecretsOperator
 
         key, value = str(uuid4()), str(uuid4())
         assert not self.backend.has_variable(key)
@@ -69,7 +69,7 @@ class TestOeprator(BaseTestClientAndServer):
 
         dag = self.dag(dag_id="test_dump", schedule=None)
         dag_run, now = self.create_dagrun(dag)
-        task = DumpConnectionsOperator(
+        task = DumpSecretsOperator(
             task_id="dump",
             dag=dag,
             fernet_secrets_var_ids=key,
@@ -85,7 +85,7 @@ class TestOeprator(BaseTestClientAndServer):
         self.check_task_output(dag_run, task, None, [key])
 
     def test_load_connection(self, secret_key, backend_path, temp_file):
-        from airflow_fernet_secrets.operators.load import LoadConnectionsOperator
+        from airflow_fernet_secrets.operators.load import LoadSecretsOperator
 
         conn_id = temp_file.stem
         select = sa.select(Connection).where(Connection.conn_id == conn_id)
@@ -104,7 +104,7 @@ class TestOeprator(BaseTestClientAndServer):
 
         dag = self.dag(dag_id="test_load", schedule=None)
         dag_run, now = self.create_dagrun(dag)
-        task = LoadConnectionsOperator(
+        task = LoadSecretsOperator(
             task_id="load",
             dag=dag,
             fernet_secrets_conn_ids=conn_id,
@@ -124,7 +124,7 @@ class TestOeprator(BaseTestClientAndServer):
         self.check_task_output(dag_run, task, [conn_id])
 
     def test_load_variable(self, secret_key, backend_path):
-        from airflow_fernet_secrets.operators.load import LoadConnectionsOperator
+        from airflow_fernet_secrets.operators.load import LoadSecretsOperator
 
         key, value = str(uuid4()), str(uuid4())
         select = sa.select(Variable).where(Variable.key == key)
@@ -140,7 +140,7 @@ class TestOeprator(BaseTestClientAndServer):
 
         dag = self.dag(dag_id="test_load", schedule=None)
         dag_run, now = self.create_dagrun(dag)
-        task = LoadConnectionsOperator(
+        task = LoadSecretsOperator(
             task_id="load",
             dag=dag,
             fernet_secrets_var_ids=key,
@@ -158,7 +158,7 @@ class TestOeprator(BaseTestClientAndServer):
         self.check_task_output(dag_run, task, None, [key])
 
     def test_dump_connection_using_conf(self, secret_key, backend_path, temp_file):
-        from airflow_fernet_secrets.operators.dump import DumpConnectionsOperator
+        from airflow_fernet_secrets.operators.dump import DumpSecretsOperator
 
         conn_id = temp_file.stem
         assert not self.backend.has_connection(conn_id)
@@ -173,7 +173,7 @@ class TestOeprator(BaseTestClientAndServer):
         conf = {"target_conn_id": conn_id}
         dag = self.dag(dag_id="test_dump", schedule=None)
         dag_run, now = self.create_dagrun(dag, conf=conf)
-        task = DumpConnectionsOperator(
+        task = DumpSecretsOperator(
             task_id="dump",
             dag=dag,
             fernet_secrets_conn_ids="{{ dag_run.conf.target_conn_id }}",
@@ -192,7 +192,7 @@ class TestOeprator(BaseTestClientAndServer):
         self.check_task_output(dag_run, task, [conn_id])
 
     def test_dump_variable_using_conf(self, secret_key, backend_path):
-        from airflow_fernet_secrets.operators.dump import DumpConnectionsOperator
+        from airflow_fernet_secrets.operators.dump import DumpSecretsOperator
 
         key, value = str(uuid4()), str(uuid4())
         assert not self.backend.has_variable(key)
@@ -205,7 +205,7 @@ class TestOeprator(BaseTestClientAndServer):
         conf = {"target_variable_key": key}
         dag = self.dag(dag_id="test_dump", schedule=None)
         dag_run, now = self.create_dagrun(dag, conf=conf)
-        task = DumpConnectionsOperator(
+        task = DumpSecretsOperator(
             task_id="dump",
             dag=dag,
             fernet_secrets_var_ids="{{ dag_run.conf.target_variable_key }}",
@@ -221,7 +221,7 @@ class TestOeprator(BaseTestClientAndServer):
         self.check_task_output(dag_run, task, None, [key])
 
     def test_load_connection_using_conf(self, secret_key, backend_path, temp_file):
-        from airflow_fernet_secrets.operators.load import LoadConnectionsOperator
+        from airflow_fernet_secrets.operators.load import LoadSecretsOperator
 
         conn_id = temp_file.stem
         select = sa.select(Connection).where(Connection.conn_id == conn_id)
@@ -241,7 +241,7 @@ class TestOeprator(BaseTestClientAndServer):
         conf = {"target_conn_id": conn_id}
         dag = self.dag(dag_id="test_load", schedule=None)
         dag_run, now = self.create_dagrun(dag, conf=conf)
-        task = LoadConnectionsOperator(
+        task = LoadSecretsOperator(
             task_id="load",
             dag=dag,
             fernet_secrets_conn_ids="{{ dag_run.conf.target_conn_id }}",
@@ -261,7 +261,7 @@ class TestOeprator(BaseTestClientAndServer):
         self.check_task_output(dag_run, task, [conn_id])
 
     def test_load_variable_using_conf(self, secret_key, backend_path):
-        from airflow_fernet_secrets.operators.load import LoadConnectionsOperator
+        from airflow_fernet_secrets.operators.load import LoadSecretsOperator
 
         key, value = str(uuid4()), str(uuid4())
         select = sa.select(Variable).where(Variable.key == key)
@@ -278,7 +278,7 @@ class TestOeprator(BaseTestClientAndServer):
         conf = {"target_variable_key": key}
         dag = self.dag(dag_id="test_load", schedule=None)
         dag_run, now = self.create_dagrun(dag, conf=conf)
-        task = LoadConnectionsOperator(
+        task = LoadSecretsOperator(
             task_id="load",
             dag=dag,
             fernet_secrets_var_ids="{{ dag_run.conf.target_variable_key }}",
