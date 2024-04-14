@@ -131,7 +131,7 @@ class DumpSecretsOperator(HasIds):
             raise AirflowNotFoundException(error_msg)
 
         backend.set_connection(new_conn_id, connection)
-        return conn_id
+        return new_conn_id
 
     def _execute_var_process(
         self,
@@ -162,4 +162,4 @@ class DumpSecretsOperator(HasIds):
             raise AirflowNotFoundException(error_msg)
 
         backend.set_variable(new_key, variable.val)
-        return key
+        return new_key

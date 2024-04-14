@@ -128,7 +128,7 @@ class LoadSecretsOperator(HasIds):
         if old is None:
             session.add(connection)
             session.flush()
-            return conn_id
+            return new_conn_id
 
         unset = object()
         for col in (
@@ -147,7 +147,7 @@ class LoadSecretsOperator(HasIds):
 
         session.add(old)
         session.flush()
-        return conn_id
+        return new_conn_id
 
     def _execute_var_process(
         self,
@@ -177,8 +177,8 @@ class LoadSecretsOperator(HasIds):
             new = Variable(key=new_key, val=variable)
             session.add(new)
             session.flush()
-            return key
+            return new_key
 
         session.add(old)
         session.flush()
-        return key
+        return new_key

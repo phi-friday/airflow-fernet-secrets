@@ -413,7 +413,7 @@ class TestOeprator(BaseTestClientAndServer):
         assert conn.conn_type == check.conn_type
         assert conn.extra_dejson == check.extra_dejson
 
-        self.check_task_output(dag_run, task, [conn_id])
+        self.check_task_output(dag_run, task, [new_id])
 
     def test_dump_variable_rename(self, secret_key, backend_path):
         key, value, new_key = str(uuid4()), str(uuid4()), str(uuid4())
@@ -439,7 +439,7 @@ class TestOeprator(BaseTestClientAndServer):
         assert check is not None
         assert check == value
 
-        self.check_task_output(dag_run, task, None, [key])
+        self.check_task_output(dag_run, task, None, [new_key])
 
     def test_load_connection_rename(self, secret_key, backend_path, temp_file):
         conn_id = temp_file.stem
@@ -469,7 +469,7 @@ class TestOeprator(BaseTestClientAndServer):
         assert conn.conn_type == check.conn_type
         assert conn.extra_dejson == check.extra_dejson
 
-        self.check_task_output(dag_run, task, [conn_id])
+        self.check_task_output(dag_run, task, [new_conn_id])
 
     def test_load_variable_rename(self, secret_key, backend_path):
         key, value, new_key = str(uuid4()), str(uuid4()), str(uuid4())
@@ -495,7 +495,7 @@ class TestOeprator(BaseTestClientAndServer):
         assert isinstance(check, Variable)
         assert check.val == value
 
-        self.check_task_output(dag_run, task, None, [key])
+        self.check_task_output(dag_run, task, None, [new_key])
 
     def check_task_output(
         self,
