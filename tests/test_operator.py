@@ -497,6 +497,138 @@ class TestOeprator(BaseTestClientAndServer):
 
         self.check_task_output(dag_run, task, None, [new_key])
 
+    @pytest.mark.parametrize(
+        ("conn_ids", "var_ids"),
+        [
+            (["conn_1", "conn_2"], []),
+            ([], ["var_1", "var_2"]),
+            (["conn_1", "conn_2"], ["var_1", "var_2"]),
+        ],
+    )
+    def test_dump_many(
+        self, secret_key, backend_path, conn_ids: list[str], var_ids: list[str]
+    ):
+        salt = str(uuid4())
+        conn_ids = [f"{salt}-{x}" for x in conn_ids]
+        var_ids = [f"{salt}-{x}" for x in var_ids]
+
+        conn_values: dict[str, Connection] = {}
+        var_values: dict[str, Variable] = {}
+        for conn_id in conn_ids:
+            conn = Connection(
+                conn_id=conn_id, conn_type="fs", extra={"path": "/some_path"}
+            )
+            self.add_in_airflow(conn)
+            conn_values[conn_id] = conn
+        for var_id in var_ids:
+            var = Variable(key=var_id, val=str(uuid4()))
+            self.add_in_airflow(var)
+            var_values[var_id] = var
+
+        separator = ","
+        conn_ids_str = separator.join(conn_ids)
+        var_ids_str = separator.join(var_ids)
+
+        conf = {
+            "conn_ids": conn_ids_str,
+            "var_ids": var_ids_str,
+            "separator": separator,
+            "separate": "true",
+        }
+        dag = self.dag(dag_id="test_dump", schedule=None)
+        dag_run, now = self.create_dagrun(dag, conf=conf)
+        task = DumpSecretsOperator(
+            task_id="dump",
+            dag=dag,
+            fernet_secrets_conn_ids="{{ dag_run.conf.conn_ids }}",
+            fernet_secrets_var_ids="{{ dag_run.conf.var_ids }}",
+            fernet_secrets_separate="{{ dag_run.conf.separate }}",
+            fernet_secrets_separator="{{ dag_run.conf.separator }}",
+            fernet_secrets_key=secret_key,
+            fernet_secrets_backend_file_path=backend_path,
+        )
+        self.run_task(task, now=now)
+
+        self.check_task_output(dag_run, task, conn_ids, var_ids)
+
+        for key, value in conn_values.items():
+            conn = self.backend.get_connection(key)
+            assert conn is not None
+            assert conn.conn_id == value.conn_id
+            assert conn.conn_type == value.conn_type
+            assert conn.extra_dejson == value.extra_dejson
+
+        for key, value in var_values.items():
+            var = self.backend.get_variable(key)
+            assert var is not None
+            assert var == value.val
+
+    @pytest.mark.parametrize(
+        ("conn_ids", "var_ids"),
+        [
+            (["conn_1", "conn_2"], []),
+            ([], ["var_1", "var_2"]),
+            (["conn_1", "conn_2"], ["var_1", "var_2"]),
+        ],
+    )
+    def test_load_many(
+        self, secret_key, backend_path, conn_ids: list[str], var_ids: list[str]
+    ):
+        salt = str(uuid4())
+        conn_ids = [f"{salt}-{x}" for x in conn_ids]
+        var_ids = [f"{salt}-{x}" for x in var_ids]
+
+        conn_values: dict[str, Connection] = {}
+        var_values: dict[str, str] = {}
+        for conn_id in conn_ids:
+            conn = Connection(
+                conn_id=conn_id, conn_type="fs", extra={"path": "/some_path"}
+            )
+            self.backend.set_connection(conn_id=conn_id, connection=conn)
+            conn_values[conn_id] = conn
+        for var_id in var_ids:
+            var = str(uuid4())
+            self.backend.set_variable(key=var_id, value=var)
+            var_values[var_id] = var
+
+        separator = ","
+        conn_ids_str = separator.join(conn_ids)
+        var_ids_str = separator.join(var_ids)
+
+        conf = {
+            "conn_ids": conn_ids_str,
+            "var_ids": var_ids_str,
+            "separator": separator,
+            "separate": "true",
+        }
+        dag = self.dag(dag_id="test_load", schedule=None)
+        dag_run, now = self.create_dagrun(dag, conf=conf)
+        task = LoadSecretsOperator(
+            task_id="load",
+            dag=dag,
+            fernet_secrets_conn_ids="{{ dag_run.conf.conn_ids }}",
+            fernet_secrets_var_ids="{{ dag_run.conf.var_ids }}",
+            fernet_secrets_separate="{{ dag_run.conf.separate }}",
+            fernet_secrets_separator="{{ dag_run.conf.separator }}",
+            fernet_secrets_key=secret_key,
+            fernet_secrets_backend_file_path=backend_path,
+        )
+        self.run_task(task, now=now)
+
+        self.check_task_output(dag_run, task, conn_ids, var_ids)
+
+        for key, value in conn_values.items():
+            conn = self.get_connection_in_airflow(key)
+            assert conn is not None
+            assert conn.conn_id == value.conn_id
+            assert conn.conn_type == value.conn_type
+            assert conn.extra_dejson == value.extra_dejson
+
+        for key, value in var_values.items():
+            var = self.get_variable_in_airflow(key)
+            assert var is not None
+            assert var.val == value
+
     def check_task_output(
         self,
         dag_run: DagRun,
