@@ -99,4 +99,5 @@ split-on-trailing-comma = false
     "PLR2004",
     "PLR0913",
     "ARG002",
+    "FBT001",
 ]
