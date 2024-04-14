@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import Iterable
 from uuid import uuid4
 
@@ -7,9 +8,12 @@ import pytest
 import sqlalchemy as sa
 from airflow import DAG
 from airflow.models.baseoperator import BaseOperator
+from airflow.models.connection import Connection
 from airflow.models.dagrun import DagRun
-from airflow.models.xcom import XCom
+from airflow.models.variable import Variable
+from airflow.models.xcom import BaseXCom
 from airflow.utils.db import initdb
+from airflow.utils.session import create_session
 from airflow.utils.state import DagRunState
 from airflow.utils.types import DagRunType
 from pendulum.datetime import DateTime
@@ -25,9 +29,6 @@ class TestOeprator(BaseTestClientAndServer):
             initdb()
 
     def test_dump_connection(self, secret_key, backend_path, temp_file):
-        from airflow.models.connection import Connection
-        from airflow.utils.session import create_session
-
         from airflow_fernet_secrets.operators.dump import DumpConnectionsOperator
 
         conn_id = temp_file.stem
@@ -72,9 +73,6 @@ class TestOeprator(BaseTestClientAndServer):
         check_task_output(dag_run, task, [conn_id])
 
     def test_dump_variable(self, secret_key, backend_path):
-        from airflow.models.variable import Variable
-        from airflow.utils.session import create_session
-
         from airflow_fernet_secrets.operators.dump import DumpConnectionsOperator
 
         key, value = str(uuid4()), str(uuid4())
@@ -116,9 +114,6 @@ class TestOeprator(BaseTestClientAndServer):
         check_task_output(dag_run, task, None, [key])
 
     def test_load_connection(self, secret_key, backend_path, temp_file):
-        from airflow.models.connection import Connection
-        from airflow.utils.session import create_session
-
         from airflow_fernet_secrets.operators.load import LoadConnectionsOperator
 
         conn_id = temp_file.stem
@@ -169,9 +164,6 @@ class TestOeprator(BaseTestClientAndServer):
         check_task_output(dag_run, task, [conn_id])
 
     def test_load_variable(self, secret_key, backend_path, temp_file):
-        from airflow.models.variable import Variable
-        from airflow.utils.session import create_session
-
         from airflow_fernet_secrets.operators.load import LoadConnectionsOperator
 
         key, value = str(uuid4()), str(uuid4())
@@ -225,9 +217,16 @@ def check_task_output(
     conn_ids: Iterable[str] | None = None,
     var_ids: Iterable[str] | None = None,
 ) -> None:
-    output = XCom.get_one(
-        dag_id=task.dag_id, task_id=task.task_id, run_id=str(dag_run.run_id)
+    stmt = sa.select(BaseXCom).where(
+        BaseXCom.dag_id == task.dag_id,
+        BaseXCom.task_id == task.task_id,
+        BaseXCom.run_id == dag_run.run_id,
     )
+    with create_session() as session:
+        output = session.scalars(stmt.with_only_columns(BaseXCom.value)).one()
+
+    assert isinstance(output, (str, bytes))
+    output = json.loads(output)
 
     assert isinstance(output, dict)
     assert "connection" in output
