@@ -32,9 +32,7 @@ class TestOeprator(BaseTestClientAndServer):
         conn = Connection(
             conn_id=conn_id, conn_type="fs", extra={"path": str(temp_file)}
         )
-        with self.create_session() as session:
-            session.add(conn)
-            session.commit()
+        self.add_in_airflow(conn)
 
         dag = self.dag(dag_id="test_dump", schedule=None)
         dag_run, now = self.create_dagrun(dag)
@@ -63,9 +61,7 @@ class TestOeprator(BaseTestClientAndServer):
         assert not self.backend.has_variable(key)
 
         variable = Variable(key, value)
-        with self.create_session() as session:
-            session.add(variable)
-            session.commit()
+        self.add_in_airflow(variable)
 
         dag = self.dag(dag_id="test_dump", schedule=None)
         dag_run, now = self.create_dagrun(dag)
@@ -88,9 +84,7 @@ class TestOeprator(BaseTestClientAndServer):
         from airflow_fernet_secrets.operators.load import LoadSecretsOperator
 
         conn_id = temp_file.stem
-        select = sa.select(Connection).where(Connection.conn_id == conn_id)
-        with self.create_session() as session:
-            check = session.scalars(select).one_or_none()
+        check = self.get_connection_in_airflow(conn_id)
         assert check is None
 
         conn = Connection(
@@ -98,8 +92,7 @@ class TestOeprator(BaseTestClientAndServer):
         )
         self.backend.set_connection(conn_id=conn_id, connection=conn)
 
-        with self.create_session() as session:
-            check = session.scalars(select).one_or_none()
+        check = self.get_connection_in_airflow(conn_id)
         assert check is None
 
         dag = self.dag(dag_id="test_load", schedule=None)
@@ -113,8 +106,7 @@ class TestOeprator(BaseTestClientAndServer):
         )
         self.run_task(task, now=now)
 
-        with self.create_session() as session:
-            check = session.scalars(select).one_or_none()
+        check = self.get_connection_in_airflow(conn_id)
         assert check is not None
 
         assert conn.conn_id == check.conn_id
@@ -127,15 +119,12 @@ class TestOeprator(BaseTestClientAndServer):
         from airflow_fernet_secrets.operators.load import LoadSecretsOperator
 
         key, value = str(uuid4()), str(uuid4())
-        select = sa.select(Variable).where(Variable.key == key)
-        with self.create_session() as session:
-            check = session.scalars(select).one_or_none()
+        check = self.get_variable_in_airflow(key)
         assert check is None
 
         self.backend.set_variable(key, value)
 
-        with self.create_session() as session:
-            check = session.scalars(select).one_or_none()
+        check = self.get_variable_in_airflow(key)
         assert check is None
 
         dag = self.dag(dag_id="test_load", schedule=None)
@@ -149,8 +138,7 @@ class TestOeprator(BaseTestClientAndServer):
         )
         self.run_task(task, now=now)
 
-        with self.create_session() as session:
-            check = session.scalars(select).one_or_none()
+        check = self.get_variable_in_airflow(key)
         assert check is not None
         assert isinstance(check, Variable)
         assert check.val == value
@@ -166,9 +154,7 @@ class TestOeprator(BaseTestClientAndServer):
         conn = Connection(
             conn_id=conn_id, conn_type="fs", extra={"path": str(temp_file)}
         )
-        with self.create_session() as session:
-            session.add(conn)
-            session.commit()
+        self.add_in_airflow(conn)
 
         conf = {"target_conn_id": conn_id}
         dag = self.dag(dag_id="test_dump", schedule=None)
@@ -198,9 +184,7 @@ class TestOeprator(BaseTestClientAndServer):
         assert not self.backend.has_variable(key)
 
         variable = Variable(key, value)
-        with self.create_session() as session:
-            session.add(variable)
-            session.commit()
+        self.add_in_airflow(variable)
 
         conf = {"target_variable_key": key}
         dag = self.dag(dag_id="test_dump", schedule=None)
@@ -224,9 +208,7 @@ class TestOeprator(BaseTestClientAndServer):
         from airflow_fernet_secrets.operators.load import LoadSecretsOperator
 
         conn_id = temp_file.stem
-        select = sa.select(Connection).where(Connection.conn_id == conn_id)
-        with self.create_session() as session:
-            check = session.scalars(select).one_or_none()
+        check = self.get_connection_in_airflow(conn_id)
         assert check is None
 
         conn = Connection(
@@ -234,8 +216,7 @@ class TestOeprator(BaseTestClientAndServer):
         )
         self.backend.set_connection(conn_id=conn_id, connection=conn)
 
-        with self.create_session() as session:
-            check = session.scalars(select).one_or_none()
+        check = self.get_connection_in_airflow(conn_id)
         assert check is None
 
         conf = {"target_conn_id": conn_id}
@@ -250,8 +231,7 @@ class TestOeprator(BaseTestClientAndServer):
         )
         self.run_task(task, now=now)
 
-        with self.create_session() as session:
-            check = session.scalars(select).one_or_none()
+        check = self.get_connection_in_airflow(conn_id)
         assert check is not None
 
         assert conn.conn_id == check.conn_id
@@ -264,15 +244,12 @@ class TestOeprator(BaseTestClientAndServer):
         from airflow_fernet_secrets.operators.load import LoadSecretsOperator
 
         key, value = str(uuid4()), str(uuid4())
-        select = sa.select(Variable).where(Variable.key == key)
-        with self.create_session() as session:
-            check = session.scalars(select).one_or_none()
+        check = self.get_variable_in_airflow(key)
         assert check is None
 
         self.backend.set_variable(key, value)
 
-        with self.create_session() as session:
-            check = session.scalars(select).one_or_none()
+        check = self.get_variable_in_airflow(key)
         assert check is None
 
         conf = {"target_variable_key": key}
@@ -287,8 +264,7 @@ class TestOeprator(BaseTestClientAndServer):
         )
         self.run_task(task, now=now)
 
-        with self.create_session() as session:
-            check = session.scalars(select).one_or_none()
+        check = self.get_variable_in_airflow(key)
         assert check is not None
         assert isinstance(check, Variable)
         assert check.val == value
@@ -325,3 +301,26 @@ class TestOeprator(BaseTestClientAndServer):
         var_ids = [] if var_ids is None else var_ids
         assert set(output_connection) == set(conn_ids)
         assert set(output_variable) == set(var_ids)
+
+    def add_in_airflow(self, value: Connection | Variable) -> None:
+        with self.create_session() as session:
+            session.add(value)
+            session.commit()
+
+    def get_connection_in_airflow(self, conn_id: str) -> Connection | None:
+        stmt = sa.select(Connection).where(Connection.conn_id == conn_id)
+        with self.create_session() as session:
+            result = session.scalars(stmt).one_or_none()
+            if result is None:
+                return None
+            session.expunge(result)
+            return result
+
+    def get_variable_in_airflow(self, key: str) -> Variable | None:
+        stmt = sa.select(Variable).where(Variable.key == key)
+        with self.create_session() as session:
+            result = session.scalars(stmt).one_or_none()
+            if result is None:
+                return None
+            session.expunge(result)
+            return result
