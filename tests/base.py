@@ -3,12 +3,17 @@ from __future__ import annotations
 import json
 import warnings
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, Generator, Literal
+from typing import TYPE_CHECKING, Any, Generator, Literal, cast
 
 import pytest
 import sqlalchemy as sa
+from airflow import DAG
 from airflow.models.connection import Connection
 from airflow.providers.common.sql.hooks.sql import DbApiHook
+from airflow.utils.session import create_session
+from airflow.utils.state import DagRunState
+from airflow.utils.types import DagRunType
+from pendulum.datetime import DateTime
 from sqlalchemy.engine import Engine
 from sqlalchemy.engine.url import URL
 
@@ -16,7 +21,12 @@ from airflow_fernet_secrets.connection.server import convert_connection_to_dict
 from airflow_fernet_secrets.utils.re import camel_to_snake
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from airflow.hooks.base import BaseHook
+    from airflow.models.baseoperator import BaseOperator
+    from airflow.models.dagrun import DagRun
+    from sqlalchemy.orm import Session
     from typing_extensions import TypeAlias
 
     from airflow_fernet_secrets._typeshed import PathType
@@ -52,6 +62,16 @@ class BaseTestClientAndServer:
     @property
     def side(self) -> SideLiteral:
         return self._side
+
+    @property
+    def dag(self) -> type[DAG]:
+        return DAG
+
+    @staticmethod
+    @contextmanager
+    def create_session() -> Generator[Session, None, None]:
+        with ignore_warnings(), create_session() as session:
+            yield session
 
     @staticmethod
     def find_backend_side(backend_class: BackendType) -> SideLiteral:
@@ -134,6 +154,41 @@ class BaseTestClientAndServer:
             assert isinstance(engine, Engine)
             return engine
         raise NotImplementedError
+
+    @staticmethod
+    def create_dagrun(
+        dag: DAG, now: datetime | None = None, **kwargs: Any
+    ) -> tuple[DagRun, datetime]:
+        if now is None:
+            now = DateTime.utcnow()
+        default = {
+            "run_type": DagRunType.MANUAL,
+            "execution_date": now,
+            "start_date": now,
+            "state": DagRunState.RUNNING,
+            "external_trigger": False,
+            "data_interval": (now, now),
+        }
+        for key, value in default.items():
+            kwargs.setdefault(key, value)
+        dag_run = dag.create_dagrun(**kwargs)
+        return dag_run, cast(DateTime, dag_run.start_date)
+
+    @staticmethod
+    def run_task(
+        task: BaseOperator, now: datetime | None = None, **kwargs: Any
+    ) -> None:
+        if now is None:
+            now = DateTime.utcnow()
+        default = {
+            "start_date": now,
+            "end_date": now,
+            "ignore_first_depends_on_past": True,
+            "ignore_ti_state": True,
+        }
+        for key, value in default.items():
+            kwargs.setdefault(key, value)
+        task.run(**kwargs)
 
 
 @contextmanager
