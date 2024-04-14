@@ -22,7 +22,7 @@ def load_secret_key(logger: Logger) -> str:
     if value:
         return value
 
-    cmd = _get_env_variable(const.ENV_SECRET_KEY_CMD)
+    cmd = _get_env_variable(const.ENV_SECRET_KEY, cmd=True)
     if cmd:
         value = load_from_cmd(cmd)
 
@@ -38,7 +38,7 @@ def load_backend_file(logger: Logger) -> str:
     if file:
         return file
 
-    cmd = _get_env_variable(const.ENV_BACKEND_FILE_CMD)
+    cmd = _get_env_variable(const.ENV_BACKEND_FILE, cmd=True)
     if cmd:
         file = load_from_cmd(cmd)
 
@@ -48,6 +48,9 @@ def load_backend_file(logger: Logger) -> str:
     return create_backend_file(logger, stacklevel=3)
 
 
-def _get_env_variable(name: str, default_value: str | None = None) -> str:
+def _get_env_variable(
+    name: str, default_value: str | None = None, *, cmd: bool = False
+) -> str:
     key = const.CLIENT_ENV_PREFIX + name.upper().strip("_")
+    key = key + "_CMD" if cmd else key
     return getenv(key, default_value or "")
