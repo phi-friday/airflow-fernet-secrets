@@ -385,6 +385,118 @@ class TestOeprator(BaseTestClientAndServer):
 
         self.check_task_output(dag_run, task, None, [variable_key])
 
+    def test_dump_connection_rename(self, secret_key, backend_path, temp_file):
+        conn_id = temp_file.stem
+        new_id = str(uuid4())
+        conn = Connection(
+            conn_id=conn_id, conn_type="fs", extra={"path": str(temp_file)}
+        )
+        self.add_in_airflow(conn)
+
+        dag = self.dag(dag_id="test_dump", schedule=None)
+        dag_run, now = self.create_dagrun(dag)
+        task = DumpSecretsOperator(
+            task_id="dump",
+            dag=dag,
+            fernet_secrets_conn_ids=conn_id,
+            fernet_secrets_key=secret_key,
+            fernet_secrets_backend_file_path=backend_path,
+            fernet_secrets_rename={conn_id: new_id},
+        )
+        self.run_task(task, now=now)
+
+        check = self.backend.has_connection(conn_id=conn_id)
+        assert check is False
+        check = self.backend.get_connection(conn_id=new_id)
+        assert check is not None
+
+        assert conn.conn_type == check.conn_type
+        assert conn.extra_dejson == check.extra_dejson
+
+        self.check_task_output(dag_run, task, [conn_id])
+
+    def test_dump_variable_rename(self, secret_key, backend_path):
+        key, value, new_key = str(uuid4()), str(uuid4()), str(uuid4())
+        variable = Variable(key, value)
+        self.add_in_airflow(variable)
+
+        dag = self.dag(dag_id="test_dump", schedule=None)
+        dag_run, now = self.create_dagrun(dag)
+        task = DumpSecretsOperator(
+            task_id="dump",
+            dag=dag,
+            fernet_secrets_var_ids=key,
+            fernet_secrets_key=secret_key,
+            fernet_secrets_backend_file_path=backend_path,
+            fernet_secrets_rename={key: new_key},
+        )
+        self.run_task(task, now=now)
+
+        check = self.backend.has_variable(key=key)
+        assert check is False
+
+        check = self.backend.get_variable(key=new_key)
+        assert check is not None
+        assert check == value
+
+        self.check_task_output(dag_run, task, None, [key])
+
+    def test_load_connection_rename(self, secret_key, backend_path, temp_file):
+        conn_id = temp_file.stem
+        conn = Connection(
+            conn_id=conn_id, conn_type="fs", extra={"path": str(temp_file)}
+        )
+        self.backend.set_connection(conn_id=conn_id, connection=conn)
+        new_conn_id = str(uuid4())
+
+        dag = self.dag(dag_id="test_load", schedule=None)
+        dag_run, now = self.create_dagrun(dag)
+        task = LoadSecretsOperator(
+            task_id="load",
+            dag=dag,
+            fernet_secrets_conn_ids=conn_id,
+            fernet_secrets_key=secret_key,
+            fernet_secrets_backend_file_path=backend_path,
+            fernet_secrets_rename={conn_id: new_conn_id},
+        )
+        self.run_task(task, now=now)
+
+        check = self.get_connection_in_airflow(conn_id)
+        assert check is None
+        check = self.get_connection_in_airflow(new_conn_id)
+        assert check is not None
+
+        assert conn.conn_type == check.conn_type
+        assert conn.extra_dejson == check.extra_dejson
+
+        self.check_task_output(dag_run, task, [conn_id])
+
+    def test_load_variable_rename(self, secret_key, backend_path):
+        key, value, new_key = str(uuid4()), str(uuid4()), str(uuid4())
+        self.backend.set_variable(key, value)
+
+        dag = self.dag(dag_id="test_load", schedule=None)
+        dag_run, now = self.create_dagrun(dag)
+        task = LoadSecretsOperator(
+            task_id="load",
+            dag=dag,
+            fernet_secrets_var_ids=key,
+            fernet_secrets_key=secret_key,
+            fernet_secrets_backend_file_path=backend_path,
+            fernet_secrets_rename={key: new_key},
+        )
+        self.run_task(task, now=now)
+
+        check = self.get_variable_in_airflow(key)
+        assert check is None
+        check = self.get_variable_in_airflow(new_key)
+        assert check is not None
+
+        assert isinstance(check, Variable)
+        assert check.val == value
+
+        self.check_task_output(dag_run, task, None, [key])
+
     def check_task_output(
         self,
         dag_run: DagRun,

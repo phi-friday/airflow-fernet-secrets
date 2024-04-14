@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
 import sqlalchemy as sa
 from airflow.models.connection import Connection
@@ -26,6 +26,7 @@ class LoadSecretsOperator(HasIds):
     template_fields: Sequence[str] = (
         "fernet_secrets_conn_ids",
         "fernet_secrets_var_ids",
+        "fernet_secrets_rename",
         "fernet_secrets_separate",
         "fernet_secrets_separator",
         "fernet_secrets_key",
@@ -36,8 +37,12 @@ class LoadSecretsOperator(HasIds):
     def __init__(
         self,
         *,
-        fernet_secrets_conn_ids: str | list[str] | tuple[str, ...] | None = None,
-        fernet_secrets_var_ids: str | list[str] | tuple[str, ...] | None = None,
+        fernet_secrets_conn_ids: str | Sequence[str] | None = None,
+        fernet_secrets_var_ids: str | Sequence[str] | None = None,
+        fernet_secrets_rename: str
+        | Sequence[Sequence[str]]
+        | Mapping[str, str]
+        | None = None,
         fernet_secrets_separate: str | bool = False,
         fernet_secrets_separator: str = ",",
         fernet_secrets_key: str | bytes | Fernet | MultiFernet | None = None,
@@ -48,6 +53,7 @@ class LoadSecretsOperator(HasIds):
         super().__init__(
             fernet_secrets_conn_ids=fernet_secrets_conn_ids,
             fernet_secrets_var_ids=fernet_secrets_var_ids,
+            fernet_secrets_rename=fernet_secrets_rename,
             fernet_secrets_separate=fernet_secrets_separate,
             fernet_secrets_separator=fernet_secrets_separator,
             fernet_secrets_key=fernet_secrets_key,
@@ -107,15 +113,17 @@ class LoadSecretsOperator(HasIds):
             self.log.warning("skip empty conn id.")
             return None
 
-        stmt = sa.select(Connection).where(Connection.conn_id == conn_id)
+        new_conn_id = self._rename_mapping.get(conn_id, conn_id)
+        stmt = sa.select(Connection).where(Connection.conn_id == new_conn_id)
         old: Connection | None = session.execute(stmt).scalar_one_or_none()
         if old is not None and not overwrite:
-            self.log.info("airflow already has %s", conn_id, stacklevel=stacklevel)
+            self.log.info("airflow already has %s", new_conn_id, stacklevel=stacklevel)
             return None
 
         connection = backend.get_connection(conn_id=conn_id)
         if connection is None:
             raise NotImplementedError
+        connection.conn_id = new_conn_id
 
         if old is None:
             session.add(connection)
@@ -154,10 +162,11 @@ class LoadSecretsOperator(HasIds):
             self.log.warning("skip empty key.")
             return None
 
-        stmt = sa.select(Variable).where(Variable.key == key)
+        new_key = self._rename_mapping.get(key, key)
+        stmt = sa.select(Variable).where(Variable.key == new_key)
         old: Variable | None = session.execute(stmt).scalar_one_or_none()
         if old is not None and not overwrite:
-            self.log.info("airflow already has %s", key, stacklevel=stacklevel)
+            self.log.info("airflow already has %s", new_key, stacklevel=stacklevel)
             return None
 
         variable = backend.get_variable(key=key)
@@ -165,12 +174,11 @@ class LoadSecretsOperator(HasIds):
             raise NotImplementedError
 
         if old is None:
-            new = Variable(key=key, val=variable)
+            new = Variable(key=new_key, val=variable)
             session.add(new)
             session.flush()
             return key
 
-        old.set_val(variable)
         session.add(old)
         session.flush()
         return key

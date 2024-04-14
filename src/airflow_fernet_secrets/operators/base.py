@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from airflow_fernet_secrets.dynamic import HAS_AIRFLOW, IS_SERVER_FLAG
 
 if not HAS_AIRFLOW or not IS_SERVER_FLAG:
@@ -7,7 +9,7 @@ if not HAS_AIRFLOW or not IS_SERVER_FLAG:
 
 from functools import cached_property
 from itertools import chain
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
 from airflow.models import BaseOperator
 from typing_extensions import TypedDict
@@ -73,6 +75,7 @@ class HasIds(HasSecrets):
     template_fields: Sequence[str] = (
         "fernet_secrets_conn_ids",
         "fernet_secrets_var_ids",
+        "fernet_secrets_rename",
         "fernet_secrets_separate",
         "fernet_secrets_separator",
         "fernet_secrets_key",
@@ -82,8 +85,13 @@ class HasIds(HasSecrets):
     def __init__(
         self,
         *,
-        fernet_secrets_conn_ids: str | list[str] | tuple[str, ...] | None = None,
-        fernet_secrets_var_ids: str | list[str] | tuple[str, ...] | None = None,
+        fernet_secrets_conn_ids: str | Sequence[str] | None = None,
+        fernet_secrets_var_ids: str | Sequence[str] | None = None,
+        fernet_secrets_rename: str
+        | bytes
+        | Sequence[Sequence[str]]
+        | Mapping[str, str]
+        | None = None,
         fernet_secrets_separate: str | bool = False,
         fernet_secrets_separator: str = ",",
         fernet_secrets_key: str | bytes | Fernet | MultiFernet | None = None,
@@ -98,8 +106,25 @@ class HasIds(HasSecrets):
 
         self.fernet_secrets_conn_ids = fernet_secrets_conn_ids
         self.fernet_secrets_var_ids = fernet_secrets_var_ids
+        self.fernet_secrets_rename = fernet_secrets_rename
         self.fernet_secrets_separate = fernet_secrets_separate
         self.fernet_secrets_separator = fernet_secrets_separator
+
+    @cached_property
+    def _rename_mapping(self) -> dict[str, str]:
+        if self.fernet_secrets_rename is None:
+            return {}
+        if isinstance(self.fernet_secrets_rename, (str, bytes, bytearray, memoryview)):
+            value = json.loads(self.fernet_secrets_rename)
+        else:
+            value = self.fernet_secrets_rename
+
+        if isinstance(value, Sequence):
+            return {str(x[0]): str(x[1]) for x in value}
+        if isinstance(value, Mapping):
+            return {str(key): str(value) for key, value in value.items()}
+
+        raise NotImplementedError
 
     @cached_property
     def _separated_conn_ids(self) -> tuple[str, ...]:
@@ -119,7 +144,7 @@ class HasIds(HasSecrets):
 
 
 def _separated_ids(
-    ids: str | list[str] | tuple[str, ...] | None, separate: str | bool, separator: str
+    ids: str | Sequence[str] | None, separate: str | bool, separator: str
 ) -> tuple[str, ...]:
     separate = ensure_boolean(separate)
 

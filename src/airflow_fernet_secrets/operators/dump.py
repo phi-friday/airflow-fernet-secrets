@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
 import sqlalchemy as sa
 from airflow.exceptions import AirflowNotFoundException
@@ -28,6 +28,7 @@ class DumpSecretsOperator(HasIds):
     template_fields: Sequence[str] = (
         "fernet_secrets_conn_ids",
         "fernet_secrets_var_ids",
+        "fernet_secrets_rename",
         "fernet_secrets_separate",
         "fernet_secrets_separator",
         "fernet_secrets_key",
@@ -38,8 +39,12 @@ class DumpSecretsOperator(HasIds):
     def __init__(
         self,
         *,
-        fernet_secrets_conn_ids: str | list[str] | tuple[str, ...] | None = None,
-        fernet_secrets_var_ids: str | list[str] | tuple[str, ...] | None = None,
+        fernet_secrets_conn_ids: str | Sequence[str] | None = None,
+        fernet_secrets_var_ids: str | Sequence[str] | None = None,
+        fernet_secrets_rename: str
+        | Sequence[Sequence[str]]
+        | Mapping[str, str]
+        | None = None,
         fernet_secrets_separate: str | bool = False,
         fernet_secrets_separator: str = ",",
         fernet_secrets_key: str | bytes | Fernet | MultiFernet | None = None,
@@ -50,6 +55,7 @@ class DumpSecretsOperator(HasIds):
         super().__init__(
             fernet_secrets_conn_ids=fernet_secrets_conn_ids,
             fernet_secrets_var_ids=fernet_secrets_var_ids,
+            fernet_secrets_rename=fernet_secrets_rename,
             fernet_secrets_separate=fernet_secrets_separate,
             fernet_secrets_separator=fernet_secrets_separator,
             fernet_secrets_key=fernet_secrets_key,
@@ -109,10 +115,11 @@ class DumpSecretsOperator(HasIds):
             self.log.warning("skip empty conn id.")
             return None
 
-        check = backend.has_connection(conn_id=conn_id)
+        new_conn_id = self._rename_mapping.get(conn_id, conn_id)
+        check = backend.has_connection(conn_id=new_conn_id)
         if check and not overwrite:
             self.log.info(
-                "secret backend already has %s", conn_id, stacklevel=stacklevel
+                "secret backend already has %s", new_conn_id, stacklevel=stacklevel
             )
             return None
 
@@ -123,7 +130,7 @@ class DumpSecretsOperator(HasIds):
             error_msg = f"there is no connection({conn_id})."
             raise AirflowNotFoundException(error_msg)
 
-        backend.set_connection(conn_id, connection)
+        backend.set_connection(new_conn_id, connection)
         return conn_id
 
     def _execute_var_process(
@@ -139,9 +146,12 @@ class DumpSecretsOperator(HasIds):
             self.log.warning("skip empty key.")
             return None
 
-        check = backend.has_variable(key=key)
+        new_key = self._rename_mapping.get(key, key)
+        check = backend.has_variable(key=new_key)
         if check and not overwrite:
-            self.log.info("secret backend already has %s", key, stacklevel=stacklevel)
+            self.log.info(
+                "secret backend already has %s", new_key, stacklevel=stacklevel
+            )
             return None
 
         variable = session.execute(
@@ -151,5 +161,5 @@ class DumpSecretsOperator(HasIds):
             error_msg = f"there is no variable({key})."
             raise AirflowNotFoundException(error_msg)
 
-        backend.set_variable(key, variable.val)
+        backend.set_variable(new_key, variable.val)
         return key
