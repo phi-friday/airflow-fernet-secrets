@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from airflow.models.connection import Connection
     from sqlalchemy.engine.url import URL
 
-__all__ = ["connection_to_args"]
+__all__ = ["ConnectionArgs", "connection_to_args"]
 
 
 class ConnectionArgs(TypedDict, total=True):

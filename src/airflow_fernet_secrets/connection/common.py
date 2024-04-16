@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 from typing_extensions import Required, TypedDict
 
 if TYPE_CHECKING:
-    from airflow_fernet_secrets.connection.dump.main import ConnectionArgs
+    from airflow_fernet_secrets.connection import ConnectionArgs
 
 __all__ = ["ConnectionDict", "convert_args_to_jsonable"]
 

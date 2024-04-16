@@ -14,8 +14,7 @@ from airflow_fernet_secrets import const
 from airflow_fernet_secrets.database.connect import SessionMaker
 
 if TYPE_CHECKING:
-    from airflow_fernet_secrets.connection import ConnectionDict
-    from airflow_fernet_secrets.connection.dump.main import ConnectionArgs
+    from airflow_fernet_secrets.connection import ConnectionArgs, ConnectionDict
 
 
 def convert_url_to_dict(url: str | URL) -> ConnectionDict:

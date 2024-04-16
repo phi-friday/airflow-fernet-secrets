@@ -3,8 +3,6 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Any, cast
 
-from airflow_fernet_secrets.connection.dump.main import connection_to_args
-
 if TYPE_CHECKING:
     from airflow.models.connection import Connection
 
@@ -18,6 +16,8 @@ __all__ = [
 
 
 def convert_connection_to_dict(connection: Connection) -> ConnectionDict:
+    from airflow_fernet_secrets.connection.dump import connection_to_args
+
     as_dict = connection.to_dict()
 
     conn_type = _get_conn_type(connection)

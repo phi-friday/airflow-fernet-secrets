@@ -9,7 +9,11 @@ from typing_extensions import TypeAlias, override
 from airflow_fernet_secrets import const
 from airflow_fernet_secrets.config.client import load_backend_file as _load_backend_file
 from airflow_fernet_secrets.config.client import load_secret_key as _load_secret_key
-from airflow_fernet_secrets.connection import ConnectionDict, convert_args_to_jsonable
+from airflow_fernet_secrets.connection import (
+    ConnectionArgs,
+    ConnectionDict,
+    convert_args_to_jsonable,
+)
 from airflow_fernet_secrets.connection.client import (
     convert_connectable_to_dict,
     create_url,
@@ -20,7 +24,6 @@ from airflow_fernet_secrets.secrets.common import (
 )
 
 if TYPE_CHECKING:
-    from airflow_fernet_secrets.connection.dump.main import ConnectionArgs
     from airflow_fernet_secrets.database.model import Connection
 
 __all__ = ["ClientFernetLocalSecretsBackend", "DirectFernetLocalSecretsBackend"]

@@ -10,7 +10,7 @@ from sqlalchemy.engine.url import make_url
 from airflow_fernet_secrets.const import SQLITE_CONN_TYPES as _SQLITE_CONN_TYPES
 
 if TYPE_CHECKING:
-    from airflow_fernet_secrets.connection.dump.main import ConnectionArgs
+    from airflow_fernet_secrets.connection import ConnectionArgs
 
 __all__ = ["connection_to_args"]
 
