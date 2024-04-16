@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Callable, ClassVar, cast
 
 import sqlalchemy as sa
-from sqlalchemy.orm import Mapped, registry
+from sqlalchemy.orm import Mapped, declared_attr, registry
 from typing_extensions import Self, TypeGuard, override
 
 from airflow_fernet_secrets import const
@@ -22,8 +22,10 @@ if TYPE_CHECKING:
     from sqlalchemy.engine import Connection as SqlalchemyConnection
     from sqlalchemy.engine import Engine
     from sqlalchemy.ext.asyncio import AsyncSession
-    from sqlalchemy.orm import Session, scoped_session, sessionmaker
+    from sqlalchemy.orm import Session
     from sqlalchemy.sql import Delete, Select, Update
+
+    from airflow_fernet_secrets.database.connect import SessionMaker
 
 
 __all__ = ["Connection", "Variable", "migrate"]
@@ -47,7 +49,7 @@ def _get_class(value: Any) -> type[Any]:
 class Base(ABC):
     __sa_dataclass_metadata_key__: ClassVar[str] = const.SA_DATACLASS_METADATA_KEY
     __table__: ClassVar[sa.Table]
-    __tablename__: ClassVar[str] = ""
+    __tablename__: ClassVar[str]
 
     @classmethod
     def __table_cls__(
@@ -65,12 +67,35 @@ class Base(ABC):
         },
     )
 
+    if not TYPE_CHECKING:
+
+        @declared_attr
+        def __tablename__(self) -> str:
+            return camel_to_snake(self.__name__)
+
+
+@mapper_registry.mapped
+@dataclass(**_DATACLASS_ARGS)
+class Version(Base):
+    revision: Mapped[str] = field(
+        metadata={
+            const.SA_DATACLASS_METADATA_KEY: sa.Column(sa.String(100), nullable=False)
+        }
+    )
+
+    @classmethod
+    def get(cls, session: Session | SqlalchemyConnection) -> str:
+        stmt = sa.select(cls.revision).where(cls.id == 1)
+        return session.scalar(stmt)
+
 
 @dataclass(**_DATACLASS_ARGS)
 class Encrypted(Base):
     __abstract__: ClassVar[bool] = True
     encrypted: Mapped[bytes] = field(
-        metadata={const.SA_DATACLASS_METADATA_KEY: sa.Column(sa.LargeBinary())}
+        metadata={
+            const.SA_DATACLASS_METADATA_KEY: sa.Column(sa.LargeBinary(), nullable=False)
+        }
     )
 
     @staticmethod
@@ -305,39 +330,43 @@ class Variable(Encrypted):
 
 
 def migrate(
-    connectable: Engine
-    | SqlalchemyConnection
-    | sessionmaker
-    | scoped_session
-    | Session,
+    connectable: Engine | SqlalchemyConnection | SessionMaker[Session] | Session,
 ) -> None:
-    engine_or_connection: Engine | SqlalchemyConnection
-
     finalize: Callable[[], None] | None = None
     if callable(connectable):
-        connectable = cast("sessionmaker | scoped_session", connectable)()
+        connectable = cast("SessionMaker[Session]", connectable)()
         finalize = connectable.close
 
     try:
-        if callable(getattr(connectable, "connect", None)):
-            engine_or_connection = cast("Engine | SqlalchemyConnection", connectable)
-        elif callable(getattr(connectable, "execute", None)):
-            engine_or_connection = cast("Session", connectable).connection()
-        else:
-            raise NotImplementedError
-
-        commit = getattr(engine_or_connection, "commit", None)
-        metadata.create_all(
-            engine_or_connection,
-            [Connection.__table__, Variable.__table__],
-            checkfirst=True,
-        )
-        if callable(commit):
-            commit()
-
+        _migrate_process(connectable)
     finally:
         if callable(finalize):
             finalize()
+
+
+def _migrate_process(connectable: Engine | SqlalchemyConnection | Session):
+    engine_or_connection: Engine | SqlalchemyConnection
+    connection: SqlalchemyConnection
+
+    if callable(getattr(connectable, "connect", None)):
+        engine_or_connection = cast("Engine | SqlalchemyConnection", connectable)
+    elif callable(getattr(connectable, "execute", None)):
+        engine_or_connection = cast("Session", connectable).connection()
+    else:
+        raise NotImplementedError
+
+    if callable(getattr(engine_or_connection, "dispose", None)):
+        connection = cast("Engine", engine_or_connection).connect()
+    else:
+        connection = cast("SqlalchemyConnection", engine_or_connection)
+
+    revision = _check_migrate_version(connection)
+
+    if not revision:
+        from airflow_fernet_secrets.database.revision.init import upgrade
+
+        upgrade(connection)
+        return
 
 
 def _check_airflow_connection_instance(value: Any) -> TypeGuard[AirflowConnection]:
@@ -384,3 +413,13 @@ def _dump(value: Any) -> bytes:
         return value.encode("utf-8")
 
     raise NotImplementedError
+
+
+def _check_migrate_version(conn: SqlalchemyConnection) -> str | None:
+    insp = sa.inspect(conn)
+    tablenames = set(insp.get_table_names())
+    version_tablename = Version.__tablename__
+    if version_tablename not in tablenames:
+        return None
+
+    return Version.get(conn)
