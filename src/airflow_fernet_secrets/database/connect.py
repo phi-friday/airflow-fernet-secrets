@@ -12,9 +12,11 @@ from typing import (
     runtime_checkable,
 )
 
+import sqlalchemy as sa
 from sqlalchemy.dialects.sqlite import dialect as sqlite_dialect
 from sqlalchemy.engine import Connection, Engine, create_engine
 from sqlalchemy.engine.url import URL, make_url
+from sqlalchemy.event import listen
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
     AsyncEngine,
@@ -25,7 +27,7 @@ from sqlalchemy.orm import Session
 from typing_extensions import TypeVar
 
 if TYPE_CHECKING:
-    from sqlalchemy.engine.interfaces import Dialect
+    from sqlalchemy.engine.interfaces import Dialect, _DBAPIConnection
 
     from airflow_fernet_secrets._typeshed import PathType
 
@@ -152,11 +154,11 @@ def ensure_sqlite_sync_engine(
     | str,
 ) -> Engine:
     if isinstance(connectable_or_url, (Engine, Connection)):
-        return connectable_or_url.engine
+        return _set_listeners(connectable_or_url.engine)
     if isinstance(connectable_or_url, (str, URL)):
         connectable_or_url = ensure_sqlite_url(connectable_or_url, is_async=False)
     if isinstance(connectable_or_url, URL):
-        return create_engine(connectable_or_url)
+        return _set_listeners(create_engine(connectable_or_url))
     if isinstance(connectable_or_url, SessionMaker):
         connectable_or_url = connectable_or_url()
     if isinstance(connectable_or_url, Session):
@@ -174,11 +176,11 @@ def ensure_sqlite_async_engine(
     | str,
 ) -> AsyncEngine:
     if isinstance(connectable_or_url, (AsyncEngine, AsyncConnection)):
-        return connectable_or_url.engine
+        return _set_listeners(connectable_or_url.engine)
     if isinstance(connectable_or_url, (str, URL)):
         connectable_or_url = ensure_sqlite_url(connectable_or_url, is_async=True)
     if isinstance(connectable_or_url, URL):
-        return create_async_engine(connectable_or_url)
+        return _set_listeners(create_async_engine(connectable_or_url))
     if isinstance(connectable_or_url, SessionMaker):
         connectable_or_url = connectable_or_url()
     if isinstance(connectable_or_url, AsyncSession):
@@ -236,3 +238,29 @@ async def enter_async_database(
 
 def _is_async_dialect(dialect: type[Dialect] | Dialect) -> bool:
     return getattr(dialect, "is_async", False) is True
+
+
+def _sqlite_isolation_read(
+    dbapi_connection: _DBAPIConnection,
+    connection_record: Any,  # noqa: ARG001
+) -> None:
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA read_uncommitted = true;", ())
+
+
+def _sqlite_isolation_non_read(conn: Connection) -> None:
+    stmt = sa.text("PRAGMA read_uncommitted = false;")
+    conn.execute(stmt)
+
+
+@overload
+def _set_listeners(engine: Engine) -> Engine: ...
+@overload
+def _set_listeners(engine: AsyncEngine) -> AsyncEngine: ...
+@overload
+def _set_listeners(engine: Engine | AsyncEngine) -> Engine | AsyncEngine: ...
+def _set_listeners(engine: Engine | AsyncEngine) -> Engine | AsyncEngine:
+    sync_engine = engine.sync_engine if isinstance(engine, AsyncEngine) else engine
+    listen(sync_engine, "connect", _sqlite_isolation_read)
+    listen(sync_engine, "begin", _sqlite_isolation_non_read)
+    return engine
