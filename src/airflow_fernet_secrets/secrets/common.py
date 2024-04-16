@@ -19,6 +19,7 @@ from airflow_fernet_secrets.database.connect import (
 )
 from airflow_fernet_secrets.database.model import Connection as FernetConnection
 from airflow_fernet_secrets.database.model import Variable as FernetVariable
+from airflow_fernet_secrets.database.model import migrate
 
 if TYPE_CHECKING:
     from logging import Logger
@@ -85,11 +86,17 @@ class CommonFernetLocalSecretsBackend(
 
     @cached_property
     def _backend_sync_engine(self) -> Engine:
-        return ensure_sqlite_sync_engine(self._backend_sync_url)
+        engine = ensure_sqlite_sync_engine(self._backend_sync_url)
+        migrate(engine)
+        return engine
 
     @cached_property
     def _backend_async_engine(self) -> AsyncEngine:
-        return ensure_sqlite_async_engine(self._backend_async_url)
+        engine = ensure_sqlite_async_engine(self._backend_async_url)
+        url = engine.url.set(drivername="sqlite+pysqlite")
+        sync_engine = ensure_sqlite_sync_engine(url)
+        migrate(sync_engine)
+        return engine
 
     def _secret(self) -> MultiFernet:
         if self._fernet_secrets_key is not None:
