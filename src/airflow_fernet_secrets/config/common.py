@@ -17,12 +17,15 @@ if TYPE_CHECKING:
 
     from typing_extensions import ParamSpec, TypeVar
 
+    from airflow_fernet_secrets._typeshed import PathType
+
     T = TypeVar("T", bound="str | bytes | Fernet | MultiFernet", infer_variance=True)
     P = ParamSpec("P")
 
 __all__ = [
     "create_backend_file",
     "load_from_cmd",
+    "load_from_file",
     "ensure_fernet",
     "ensure_fernet_return",
 ]
@@ -46,6 +49,11 @@ def load_from_cmd(cmd: str) -> str:
         check=True,
     )
     return process.stdout.strip()
+
+
+def load_from_file(file: PathType) -> str:
+    cmd = f"cat {file!s}"
+    return load_from_cmd(cmd)
 
 
 def ensure_fernet(secret_key: str | bytes | Fernet | MultiFernet) -> MultiFernet:

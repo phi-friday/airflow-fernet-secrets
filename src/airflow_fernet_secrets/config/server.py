@@ -8,6 +8,7 @@ from airflow_fernet_secrets.config.common import (
     create_backend_file,
     ensure_fernet_return,
     load_from_cmd,
+    load_from_file,
 )
 
 if TYPE_CHECKING:
@@ -25,7 +26,12 @@ def load_secret_key(logger: Logger) -> str:
     cmd = _get_from_conf(const.ENV_SECRET_KEY, cmd=True)
     if cmd:
         value = load_from_cmd(cmd)
+    if value:
+        return value
 
+    secret = _get_from_conf(const.ENV_SECRET_KEY, secret=True)
+    if secret:
+        value = load_from_file(secret)
     if value:
         return value
 
@@ -41,7 +47,12 @@ def load_backend_file(logger: Logger) -> str:
     cmd = _get_from_conf(const.ENV_BACKEND_FILE, cmd=True)
     if cmd:
         file = load_from_cmd(cmd)
+    if file:
+        return file
 
+    secret = _get_from_conf(const.ENV_BACKEND_FILE, secret=True)
+    if secret:
+        file = load_from_file(secret)
     if file:
         return file
 
@@ -49,12 +60,21 @@ def load_backend_file(logger: Logger) -> str:
 
 
 def _get_from_conf(
-    key: str, default_value: str = "", *, section: str | None = None, cmd: bool = False
+    key: str,
+    default_value: str = "",
+    *,
+    section: str | None = None,
+    cmd: bool = False,
+    secret: bool = False,
 ) -> str:
     from airflow.configuration import conf
     from airflow.exceptions import AirflowConfigException
 
-    key = key + "_cmd" if cmd else key
+    if cmd:
+        key = key + "_cmd"
+    elif secret:
+        key = key + "_secret"
+
     section = section or const.SERVER_CONF_SECTION
     with suppress(AirflowConfigException):
         return conf.get(section, key, fallback=default_value, suppress_warnings=True)

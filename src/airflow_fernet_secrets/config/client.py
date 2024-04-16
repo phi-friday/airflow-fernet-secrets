@@ -8,6 +8,7 @@ from airflow_fernet_secrets.config.common import (
     create_backend_file,
     ensure_fernet_return,
     load_from_cmd,
+    load_from_file,
 )
 
 if TYPE_CHECKING:
@@ -25,7 +26,12 @@ def load_secret_key(logger: Logger) -> str:
     cmd = _get_env_variable(const.ENV_SECRET_KEY, cmd=True)
     if cmd:
         value = load_from_cmd(cmd)
+    if value:
+        return value
 
+    secret = _get_env_variable(const.ENV_SECRET_KEY, secret=True)
+    if secret:
+        value = load_from_file(secret)
     if value:
         return value
 
@@ -41,7 +47,12 @@ def load_backend_file(logger: Logger) -> str:
     cmd = _get_env_variable(const.ENV_BACKEND_FILE, cmd=True)
     if cmd:
         file = load_from_cmd(cmd)
+    if file:
+        return file
 
+    secret = _get_env_variable(const.ENV_BACKEND_FILE, secret=True)
+    if secret:
+        file = load_from_file(secret)
     if file:
         return file
 
@@ -49,8 +60,15 @@ def load_backend_file(logger: Logger) -> str:
 
 
 def _get_env_variable(
-    name: str, default_value: str | None = None, *, cmd: bool = False
+    name: str,
+    default_value: str | None = None,
+    *,
+    cmd: bool = False,
+    secret: bool = False,
 ) -> str:
     key = const.CLIENT_ENV_PREFIX + name.upper().strip("_")
-    key = key + "_CMD" if cmd else key
+    if cmd:
+        key = key + "_CMD"
+    elif secret:
+        key = key + "_SECRET"
     return getenv(key, default_value or "")
