@@ -3,16 +3,12 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Any, cast
 
-from sqlalchemy.engine.url import URL, make_url
-
-from airflow_fernet_secrets.connection import (
-    ConnectionDict,
-    create_driver,
-    parse_driver,
-)
+from airflow_fernet_secrets.connection.dump.main import connection_to_args
 
 if TYPE_CHECKING:
     from airflow.models.connection import Connection
+
+    from airflow_fernet_secrets.connection import ConnectionDict
 
 __all__ = [
     "convert_connection_to_dict",
@@ -25,17 +21,12 @@ def convert_connection_to_dict(connection: Connection) -> ConnectionDict:
     as_dict = connection.to_dict()
 
     conn_type = _get_conn_type(connection)
-    if is_sql_connection(connection):
-        uri = connection.get_uri()
-        url = cast("URL", make_url(uri))
-        dialect = url.get_dialect()
-        driver = create_driver(
-            backend=dialect.name, dialect=dialect.driver, conn_type=conn_type
-        )
-    else:
-        driver = create_driver(conn_type=conn_type)
-
-    result: ConnectionDict = {"driver": driver, "extra": as_dict["extra"]}
+    args = connection_to_args(connection) if is_sql_connection(connection) else None
+    result: ConnectionDict = {
+        "conn_type": conn_type,
+        "extra": as_dict["extra"],
+        "args": args,
+    }
 
     for key in ("host", "login", "password", "schema", "port"):
         value = as_dict.get(key, None)
@@ -51,12 +42,12 @@ def create_airflow_connection(
 ) -> Connection:
     from airflow.models.connection import Connection
 
-    driver = parse_driver(connection["driver"])
-    conn_type = driver.conn_type or driver.backend
-    as_dict: dict[str, Any] = dict(connection)
-    as_dict.pop("driver")
-    as_dict["conn_type"] = conn_type
+    conn_type = connection.get("conn_type")
+    if conn_type is None:
+        raise NotImplementedError
 
+    as_dict: dict[str, Any] = dict(connection)
+    as_dict.pop("args", None)
     extra = as_dict.get("extra")
     if extra and not isinstance(extra, (str, bytes)):
         as_dict["extra"] = json.dumps(extra)

@@ -1,67 +1,51 @@
 from __future__ import annotations
 
-import re
-from typing import Any
+import json
+from contextlib import suppress
+from typing import TYPE_CHECKING, Any
 
-from typing_extensions import NamedTuple, Required, TypedDict
+from typing_extensions import Required, TypedDict
 
-from airflow_fernet_secrets.const import (
-    CONNECTION_DRIVER_FORMAT as _CONNECTION_DRIVER_FORMAT,
-)
-from airflow_fernet_secrets.const import (
-    RE_CONNECTION_BACKEND_DRIVER_FORMAT as _RE_CONNECTION_BACKEND_DRIVER_FORMAT,
-)
-from airflow_fernet_secrets.const import (
-    RE_CONNECTION_TYPE_DRIVER_FORMAT as _RE_CONNECTION_TYPE_DRIVER_FORMAT,
-)
+if TYPE_CHECKING:
+    from airflow_fernet_secrets.connection.dump.main import ConnectionArgs
 
-__all__ = ["ConnectionDict", "Driver", "create_driver", "parse_driver"]
-
-_RE_BACKEND_DRIVER = re.compile(_RE_CONNECTION_BACKEND_DRIVER_FORMAT)
-_RE_TYPE_DRIVER = re.compile(_RE_CONNECTION_TYPE_DRIVER_FORMAT)
+__all__ = ["ConnectionDict", "convert_args_to_jsonable"]
 
 
 class ConnectionDict(TypedDict, total=False):
-    driver: Required[str]
+    conn_type: str
     host: str
     login: str
     password: str
     schema: str
     port: int
     extra: Required[dict[str, Any]]
+    args: Required[ConnectionArgs | None]
 
 
-class Driver(NamedTuple):
-    backend: str
-    dialect: str
-    conn_type: str
-
-    def __str__(self) -> str:
-        return create_driver(
-            backend=self.backend, dialect=self.dialect, conn_type=self.conn_type
-        )
-
-
-def create_driver(
-    *,
-    backend: str | None = None,
-    dialect: str | None = None,
-    conn_type: str | None = None,
-) -> str:
-    return _CONNECTION_DRIVER_FORMAT.format(
-        backend=backend or "", dialect=dialect or "", conn_type=conn_type or ""
+def convert_args_to_jsonable(args: ConnectionArgs) -> ConnectionArgs:
+    url, connect_args, engine_kwargs = (
+        args["url"],
+        args["connect_args"],
+        args["engine_kwargs"],
     )
+    if not isinstance(url, str):
+        url = url.render_as_string(hide_password=False)
 
+    sr_connect_args: dict[str, Any] = {}
+    for key, value in connect_args.items():
+        with suppress(Exception):
+            json.dumps(value)
+            sr_connect_args[key] = value
 
-def parse_driver(driver: str) -> Driver:
-    match = _RE_BACKEND_DRIVER.match(driver)
-    if match is None:
-        match = _RE_TYPE_DRIVER.match(driver)
+    sr_engine_kwargs: dict[str, Any] = {}
+    for key, value in engine_kwargs.items():
+        with suppress(Exception):
+            json.dumps(value)
+            sr_engine_kwargs[key] = value
 
-    if match is None:
-        raise NotImplementedError
-
-    values = match.groupdict()
-    if not any(x for x in values.values()):
-        raise NotImplementedError
-    return Driver(**values)
+    return {
+        "url": url,
+        "connect_args": sr_connect_args,
+        "engine_kwargs": sr_engine_kwargs,
+    }

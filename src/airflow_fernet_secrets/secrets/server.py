@@ -7,6 +7,7 @@ from typing_extensions import TypeAlias, override
 from airflow_fernet_secrets import const
 from airflow_fernet_secrets.config.server import load_backend_file as _load_backend_file
 from airflow_fernet_secrets.config.server import load_secret_key as _load_secret_key
+from airflow_fernet_secrets.connection import convert_args_to_jsonable
 from airflow_fernet_secrets.connection.server import (
     convert_connection_to_dict,
     create_airflow_connection,
@@ -51,4 +52,8 @@ class ServerFernetLocalSecretsBackend(
     def _serialize_connection(
         self, conn_id: str, connection: Connection
     ) -> ConnectionDict:
-        return convert_connection_to_dict(connection)
+        as_dict = convert_connection_to_dict(connection)
+        args = as_dict["args"]
+        if args is not None:
+            as_dict["args"] = convert_args_to_jsonable(args)
+        return as_dict

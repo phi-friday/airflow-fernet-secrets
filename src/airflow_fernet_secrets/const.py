@@ -12,18 +12,13 @@ ENV_IS_SERVER = "is_server"
 
 LOGGER_NAME = "airflow.fernet_secrets"
 
-CONNECTION_DRIVER_FORMAT = "{backend}:{dialect}:{conn_type}"
-_ASCII = "[a-zA-Z0-9_-]"
-RE_CONNECTION_BACKEND_DRIVER_FORMAT = (
-    rf"(?P<backend>{_ASCII}+?)"
-    rf":(?P<dialect>{_ASCII}*?)"
-    rf":(?P<conn_type>{_ASCII}*)"
-)
-RE_CONNECTION_TYPE_DRIVER_FORMAT = (
-    rf"(?P<backend>{_ASCII}*?)"
-    rf":(?P<dialect>{_ASCII}*?)"
-    rf":(?P<conn_type>{_ASCII}+)"
-)
-
 SQL_CONN_TYPE = "sql"
 SA_DATACLASS_METADATA_KEY = "sa"
+
+# connection type
+SQLITE_CONN_TYPE = "sqlite"
+SQLITE_CONN_TYPES = frozenset({SQLITE_CONN_TYPE, "sqlite"})
+POSTGRESQL_CONN_TYPE = "postgresql"
+POSTGRESQL_CONN_TYPES = frozenset({POSTGRESQL_CONN_TYPE, "postgres", "postgresql"})
+ODBC_CONN_TYPE = "odbc"
+ODBC_CONN_TYPES = frozenset({ODBC_CONN_TYPE, "odbc"})

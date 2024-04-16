@@ -1,25 +1,42 @@
 from __future__ import annotations
 
-from sqlalchemy.dialects.sqlite import dialect as sqlite_dialect
+from typing import TYPE_CHECKING
+
+from sqlalchemy.dialects import mssql as mssql_dialect
+from sqlalchemy.dialects import postgresql as postgresql_dialect
+from sqlalchemy.dialects import sqlite as sqlite_dialect
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.url import URL, make_url
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession
 from sqlalchemy.orm import Session
 
-from airflow_fernet_secrets.connection import (
-    ConnectionDict,
-    create_driver,
-    parse_driver,
-)
+from airflow_fernet_secrets import const
 from airflow_fernet_secrets.database.connect import SessionMaker
+
+if TYPE_CHECKING:
+    from airflow_fernet_secrets.connection import ConnectionDict
+    from airflow_fernet_secrets.connection.dump.main import ConnectionArgs
 
 
 def convert_url_to_dict(url: str | URL) -> ConnectionDict:
     url = make_url(url)
     backend = url.get_backend_name()
-    dialect = url.get_driver_name()
-    driver = create_driver(backend=backend, dialect=dialect)
-    result: ConnectionDict = {"driver": driver, "extra": dict(url.query)}
+
+    if backend == sqlite_dialect.dialect.name:
+        conn_type = const.SQLITE_CONN_TYPE
+    elif backend == postgresql_dialect.dialect.name:
+        conn_type = const.POSTGRESQL_CONN_TYPE
+    elif backend == mssql_dialect.dialect.name:
+        conn_type = const.ODBC_CONN_TYPE
+    else:
+        raise NotImplementedError
+
+    args: ConnectionArgs = {"url": url, "connect_args": {}, "engine_kwargs": {}}
+    result: ConnectionDict = {
+        "conn_type": conn_type,
+        "extra": dict(url.query),
+        "args": args,
+    }
 
     if url.host:
         result["host"] = url.host
@@ -31,7 +48,7 @@ def convert_url_to_dict(url: str | URL) -> ConnectionDict:
         else:
             result["password"] = str(url.password)
     if url.database:
-        if backend == sqlite_dialect.name:
+        if conn_type == const.SQLITE_CONN_TYPE:
             result["host"] = url.database
         else:
             result["schema"] = url.database
@@ -64,22 +81,9 @@ def convert_connectable_to_dict(
 
 
 def create_url(connection: ConnectionDict) -> URL:
-    driver = parse_driver(connection["driver"])
-    drivername = (
-        f"{driver.backend}+{driver.dialect}" if driver.dialect else driver.backend
-    )
+    args = connection.get("args")
+    if not args:
+        raise NotImplementedError
 
-    url = URL.create(
-        drivername=drivername,
-        username=connection.get("login", None),
-        password=connection.get("password", None),
-        host=connection.get("host", None),
-        port=connection.get("port", None),
-        database=connection.get("schema", None),
-        query=connection.get("extra", None) or {},
-    )
-
-    if driver.backend == sqlite_dialect.name:
-        url = url.set(host="", database=url.host)
-
-    return url
+    url = args["url"]
+    return make_url(url)

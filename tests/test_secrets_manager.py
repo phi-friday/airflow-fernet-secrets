@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING, cast
 from uuid import uuid4
 
 import pytest
@@ -8,11 +9,14 @@ import sqlalchemy as sa
 from airflow.hooks.filesystem import FSHook
 from airflow.models.connection import Connection
 from airflow.providers.common.sql.hooks.sql import DbApiHook
-from sqlalchemy.engine.url import URL
+from sqlalchemy.engine.url import URL, make_url
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import Session
 
 from tests.base import BaseTestClientAndServer, get_hook, ignore_warnings
+
+if TYPE_CHECKING:
+    from airflow_fernet_secrets.connection.dump.main import ConnectionArgs
 
 
 @pytest.mark.parametrize("backend_class", ["client", "server"], indirect=True)
@@ -173,9 +177,14 @@ class TestAsyncClientAndServer(BaseTestClientAndServer):
 
         connection = await self.backend.aget_connection(default_async_conn_id)
         assert connection is not None
-        assert isinstance(connection, URL)
+        self.assert_connection_type(connection)
+        connection = cast("ConnectionArgs", connection)
+        engine = create_async_engine(
+            connection["url"],
+            connect_args=connection["connect_args"],
+            **connection["engine_kwargs"],
+        )
 
-        engine = create_async_engine(connection)
         async with AsyncSession(engine) as session:
             fetch = await session.execute(sa.text("select 1"))
             values = fetch.all()
@@ -257,9 +266,9 @@ def test_server_to_client(server_backend, client_backend, temp_file):
 
     connection = client_backend.get_connection(conn_id=conn_id)
     assert connection is not None
-    assert isinstance(connection, URL)
-    client_url = connection.set(
-        drivername=connection.get_backend_name()
+    client_url = make_url(connection["url"])
+    client_url = client_url.set(
+        drivername=client_url.get_backend_name()
     ).render_as_string()
 
     assert server_url == client_url
@@ -277,7 +286,12 @@ def test_client_to_server(server_backend, client_backend, temp_file):
     client_url: str = URL.create(
         "sqlite", database=str(temp_file), query={"some_key": "some_value"}
     ).render_as_string()
-    client_backend.set_connection(conn_id=conn_id, connection=client_url)
+    client_connection: ConnectionArgs = {
+        "url": client_url,
+        "connect_args": {},
+        "engine_kwargs": {},
+    }
+    client_backend.set_connection(conn_id=conn_id, connection=client_connection)
 
     connection = server_backend.get_connection(conn_id=conn_id)
     assert connection is not None

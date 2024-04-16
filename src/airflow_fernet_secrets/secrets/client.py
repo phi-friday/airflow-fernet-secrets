@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+from contextlib import suppress
 from typing import TYPE_CHECKING, Literal
 
+from sqlalchemy.engine.url import make_url
 from typing_extensions import TypeAlias, override
 
 from airflow_fernet_secrets import const
 from airflow_fernet_secrets.config.client import load_backend_file as _load_backend_file
 from airflow_fernet_secrets.config.client import load_secret_key as _load_secret_key
-from airflow_fernet_secrets.connection import ConnectionDict, parse_driver
+from airflow_fernet_secrets.connection import ConnectionDict, convert_args_to_jsonable
 from airflow_fernet_secrets.connection.client import (
     convert_connectable_to_dict,
     create_url,
@@ -18,13 +20,12 @@ from airflow_fernet_secrets.secrets.common import (
 )
 
 if TYPE_CHECKING:
-    from sqlalchemy.engine.url import URL
-
+    from airflow_fernet_secrets.connection.dump.main import ConnectionArgs
     from airflow_fernet_secrets.database.model import Connection
 
-__all__ = ["ClientFernetLocalSecretsBackend"]
+__all__ = ["ClientFernetLocalSecretsBackend", "DirectFernetLocalSecretsBackend"]
 
-ConnectionType: TypeAlias = "URL"
+ConnectionType: TypeAlias = "ConnectionArgs"
 
 
 class ClientFernetLocalSecretsBackend(
@@ -41,13 +42,26 @@ class ClientFernetLocalSecretsBackend(
     def _deserialize_connection(
         self, conn_id: str, connection: ConnectionDict
     ) -> ConnectionType:
-        return create_url(connection)
+        url = create_url(connection)
+
+        args = connection["args"] or {}
+        connect_args = args.get("connect_args") or {}
+        engine_kwargs = args.get("engine_kwargs") or {}
+
+        return {
+            "url": url,
+            "connect_args": connect_args,
+            "engine_kwargs": engine_kwargs,
+        }
 
     @override
     def _serialize_connection(
         self, conn_id: str, connection: ConnectionType
     ) -> ConnectionDict:
-        return convert_connectable_to_dict(connection)
+        url = connection["url"]
+        as_dict = convert_connectable_to_dict(url)
+        as_dict["args"] = convert_args_to_jsonable(connection)
+        return as_dict
 
     @override
     def _validate_connection(
@@ -72,9 +86,11 @@ class ClientFernetLocalSecretsBackend(
         connection = super()._validate_connection_dict(conn_id, connection, when)
         if when == "set":
             return connection
-        driver = parse_driver(connection["driver"])
-        if not driver.backend:
+        args = connection["args"]
+        if args is None:
             raise NotImplementedError
+        url = args["url"]
+        make_url(url)
         return connection
 
 
@@ -86,8 +102,17 @@ class DirectFernetLocalSecretsBackend(
 
     @override
     def _get_conn_type(self, connection: ConnectionDict) -> str:
-        driver = parse_driver(connection["driver"])
-        return driver.conn_type
+        args = connection["args"]
+        if args is not None:
+            with suppress(Exception):
+                make_url(args["url"])
+                return const.SQL_CONN_TYPE
+
+        conn_type = connection.get("conn_type")
+        if conn_type is not None:
+            return conn_type
+
+        raise NotImplementedError
 
     @override
     def _deserialize_connection(
@@ -99,4 +124,7 @@ class DirectFernetLocalSecretsBackend(
     def _serialize_connection(
         self, conn_id: str, connection: ConnectionDict
     ) -> ConnectionDict:
+        args = connection["args"]
+        if args is not None:
+            connection["args"] = convert_args_to_jsonable(args)
         return connection

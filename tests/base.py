@@ -6,7 +6,6 @@ from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any, Generator, Literal, cast
 
 import pytest
-import sqlalchemy as sa
 from airflow import DAG
 from airflow.models.connection import Connection
 from airflow.providers.common.sql.hooks.sql import DbApiHook
@@ -14,8 +13,8 @@ from airflow.utils.session import create_session
 from airflow.utils.state import DagRunState
 from airflow.utils.types import DagRunType
 from pendulum.datetime import DateTime
-from sqlalchemy.engine import Engine
-from sqlalchemy.engine.url import URL
+from sqlalchemy.engine import Engine, create_engine
+from sqlalchemy.engine.url import URL, make_url
 
 from airflow_fernet_secrets.connection.server import convert_connection_to_dict
 from airflow_fernet_secrets.utils.re import camel_to_snake
@@ -90,7 +89,18 @@ class BaseTestClientAndServer:
 
     def assert_connection_type(self, connection: Any) -> None:
         if self.side == "client":
-            assert isinstance(connection, URL)
+            assert isinstance(connection, dict)
+            assert "url" in connection
+            assert "connect_args" in connection
+            assert "engine_kwargs" in connection
+            url, connect_args, engine_kwargs = (
+                connection["url"],
+                connection["connect_args"],
+                connection["engine_kwargs"],
+            )
+            assert isinstance(url, (str, URL))
+            assert isinstance(connect_args, dict)
+            assert isinstance(engine_kwargs, dict)
         elif self.side == "server":
             assert isinstance(connection, Connection)
         elif self.side == "direct":
@@ -111,7 +121,8 @@ class BaseTestClientAndServer:
         if self.side == "client":
             from airflow_fernet_secrets.database.connect import create_sqlite_url
 
-            return create_sqlite_url(file, is_async=is_async, query=extra, **kwargs)
+            url = create_sqlite_url(file, is_async=is_async, query=extra, **kwargs)
+            return {"url": url, "connect_args": {}, "engine_kwargs": {}}
         if self.side == "server":
             return Connection(
                 conn_id=conn_id,
@@ -133,8 +144,10 @@ class BaseTestClientAndServer:
 
     def dump_connection(self, connection: Any) -> str:
         if self.side == "client":
-            assert isinstance(connection, URL)
-            return connection.render_as_string(hide_password=False)
+            self.assert_connection_type(connection)
+            url: str | URL = connection["url"]
+            url = make_url(url)
+            return url.render_as_string(hide_password=False)
         if self.side == "server":
             assert isinstance(connection, Connection)
             return connection.get_uri()
@@ -145,8 +158,12 @@ class BaseTestClientAndServer:
 
     def create_engine(self, connection: Any) -> Engine:
         if self.side == "client":
-            assert isinstance(connection, URL)
-            return sa.create_engine(connection)
+            self.assert_connection_type(connection)
+            return create_engine(
+                connection["url"],
+                connect_args=connection["connect_args"],
+                **connection["engine_kwargs"],
+            )
         if self.side == "server":
             hook = get_hook(connection)
             assert isinstance(hook, DbApiHook)

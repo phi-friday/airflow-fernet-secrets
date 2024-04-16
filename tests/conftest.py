@@ -11,8 +11,7 @@ import pytest
 from cryptography.fernet import Fernet
 
 if TYPE_CHECKING:
-    from sqlalchemy.engine.url import URL
-
+    from airflow_fernet_secrets.connection.dump.main import ConnectionArgs
     from airflow_fernet_secrets.secrets.client import ClientFernetLocalSecretsBackend
     from airflow_fernet_secrets.secrets.common import CommonFernetLocalSecretsBackend
     from airflow_fernet_secrets.secrets.server import ServerFernetLocalSecretsBackend
@@ -98,16 +97,25 @@ def default_async_conn_id(default_conn_id):
 
 
 @pytest.fixture(scope="session")
-def default_conn(temp_path: Path) -> URL:
+def default_conn(temp_path: Path) -> ConnectionArgs:
     from sqlalchemy.engine.url import URL
 
     file = temp_path / str(uuid4())
-    return URL.create("sqlite", database=str(file))
+    url = URL.create("sqlite", database=str(file))
+    return {"url": url, "connect_args": {}, "engine_kwargs": {}}
 
 
 @pytest.fixture(scope="session")
-def default_async_conn(default_conn: URL) -> URL:
-    return default_conn.set(drivername="sqlite+aiosqlite")
+def default_async_conn(default_conn: ConnectionArgs) -> ConnectionArgs:
+    from sqlalchemy.engine.url import make_url
+
+    url = make_url(default_conn["url"])
+    url = url.set(drivername="sqlite+aiosqlite")
+    return {
+        "url": url,
+        "connect_args": default_conn["connect_args"],
+        "engine_kwargs": default_conn["engine_kwargs"],
+    }
 
 
 @pytest.fixture(scope="session", autouse=True)
