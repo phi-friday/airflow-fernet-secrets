@@ -154,6 +154,7 @@ def ensure_sqlite_sync_engine(
     | str,
 ) -> Engine:
     if isinstance(connectable_or_url, (Engine, Connection)):
+        ensure_sqlite_url(connectable_or_url.engine.url)
         return _set_listeners(connectable_or_url.engine)
     if isinstance(connectable_or_url, (str, URL)):
         connectable_or_url = ensure_sqlite_url(connectable_or_url, is_async=False)
@@ -176,6 +177,7 @@ def ensure_sqlite_async_engine(
     | str,
 ) -> AsyncEngine:
     if isinstance(connectable_or_url, (AsyncEngine, AsyncConnection)):
+        ensure_sqlite_url(connectable_or_url.engine.url)
         return _set_listeners(connectable_or_url.engine)
     if isinstance(connectable_or_url, (str, URL)):
         connectable_or_url = ensure_sqlite_url(connectable_or_url, is_async=True)
