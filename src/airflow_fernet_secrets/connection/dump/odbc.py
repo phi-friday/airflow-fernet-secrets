@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING, Any
 from urllib.parse import quote_plus
 
@@ -50,8 +51,16 @@ def connection_to_args(connection: Connection) -> ConnectionArgs:
     url = url.difference_update_query([Connection.EXTRA_KEY])
 
     extras = dict(connection.extra_dejson)
+
     engine_kwargs: dict[str, Any] = extras.pop("engine_kwargs", {})
+    if isinstance(engine_kwargs, str):
+        engine_kwargs = json.loads(engine_kwargs)
+    engine_kwargs = dict(engine_kwargs)
+
     connect_args: dict[str, Any] = engine_kwargs.pop("connect_args", {})
+    if isinstance(connect_args, str):
+        connect_args = json.loads(connect_args)
+    connect_args = dict(connect_args)
     _connect_args = _odbc_connect_args(lower_extra)
     connect_args.update(_connect_args)
 

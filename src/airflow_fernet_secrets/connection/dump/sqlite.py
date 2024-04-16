@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING, Any
 from urllib.parse import unquote
 
@@ -38,7 +39,14 @@ def connection_to_args(connection: Connection) -> ConnectionArgs:
 
     extras = dict(connection.extra_dejson)
     engine_kwargs: dict[str, Any] = extras.pop("engine_kwargs", {})
+    if isinstance(engine_kwargs, str):
+        engine_kwargs = json.loads(engine_kwargs)
+    engine_kwargs = dict(engine_kwargs)
+
     connect_args: dict[str, Any] = engine_kwargs.pop("connect_args", {})
+    if isinstance(connect_args, str):
+        connect_args = json.loads(connect_args)
+    connect_args = dict(connect_args)
 
     return {"url": url, "connect_args": connect_args, "engine_kwargs": engine_kwargs}
 
