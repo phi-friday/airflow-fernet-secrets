@@ -17,9 +17,14 @@ __all__ = ["ConnectionArgs", "connection_to_args"]
 
 
 class ConnectionArgs(TypedDict, total=True):
+    """connection args using in sqlalchemy"""
+
     url: str | URL
+    """sqlalchemy url"""
     connect_args: dict[str, Any]
+    """dbapi connection args"""
     engine_kwargs: dict[str, Any]
+    """sqlalchemy engine args"""
 
 
 def connection_to_args(connection: Connection) -> ConnectionArgs:

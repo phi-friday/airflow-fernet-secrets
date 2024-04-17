@@ -1,16 +1,29 @@
 from __future__ import annotations
 
-
-class FernetSecretsError(Exception): ...
-
-
-class FernetSecretsKeyError(KeyError, FernetSecretsError): ...
-
-
-class FernetSecretsValueError(ValueError, FernetSecretsError): ...
-
-
-class FernetSecretsTypeError(TypeError, FernetSecretsError): ...
+__all__ = [
+    "FernetSecretsError",
+    "FernetSecretsKeyError",
+    "FernetSecretsValueError",
+    "FernetSecretsTypeError",
+    "FernetSecretsNotImplementedError",
+]
 
 
-class FernetSecretsNotImplementedError(NotImplementedError, FernetSecretsError): ...
+class FernetSecretsError(Exception):
+    """airflow-fernet-secrets base error"""
+
+
+class FernetSecretsKeyError(KeyError, FernetSecretsError):
+    """airflow-fernet-secrets key error"""
+
+
+class FernetSecretsValueError(ValueError, FernetSecretsError):
+    """airflow-fernet-secrets value error"""
+
+
+class FernetSecretsTypeError(TypeError, FernetSecretsError):
+    """airflow-fernet-secrets type error"""
+
+
+class FernetSecretsNotImplementedError(NotImplementedError, FernetSecretsError):
+    """airflow-fernet-secrets implement error"""

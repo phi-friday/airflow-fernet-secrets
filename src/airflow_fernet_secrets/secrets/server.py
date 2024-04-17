@@ -36,6 +36,8 @@ ConnectionType: TypeAlias = "Connection"
 class ServerFernetLocalSecretsBackend(
     _CommonFernetLocalSecretsBackend[Connection], LoggingMixin
 ):
+    """using in airflow"""
+
     load_backend_file = staticmethod(_load_backend_file)
     load_secret_key = staticmethod(_load_secret_key)
 

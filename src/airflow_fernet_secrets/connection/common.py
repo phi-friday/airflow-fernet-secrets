@@ -19,17 +19,28 @@ __all__ = ["ConnectionDict", "convert_args_to_jsonable", "convert_args_from_json
 
 
 class ConnectionDict(TypedDict, total=False):
+    """serialized connection dict"""
+
     conn_type: str
+    """conn type(== airflow `Connection.conn_type`)"""
     host: str
+    """`Connection.host`"""
     login: str
+    """`Connection.login`"""
     password: str
+    """`Connection.password`"""
     schema: str
+    """`Connection.schema`"""
     port: int
+    """`Connection.port`"""
     extra: Required[dict[str, Any]]
+    """`Connection.extra`"""
     args: Required[ConnectionArgs | None]
+    """`ConnectionArgs`"""
 
 
 def convert_args_to_jsonable(args: ConnectionArgs) -> ConnectionArgs:
+    """filter is jsonable"""
     url, connect_args, engine_kwargs = (
         args["url"],
         args["connect_args"],
@@ -60,6 +71,7 @@ def convert_args_to_jsonable(args: ConnectionArgs) -> ConnectionArgs:
 
 
 def convert_args_from_jsonable(args: ConnectionArgs) -> ConnectionArgs:
+    """filter is jsonable"""
     url, sr_connect_args, sr_engine_kwargs = (
         args["url"],
         args["connect_args"],

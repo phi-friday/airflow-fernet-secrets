@@ -27,11 +27,17 @@ if TYPE_CHECKING:
 
 
 class OperatorResult(TypedDict, total=True):
+    """airflow-fernet-secrets operators result type"""
+
     connection: list[str]
+    """connection ids"""
     variable: list[str]
+    """variable keys"""
 
 
 class HasSecrets(BaseOperator):
+    """base operator with secrets"""
+
     template_fields: Sequence[str] = (
         "fernet_secrets_key",
         "fernet_secrets_backend_file_path",
@@ -73,6 +79,8 @@ class HasSecrets(BaseOperator):
 
 
 class HasIds(HasSecrets):
+    """base operator with templated ids"""
+
     template_fields: Sequence[str] = (
         "fernet_secrets_conn_ids",
         "fernet_secrets_var_ids",
@@ -83,7 +91,7 @@ class HasIds(HasSecrets):
         "fernet_secrets_backend_file_path",
     )
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         *,
         fernet_secrets_conn_ids: str | Sequence[str] | None = None,

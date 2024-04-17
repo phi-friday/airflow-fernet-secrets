@@ -18,6 +18,7 @@ __all__ = [
 
 
 def convert_connection_to_dict(connection: Connection) -> ConnectionDict:
+    """airflow connection to connection dict"""
     from airflow_fernet_secrets.connection.dump import connection_to_args
 
     as_dict = connection.to_dict()
@@ -42,6 +43,7 @@ def convert_connection_to_dict(connection: Connection) -> ConnectionDict:
 def create_airflow_connection(
     connection: ConnectionDict, conn_id: str | None = None
 ) -> Connection:
+    """connection dict to airflow connection"""
     from airflow.models.connection import Connection
 
     conn_type = connection.get("conn_type")
@@ -60,6 +62,7 @@ def create_airflow_connection(
 
 
 def is_sql_connection(connection: Connection) -> bool:
+    """check is sql connection in airflow"""
     from airflow.providers_manager import ProvidersManager
     from airflow.utils.module_loading import import_string
 

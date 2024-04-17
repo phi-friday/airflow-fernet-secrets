@@ -14,16 +14,22 @@ __all__ = ["JsonableClassType", "dump_as_jsonable", "load_from_jsonable"]
 
 
 class JsonableClassType(TypedDict, total=True):
+    """class to jsonable dict"""
+
     _jsonable_class_type_flag_: Literal[True]  # JSONABLE_CLASS_TYPE_FLAG
+    """just flag"""
     module: str
+    """class module"""
     name: str
+    """class name"""
 
 
 def dump_as_jsonable(value: Any) -> tuple[bool, Any]:
+    """class to jsonable dict"""
     if isclass(value):
         with suppress(Exception):
             pickle.dumps(value, protocol=pickle.HIGHEST_PROTOCOL)
-            module, name = value.__module__, value.__name__
+            module, name = value.__module__, value.__qualname__
             return True, {
                 JSONABLE_CLASS_TYPE_FLAG: True,
                 "module": module,
@@ -34,6 +40,7 @@ def dump_as_jsonable(value: Any) -> tuple[bool, Any]:
 
 
 def load_from_jsonable(value: Any) -> tuple[bool, Any]:
+    """jsonable dict to class"""
     if not is_jsonable_class_type(value):
         return False, value
 
@@ -43,6 +50,7 @@ def load_from_jsonable(value: Any) -> tuple[bool, Any]:
 
 
 def is_jsonable_class_type(value: Any) -> TypeGuard[JsonableClassType]:
+    """check is jsonable dict"""
     if not isinstance(value, dict):
         return False
 

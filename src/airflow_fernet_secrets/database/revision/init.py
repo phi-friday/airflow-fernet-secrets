@@ -40,6 +40,7 @@ variable = sa.Table(
 
 
 def upgrade(conn: Connection) -> None:
+    """upgrade null -> init"""
     if conn.in_transaction() or conn.in_nested_transaction():
         func = conn.begin_nested
     else:
@@ -54,6 +55,7 @@ def upgrade(conn: Connection) -> None:
 
 
 def downgrade(conn: Connection) -> None:
+    """downgrade init -> null"""
     drop_tables = [
         schema.DropTable(table, if_exists=False)
         for table in (version, connection, variable)

@@ -49,10 +49,13 @@ SessionT = TypeVar("SessionT", bound="Session | AsyncSession")
 
 @runtime_checkable
 class SessionMaker(Protocol[SessionT]):
+    """callable what return sqlalchemy session"""
+
     __call__: Callable[..., SessionT]
 
 
 def create_sqlite_url(file: PathType, *, is_async: bool = False, **kwargs: Any) -> URL:
+    """file to sqlite url"""
     url = URL.create(drivername="sqlite+pysqlite")
     if is_async:
         url = url.set(drivername="sqlite+aiosqlite")
@@ -62,6 +65,7 @@ def create_sqlite_url(file: PathType, *, is_async: bool = False, **kwargs: Any) 
 
 
 def ensure_sqlite_url(url: str | URL, *, is_async: bool = False) -> URL:
+    """string to sqlite url"""
     url = make_url(url)
     dialect = url.get_dialect()
     if dialect.name != sqlite_dialect.name:
@@ -132,6 +136,7 @@ def ensure_sqlite_engine(
     | URL
     | str,
 ) -> Engine | AsyncEngine:
+    """ensure sqlalchemy sqlite engine"""
     if isinstance(connectable_or_url, (AsyncEngine, AsyncConnection, AsyncSession)):
         return ensure_sqlite_async_engine(connectable_or_url)
     if isinstance(connectable_or_url, (Engine, Connection, Session)):
@@ -159,6 +164,7 @@ def ensure_sqlite_sync_engine(
     | URL
     | str,
 ) -> Engine:
+    """ensure sqlalchemy sqlite sync engine"""
     if isinstance(connectable_or_url, (Engine, Connection)):
         ensure_sqlite_url(connectable_or_url.engine.url)
         return _set_listeners(connectable_or_url.engine)
@@ -184,6 +190,7 @@ def ensure_sqlite_async_engine(
     | URL
     | str,
 ) -> AsyncEngine:
+    """ensure sqlalchemy sqlite async engine"""
     if isinstance(connectable_or_url, (AsyncEngine, AsyncConnection)):
         ensure_sqlite_url(connectable_or_url.engine.url)
         return _set_listeners(connectable_or_url.engine)
@@ -205,6 +212,7 @@ def ensure_sqlite_async_engine(
 def enter_sync_database(
     connectable: Engine | Connection | SessionMaker[Session] | Session,
 ) -> Generator[Session, None, None]:
+    """sqlalchemy sync context manager"""
     if isinstance(connectable, Session):
         session = connectable
     elif isinstance(connectable, (Engine, Connection)):
@@ -231,6 +239,7 @@ async def enter_async_database(
     | SessionMaker[AsyncSession]
     | AsyncSession,
 ) -> AsyncGenerator[AsyncSession, None]:
+    """sqlalchemy async context manager"""
     if isinstance(connectable, AsyncSession):
         session = connectable
     elif isinstance(connectable, (AsyncEngine, AsyncConnection)):

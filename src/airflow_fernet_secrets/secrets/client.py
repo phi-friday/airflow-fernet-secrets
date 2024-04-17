@@ -18,7 +18,7 @@ from airflow_fernet_secrets.connection import (
 )
 from airflow_fernet_secrets.connection.client import (
     convert_connectable_to_dict,
-    create_url,
+    create_connection_args,
 )
 from airflow_fernet_secrets.log.client import LoggingMixin
 from airflow_fernet_secrets.secrets.common import (
@@ -36,6 +36,8 @@ ConnectionType: TypeAlias = "ConnectionArgs"
 class ClientFernetLocalSecretsBackend(
     _CommonFernetLocalSecretsBackend[ConnectionType], LoggingMixin
 ):
+    """using in non-airflow & only sql connection"""
+
     load_backend_file = staticmethod(_load_backend_file)
     load_secret_key = staticmethod(_load_secret_key)
 
@@ -47,18 +49,7 @@ class ClientFernetLocalSecretsBackend(
     def _deserialize_connection(
         self, conn_id: str, connection: ConnectionDict
     ) -> ConnectionType:
-        url = create_url(connection)
-
-        args = connection["args"] or {}
-        connect_args = args.get("connect_args") or {}
-        engine_kwargs = args.get("engine_kwargs") or {}
-
-        connection_args: ConnectionArgs = {
-            "url": url,
-            "connect_args": connect_args,
-            "engine_kwargs": engine_kwargs,
-        }
-
+        connection_args = create_connection_args(connection)
         return convert_args_from_jsonable(connection_args)
 
     @override
@@ -106,6 +97,8 @@ class ClientFernetLocalSecretsBackend(
 class DirectFernetLocalSecretsBackend(
     _CommonFernetLocalSecretsBackend[ConnectionDict], LoggingMixin
 ):
+    """using in non-airflow"""
+
     load_backend_file = staticmethod(_load_backend_file)
     load_secret_key = staticmethod(_load_secret_key)
 

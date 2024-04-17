@@ -32,6 +32,15 @@ __all__ = [
 
 
 def create_backend_file(logger: Logger, stacklevel: int = 2) -> str:
+    """creates a new backend file in a temporary directory
+
+    Args:
+        logger: The `logger` parameter is an instance of a Logger class
+        stacklevel: using in logger
+
+    Returns:
+        new backend file
+    """
     logger.info("create new backend file", stacklevel=stacklevel)
     temp_dir = gettempdir()
     temp_path = Path(temp_dir)
@@ -42,6 +51,14 @@ def create_backend_file(logger: Logger, stacklevel: int = 2) -> str:
 
 
 def load_from_cmd(cmd: str) -> str:
+    """run command and capture outputs.
+
+    Args:
+        cmd: shell command
+
+    Returns:
+        command outputs
+    """
     process = subprocess.run(
         shlex.split(cmd),  # noqa: S603
         text=True,
@@ -52,11 +69,27 @@ def load_from_cmd(cmd: str) -> str:
 
 
 def load_from_file(file: PathType) -> str:
+    """cat file
+
+    Args:
+        file: target file
+
+    Returns:
+        `cat <file>` outputs
+    """
     cmd = f"cat {file!s}"
     return load_from_cmd(cmd)
 
 
 def ensure_fernet(secret_key: str | bytes | Fernet | MultiFernet) -> MultiFernet:
+    """ensure secret key to fernet key
+
+    Args:
+        secret_key: maybe secret key
+
+    Returns:
+        fernet key
+    """
     if isinstance(secret_key, MultiFernet):
         return secret_key
     if isinstance(secret_key, Fernet):
@@ -68,6 +101,15 @@ def ensure_fernet(secret_key: str | bytes | Fernet | MultiFernet) -> MultiFernet
 
 
 def ensure_fernet_return(func: Callable[P, T]) -> Callable[P, MultiFernet]:
+    """ensure return value to fernet key
+
+    Args:
+        func: callable what return secret key
+
+    Returns:
+        callable what return fernet key
+    """
+
     @wraps(func)
     def inner(*args: P.args, **kwargs: P.kwargs) -> MultiFernet:
         value: T = func(*args, **kwargs)

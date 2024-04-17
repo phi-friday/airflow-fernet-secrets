@@ -17,8 +17,16 @@ from airflow_fernet_secrets.database.connect import SessionMaker
 if TYPE_CHECKING:
     from airflow_fernet_secrets.connection import ConnectionArgs, ConnectionDict
 
+__all__ = [
+    "convert_url_to_dict",
+    "convert_connectable_to_dict",
+    "create_url",
+    "create_connection_args",
+]
 
-def convert_url_to_dict(url: str | URL) -> ConnectionDict:
+
+def convert_url_to_dict(url: str | URL) -> ConnectionDict:  # noqa: C901, PLR0912
+    """sqlalchemy url to connection dict"""
     url = make_url(url)
     backend = url.get_backend_name()
 
@@ -70,6 +78,7 @@ def convert_connectable_to_dict(
     | URL
     | str,
 ) -> ConnectionDict:
+    """sqlalchemy connectable to connection dict"""
     if isinstance(connectable, (Engine, Connection, AsyncEngine, AsyncConnection)):
         return convert_url_to_dict(connectable.engine.url)
     if isinstance(connectable, SessionMaker):
@@ -81,9 +90,21 @@ def convert_connectable_to_dict(
 
 
 def create_url(connection: ConnectionDict) -> URL:
+    """connection dict to url"""
     args = connection.get("args")
     if not args:
         raise fe.FernetSecretsValueError("connection dict has no connection args")
 
     url = args["url"]
     return make_url(url)
+
+
+def create_connection_args(connection: ConnectionDict) -> ConnectionArgs:
+    """connection dict to connection args"""
+    url = create_url(connection)
+
+    args = connection["args"] or {}
+    connect_args = args.get("connect_args") or {}
+    engine_kwargs = args.get("engine_kwargs") or {}
+
+    return {"url": url, "connect_args": connect_args, "engine_kwargs": engine_kwargs}

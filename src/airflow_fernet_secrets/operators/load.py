@@ -24,6 +24,11 @@ __all__ = ["LoadSecretsOperator"]
 
 
 class LoadSecretsOperator(HasIds):
+    """load connection or variable.
+
+    fernet-secrets backend -> airflow
+    """
+
     template_fields: Sequence[str] = (
         "fernet_secrets_conn_ids",
         "fernet_secrets_var_ids",
@@ -35,7 +40,7 @@ class LoadSecretsOperator(HasIds):
         "fernet_secrets_overwrite",
     )
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         *,
         fernet_secrets_conn_ids: str | Sequence[str] | None = None,
@@ -51,6 +56,19 @@ class LoadSecretsOperator(HasIds):
         fernet_secrets_overwrite: str | bool = False,
         **kwargs: Any,
     ) -> None:
+        """init LoadSecretsOperator.
+
+        Args:
+            fernet_secrets_conn_ids: target conn ids. Defaults to None.
+            fernet_secrets_var_ids: target variable keys. Defaults to None.
+            fernet_secrets_rename: rename mapping. Defaults to None.
+            fernet_secrets_separate: if true, split string. Defaults to False.
+            fernet_secrets_separator: using in separate process. Defaults to ",".
+            fernet_secrets_key: backend secret key. Defaults to None.
+            fernet_secrets_backend_file_path: backend file path. Defaults to None.
+            fernet_secrets_overwrite: if true, overwrite. Defaults to False.
+        """
+
         super().__init__(
             fernet_secrets_conn_ids=fernet_secrets_conn_ids,
             fernet_secrets_var_ids=fernet_secrets_var_ids,
@@ -101,7 +119,7 @@ class LoadSecretsOperator(HasIds):
 
         return {"connection": sorted(conn_result), "variable": sorted(var_result)}
 
-    def _execute_conn_process(
+    def _execute_conn_process(  # noqa: PLR0913
         self,
         *,
         conn_id: str,
@@ -151,7 +169,7 @@ class LoadSecretsOperator(HasIds):
         session.flush()
         return new_conn_id
 
-    def _execute_var_process(
+    def _execute_var_process(  # noqa: PLR0913
         self,
         *,
         key: str,

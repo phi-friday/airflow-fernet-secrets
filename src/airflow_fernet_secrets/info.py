@@ -15,6 +15,7 @@ _RE_VARIABLE = re.compile(r"{{ ([a-zA-Z0-9_-]+) }}")
 
 
 def get_provider_info() -> dict[str, Any]:
+    """airflow-fernet-secrets provider info"""
     root = Path(__file__).parent
     package = __package__ or root.name
     dist = distribution(package)

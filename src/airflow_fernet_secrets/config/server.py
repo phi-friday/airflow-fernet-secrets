@@ -19,7 +19,8 @@ __all__ = ["load_secret_key", "load_backend_file"]
 
 
 @ensure_fernet_return
-def load_secret_key(logger: Logger) -> str:
+def load_secret_key(logger: Logger) -> str:  # noqa: ARG001
+    """load provider fernet key in airflow conf"""
     value = _get_from_conf(const.ENV_SECRET_KEY)
     if value:
         return value
@@ -40,6 +41,7 @@ def load_secret_key(logger: Logger) -> str:
 
 
 def load_backend_file(logger: Logger) -> str:
+    """load provider backend file in airflow conf"""
     file = _get_from_conf(const.ENV_BACKEND_FILE)
     if file:
         return file

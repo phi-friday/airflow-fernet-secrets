@@ -42,7 +42,7 @@ if TYPE_CHECKING:
 
 else:
 
-    class BaseFernetLocalSecretsBackend(ABC): ...
+    class BaseFernetLocalSecretsBackend(ABC): ...  # noqa: B024
 
 
 __all__ = ["CommonFernetLocalSecretsBackend"]
@@ -54,6 +54,8 @@ ConnectionT = TypeVar("ConnectionT", infer_variance=True)
 class CommonFernetLocalSecretsBackend(
     BaseFernetLocalSecretsBackend, Generic[ConnectionT]
 ):
+    """base fernet secrets backend"""
+
     load_backend_file: staticmethod[[Logger], str]
     load_secret_key: staticmethod[[Logger], MultiFernet]
 
@@ -110,6 +112,7 @@ class CommonFernetLocalSecretsBackend(
             return self._get_conn_value_process(conn_id=conn_id, value=value)
 
     def has_connection(self, conn_id: str) -> bool:
+        """check has connection"""
         with enter_sync_database(self._backend_sync_engine) as session:
             count: int = session.scalar(
                 sa.select(sa.func.count(FernetConnection.id)).where(
@@ -119,6 +122,7 @@ class CommonFernetLocalSecretsBackend(
             return count > 0
 
     async def ahas_connection(self, conn_id: str) -> bool:
+        """check has connection"""
         async with enter_async_database(self._backend_async_engine) as session:
             count: int = await session.scalar(
                 sa.select(sa.func.count(FernetConnection.id)).where(
@@ -128,6 +132,7 @@ class CommonFernetLocalSecretsBackend(
             return count > 0
 
     async def aget_conn_value(self, conn_id: str) -> str | None:
+        """get conn value from backend"""
         async with enter_async_database(self._backend_async_engine) as session:
             value = await FernetConnection.aget(session, conn_id)
             return self._get_conn_value_process(conn_id=conn_id, value=value)
@@ -141,6 +146,7 @@ class CommonFernetLocalSecretsBackend(
         return value.encrypted.decode("utf-8")
 
     def set_conn_value(self, conn_id: str, conn_type: str, value: str | bytes) -> None:
+        """set conn value to backend"""
         if isinstance(value, str):
             value = value.encode("utf-8")
         secret_key = self._secret()
@@ -159,6 +165,7 @@ class CommonFernetLocalSecretsBackend(
     async def aset_conn_value(
         self, conn_id: str, conn_type: str, value: str | bytes
     ) -> None:
+        """set conn value to backend"""
         if isinstance(value, str):
             value = value.encode("utf-8")
         secret_key = self._secret()
@@ -206,6 +213,7 @@ class CommonFernetLocalSecretsBackend(
     def serialize_connection(
         self, conn_id: str, connection: ConnectionT
     ) -> str | bytes:
+        """serialize connection as string or bytes"""
         secret_key = self._secret()
         as_dict = self._serialize_connection(conn_id=conn_id, connection=connection)
         as_dict = self._validate_connection_dict(
@@ -223,6 +231,7 @@ class CommonFernetLocalSecretsBackend(
         return self.deserialize_connection(conn_id, value)
 
     async def aget_connection(self, conn_id: str) -> ConnectionT | None:
+        """get connection or null from backend"""
         value = await self.aget_conn_value(conn_id)
         if value is None:
             return None
@@ -230,16 +239,19 @@ class CommonFernetLocalSecretsBackend(
         return self.deserialize_connection(conn_id, value)
 
     def set_connection(self, conn_id: str, connection: ConnectionT) -> None:
+        """set connection to backend"""
         conn_type = self._get_conn_type(connection)
         value = self.serialize_connection(conn_id, connection)
         self.set_conn_value(conn_id=conn_id, conn_type=conn_type, value=value)
 
     async def aset_connection(self, conn_id: str, connection: ConnectionT) -> None:
+        """set connection to backend"""
         conn_type = self._get_conn_type(connection)
         value = self.serialize_connection(conn_id, connection)
         await self.aset_conn_value(conn_id=conn_id, conn_type=conn_type, value=value)
 
     def delete_connection(self, conn_id: str) -> None:
+        """delete connection in backend"""
         secret_key = self._secret()
         with enter_sync_database(self._backend_sync_engine) as session:
             value = FernetConnection.get(session, conn_id)
@@ -250,6 +262,7 @@ class CommonFernetLocalSecretsBackend(
                 session.commit()
 
     async def adelete_connection(self, conn_id: str) -> None:
+        """delete connection in backend"""
         secret_key = self._secret()
         async with enter_async_database(self._backend_async_engine) as session:
             value = await FernetConnection.aget(session, conn_id)
@@ -271,6 +284,7 @@ class CommonFernetLocalSecretsBackend(
         return FernetVariable.decrypt(value.encrypted, fernet)
 
     async def aget_variable(self, key: str) -> str | None:
+        """get variable from backend"""
         async with enter_async_database(self._backend_async_engine) as session:
             value = await FernetVariable.aget(session, key)
             if value is None:
@@ -281,6 +295,7 @@ class CommonFernetLocalSecretsBackend(
         return FernetVariable.decrypt(value.encrypted, fernet)
 
     def set_variable(self, key: str, value: str) -> None:
+        """set variable to backend"""
         secret_key = self._secret()
         with enter_sync_database(self._backend_sync_engine) as session:
             as_bytes = FernetVariable.encrypt(value, secret_key)
@@ -294,6 +309,7 @@ class CommonFernetLocalSecretsBackend(
                 session.commit()
 
     async def aset_variable(self, key: str, value: str) -> None:
+        """set variable to backend"""
         secret_key = self._secret()
         async with enter_async_database(self._backend_async_engine) as session:
             as_bytes = FernetVariable.encrypt(value, secret_key)
@@ -307,6 +323,7 @@ class CommonFernetLocalSecretsBackend(
                 await session.commit()
 
     def delete_variable(self, key: str) -> None:
+        """delete variable to backend"""
         secret_key = self._secret()
         with enter_sync_database(self._backend_sync_engine) as session:
             variable = FernetVariable.get(session, key=key)
@@ -317,6 +334,7 @@ class CommonFernetLocalSecretsBackend(
                 session.commit()
 
     async def adelete_variable(self, key: str) -> None:
+        """delete variable to backend"""
         secret_key = self._secret()
         async with enter_async_database(self._backend_async_engine) as session:
             variable = await FernetVariable.aget(session, key=key)
@@ -327,6 +345,7 @@ class CommonFernetLocalSecretsBackend(
                 await session.commit()
 
     def has_variable(self, key: str) -> bool:
+        """check has variable"""
         with enter_sync_database(self._backend_sync_engine) as session:
             count: int = session.scalar(
                 sa.select(sa.func.count(FernetVariable.id)).where(
@@ -336,6 +355,7 @@ class CommonFernetLocalSecretsBackend(
             return count > 0
 
     async def ahas_variable(self, key: str) -> bool:
+        """check has variable"""
         async with enter_async_database(self._backend_async_engine) as session:
             count: int = await session.scalar(
                 sa.select(sa.func.count(FernetVariable.id)).where(
@@ -349,10 +369,12 @@ class CommonFernetLocalSecretsBackend(
         return None
 
     def rotate(self) -> None:
+        """convert connections and variables to new fernet key from old."""
         self._rotate_connections()
         self._rotate_variables()
 
     async def arotate(self) -> None:
+        """convert connections and variables to new fernet key from old."""
         await self._arotate_connections()
         await self._arotate_variables()
 

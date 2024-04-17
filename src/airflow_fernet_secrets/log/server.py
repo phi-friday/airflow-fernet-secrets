@@ -14,6 +14,8 @@ __all__ = ["LoggingMixin"]
 
 
 class LoggingMixin(CommonLoggingMixin):
+    """using airflow logging mixin"""
+
     def __init__(self) -> None:
         from airflow.utils.log.logging_mixin import LoggingMixin as AirflowLoggingMixin
 
@@ -26,9 +28,11 @@ class LoggingMixin(CommonLoggingMixin):
         return self._mixin.log.name
 
     @property
+    @override
     def logger(self) -> logging.Logger:
         return self._mixin.log
 
     @property
+    @override
     def log(self) -> logging.Logger:
         return self._mixin.log
