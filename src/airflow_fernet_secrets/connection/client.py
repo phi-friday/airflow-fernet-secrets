@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession
 from sqlalchemy.orm import Session
 
 from airflow_fernet_secrets import const
+from airflow_fernet_secrets import exceptions as fe
 from airflow_fernet_secrets.database.connect import SessionMaker
 
 if TYPE_CHECKING:
@@ -28,7 +29,7 @@ def convert_url_to_dict(url: str | URL) -> ConnectionDict:
     elif backend == mssql_dialect.dialect.name:
         conn_type = const.ODBC_CONN_TYPE
     else:
-        raise NotImplementedError
+        raise fe.FernetSecretsNotImplementedError(backend)
 
     args: ConnectionArgs = {"url": url, "connect_args": {}, "engine_kwargs": {}}
     result: ConnectionDict = {
@@ -82,7 +83,7 @@ def convert_connectable_to_dict(
 def create_url(connection: ConnectionDict) -> URL:
     args = connection.get("args")
     if not args:
-        raise NotImplementedError
+        raise fe.FernetSecretsValueError("connection dict has no connection args")
 
     url = args["url"]
     return make_url(url)

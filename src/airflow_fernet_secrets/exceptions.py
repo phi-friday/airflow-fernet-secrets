@@ -1,0 +1,16 @@
+from __future__ import annotations
+
+
+class FernetSecretsError(Exception): ...
+
+
+class FernetSecretsKeyError(KeyError, FernetSecretsError): ...
+
+
+class FernetSecretsValueError(ValueError, FernetSecretsError): ...
+
+
+class FernetSecretsTypeError(TypeError, FernetSecretsError): ...
+
+
+class FernetSecretsNotImplementedError(NotImplementedError, FernetSecretsError): ...

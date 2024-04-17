@@ -164,7 +164,9 @@ def backend(
         return client_backend
     if side == "server":
         return server_backend
-    raise NotImplementedError
+
+    error_msg = f"invalid backend side: {side}"
+    raise TypeError(error_msg)
 
 
 @pytest.fixture()
@@ -196,5 +198,6 @@ def backend_class(
             DirectFernetLocalSecretsBackend as FernetLocalSecretsBackend,
         )
     else:
-        raise NotImplementedError
+        error_msg = f"invalid backend side: {side}"
+        raise TypeError(error_msg)
     return FernetLocalSecretsBackend

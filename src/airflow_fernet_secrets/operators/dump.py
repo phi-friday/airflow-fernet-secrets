@@ -3,12 +3,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
 import sqlalchemy as sa
-from airflow.exceptions import AirflowNotFoundException
 from airflow.models.connection import Connection
 from airflow.models.variable import Variable
 from airflow.utils.session import create_session
 from typing_extensions import override
 
+from airflow_fernet_secrets import exceptions as fe
 from airflow_fernet_secrets.operators.base import HasIds, OperatorResult
 from airflow_fernet_secrets.utils.cast import ensure_boolean
 
@@ -128,7 +128,7 @@ class DumpSecretsOperator(HasIds):
         ).scalar_one_or_none()
         if connection is None:
             error_msg = f"there is no connection({conn_id})."
-            raise AirflowNotFoundException(error_msg)
+            raise fe.FernetSecretsKeyError(error_msg)
 
         backend.set_connection(new_conn_id, connection)
         return new_conn_id
@@ -159,7 +159,7 @@ class DumpSecretsOperator(HasIds):
         ).scalar_one_or_none()
         if variable is None:
             error_msg = f"there is no variable({key})."
-            raise AirflowNotFoundException(error_msg)
+            raise fe.FernetSecretsKeyError(error_msg)
 
         backend.set_variable(new_key, variable.val)
         return new_key

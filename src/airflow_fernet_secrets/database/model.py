@@ -12,6 +12,7 @@ from sqlalchemy.orm import Mapped, declared_attr, registry
 from typing_extensions import Self, TypeGuard, override
 
 from airflow_fernet_secrets import const
+from airflow_fernet_secrets import exceptions as fe
 from airflow_fernet_secrets.config.common import ensure_fernet
 from airflow_fernet_secrets.utils.re import camel_to_snake
 
@@ -353,7 +354,8 @@ def _migrate_process(connectable: Engine | SqlalchemyConnection | Session):
     elif callable(getattr(connectable, "execute", None)):
         engine_or_connection = cast("Session", connectable).connection()
     else:
-        raise NotImplementedError
+        error_msg = f"invalid sync connectable type: {type(connectable).__name__}"
+        raise fe.FernetSecretsTypeError(error_msg)
 
     if callable(getattr(engine_or_connection, "dispose", None)):
         connection = cast("Engine", engine_or_connection).connect()
@@ -412,7 +414,8 @@ def _dump(value: Any) -> bytes:
     if isinstance(value, str):
         return value.encode("utf-8")
 
-    raise NotImplementedError
+    error_msg = f"invalid value type: {type(value).__name__}"
+    raise fe.FernetSecretsTypeError(error_msg)
 
 
 def _check_migrate_version(conn: SqlalchemyConnection) -> str | None:

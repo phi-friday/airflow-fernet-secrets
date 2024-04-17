@@ -8,6 +8,7 @@ from airflow.models.variable import Variable
 from airflow.utils.session import create_session
 from typing_extensions import override
 
+from airflow_fernet_secrets import exceptions as fe
 from airflow_fernet_secrets.operators.base import HasIds, OperatorResult
 from airflow_fernet_secrets.utils.cast import ensure_boolean
 
@@ -122,7 +123,8 @@ class LoadSecretsOperator(HasIds):
 
         connection = backend.get_connection(conn_id=conn_id)
         if connection is None:
-            raise NotImplementedError
+            error_msg = f"there is no connection({conn_id})."
+            raise fe.FernetSecretsKeyError(error_msg)
         connection.conn_id = new_conn_id
 
         if old is None:
@@ -171,7 +173,8 @@ class LoadSecretsOperator(HasIds):
 
         variable = backend.get_variable(key=key)
         if variable is None:
-            raise NotImplementedError
+            error_msg = f"there is no variable({key})."
+            raise fe.FernetSecretsKeyError(error_msg)
 
         if old is None:
             new = Variable(key=new_key, val=variable)

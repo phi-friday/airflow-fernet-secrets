@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Any, cast
 
+from airflow_fernet_secrets import exceptions as fe
+
 if TYPE_CHECKING:
     from airflow.models.connection import Connection
 
@@ -44,7 +46,8 @@ def create_airflow_connection(
 
     conn_type = connection.get("conn_type")
     if conn_type is None:
-        raise NotImplementedError
+        error_msg = f"connection has no conn_type: id={conn_id}"
+        raise fe.FernetSecretsValueError(error_msg)
 
     as_dict: dict[str, Any] = dict(connection)
     as_dict.pop("args", None)

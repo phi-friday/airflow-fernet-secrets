@@ -7,6 +7,7 @@ from sqlalchemy.engine.url import make_url
 from typing_extensions import TypeAlias, override
 
 from airflow_fernet_secrets import const
+from airflow_fernet_secrets import exceptions as fe
 from airflow_fernet_secrets.config.client import load_backend_file as _load_backend_file
 from airflow_fernet_secrets.config.client import load_secret_key as _load_secret_key
 from airflow_fernet_secrets.connection import (
@@ -79,7 +80,8 @@ class ClientFernetLocalSecretsBackend(
         if when == "set":
             return connection
         if not connection.is_sql_connection:
-            raise NotImplementedError
+            error_msg = f"connection({conn_id}) is not sql connection"
+            raise fe.FernetSecretsTypeError(error_msg)
         return connection
 
     @override
@@ -94,7 +96,8 @@ class ClientFernetLocalSecretsBackend(
             return connection
         args = connection["args"]
         if args is None:
-            raise NotImplementedError
+            error_msg = f"connection({conn_id}) has no connection args"
+            raise fe.FernetSecretsValueError(error_msg)
         url = args["url"]
         make_url(url)
         return connection
@@ -118,7 +121,7 @@ class DirectFernetLocalSecretsBackend(
         if conn_type is not None:
             return conn_type
 
-        raise NotImplementedError
+        raise fe.FernetSecretsValueError("connection has no conn_type")
 
     @override
     def _deserialize_connection(

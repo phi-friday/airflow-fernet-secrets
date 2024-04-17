@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any
 
 from typing_extensions import TypedDict
 
+from airflow_fernet_secrets import exceptions as fe
 from airflow_fernet_secrets.const import ODBC_CONN_TYPES as _ODBC_CONN_TYPES
 from airflow_fernet_secrets.const import POSTGRESQL_CONN_TYPES as _POSTGRESQL_CONN_TYPES
 from airflow_fernet_secrets.const import SQLITE_CONN_TYPES as _SQLITE_CONN_TYPES
@@ -27,7 +28,7 @@ def connection_to_args(connection: Connection) -> ConnectionArgs:
         error_msg = (
             f"invalid conn_type attribute type: {type(connection.conn_type).__name__}"
         )
-        raise TypeError(error_msg)
+        raise fe.FernetSecretsTypeError(error_msg)
 
     conn_type = connection.conn_type
     if conn_type in _SQLITE_CONN_TYPES:
@@ -50,4 +51,4 @@ def connection_to_args(connection: Connection) -> ConnectionArgs:
 
         return _connection_to_args(connection)
 
-    raise NotImplementedError(conn_type)
+    raise fe.FernetSecretsNotImplementedError(conn_type)

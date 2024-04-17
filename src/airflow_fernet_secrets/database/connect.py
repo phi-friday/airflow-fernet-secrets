@@ -26,6 +26,8 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.orm import Session
 from typing_extensions import TypeVar
 
+from airflow_fernet_secrets import exceptions as fe
+
 if TYPE_CHECKING:
     from sqlalchemy.engine.interfaces import Dialect, _DBAPIConnection
 
@@ -63,14 +65,16 @@ def ensure_sqlite_url(url: str | URL, *, is_async: bool = False) -> URL:
     url = make_url(url)
     dialect = url.get_dialect()
     if dialect.name != sqlite_dialect.name:
-        raise NotImplementedError
+        error_msg = f"not sqlite dialect: {dialect.name}"
+        raise fe.FernetSecretsTypeError(error_msg)
 
     if _is_async_dialect(dialect) is not is_async:
         driver = url.get_driver_name()
         if not driver and is_async:
             url = url.set(drivername=f"{dialect.name}+aiosqlite")
         else:
-            raise NotImplementedError
+            error_msg = f"not async dialect: {driver}"
+            raise fe.FernetSecretsTypeError(error_msg)
 
     return url
 
@@ -142,7 +146,9 @@ def ensure_sqlite_engine(
     if isinstance(connectable_or_url, SessionMaker):
         connectable_or_url = connectable_or_url()
         return ensure_sqlite_engine(connectable_or_url)
-    raise NotImplementedError
+
+    error_msg = f"invalid connectable type: {type(connectable_or_url).__name__}"
+    raise fe.FernetSecretsTypeError(error_msg)
 
 
 def ensure_sqlite_sync_engine(
@@ -165,7 +171,9 @@ def ensure_sqlite_sync_engine(
     if isinstance(connectable_or_url, Session):
         bind = connectable_or_url.get_bind()
         return ensure_sqlite_sync_engine(bind)
-    raise NotImplementedError
+
+    error_msg = f"invalid sync connectable type: {type(connectable_or_url).__name__}"
+    raise fe.FernetSecretsTypeError(error_msg)
 
 
 def ensure_sqlite_async_engine(
@@ -188,7 +196,9 @@ def ensure_sqlite_async_engine(
     if isinstance(connectable_or_url, AsyncSession):
         bind = connectable_or_url.get_bind()
         return ensure_sqlite_async_engine(bind)
-    raise NotImplementedError
+
+    error_msg = f"invalid async connectable type: {type(connectable_or_url).__name__}"
+    raise fe.FernetSecretsTypeError(error_msg)
 
 
 @contextmanager
@@ -202,7 +212,8 @@ def enter_sync_database(
     elif isinstance(connectable, SessionMaker):
         session = connectable()
     else:
-        raise NotImplementedError
+        error_msg = f"invalid sync connectable type: {type(connectable).__name__}"
+        raise fe.FernetSecretsTypeError(error_msg)
 
     try:
         yield session
@@ -227,7 +238,8 @@ async def enter_async_database(
     elif isinstance(connectable, SessionMaker):
         session = connectable()
     else:
-        raise NotImplementedError
+        error_msg = f"invalid async connectable type: {type(connectable).__name__}"
+        raise fe.FernetSecretsTypeError(error_msg)
 
     try:
         yield session

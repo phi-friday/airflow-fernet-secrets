@@ -16,6 +16,7 @@ from pendulum.datetime import DateTime
 from sqlalchemy.engine import Engine, create_engine
 from sqlalchemy.engine.url import URL, make_url
 
+from airflow_fernet_secrets import exceptions as fe
 from airflow_fernet_secrets.connection.server import convert_connection_to_dict
 from airflow_fernet_secrets.utils.re import camel_to_snake
 
@@ -78,14 +79,16 @@ class BaseTestClientAndServer:
         if side == "server":
             return side
         if side != "client":
-            raise NotImplementedError
+            error_msg = f"invalid backend side: {side}"
+            raise fe.FernetSecretsTypeError(error_msg)
 
         name = camel_to_snake(backend_class.__qualname__)
         prefix = name.split("_", 1)[0]
         if prefix == "client" or prefix == "direct":  # noqa: PLR1714
             return prefix
 
-        raise NotImplementedError
+        error_msg = f"invalid backend side: {side}"
+        raise fe.FernetSecretsTypeError(error_msg)
 
     def assert_connection_type(self, connection: Any) -> None:
         if self.side == "client":
@@ -106,7 +109,8 @@ class BaseTestClientAndServer:
         elif self.side == "direct":
             assert isinstance(connection, dict)
         else:
-            raise NotImplementedError
+            error_msg = f"invalid backend side: {self.side}"
+            raise fe.FernetSecretsTypeError(error_msg)
 
     def create_connection(
         self,
@@ -140,7 +144,8 @@ class BaseTestClientAndServer:
                 **kwargs,
             )
             return convert_connection_to_dict(connection)
-        raise NotImplementedError
+        error_msg = f"invalid backend side: {self.side}"
+        raise fe.FernetSecretsTypeError(error_msg)
 
     def dump_connection(self, connection: Any) -> str:
         if self.side == "client":
@@ -154,7 +159,8 @@ class BaseTestClientAndServer:
         if self.side == "direct":
             assert isinstance(connection, dict)
             return json.dumps(connection)
-        raise NotImplementedError
+        error_msg = f"invalid backend side: {self.side}"
+        raise fe.FernetSecretsTypeError(error_msg)
 
     def create_engine(self, connection: Any) -> Engine:
         if self.side == "client":
@@ -170,7 +176,8 @@ class BaseTestClientAndServer:
             engine = hook.get_sqlalchemy_engine()
             assert isinstance(engine, Engine)
             return engine
-        raise NotImplementedError
+        error_msg = f"invalid backend side: {self.side}"
+        raise fe.FernetSecretsTypeError(error_msg)
 
     @staticmethod
     def create_dagrun(

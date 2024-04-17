@@ -5,7 +5,7 @@ import json
 from airflow_fernet_secrets.dynamic import HAS_AIRFLOW, IS_SERVER_FLAG
 
 if not HAS_AIRFLOW or not IS_SERVER_FLAG:
-    raise NotImplementedError
+    raise ImportError("not has airflow or not in server")
 
 from functools import cached_property
 from itertools import chain
@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Any, Mapping, Sequence
 from airflow.models import BaseOperator
 from typing_extensions import TypedDict
 
+from airflow_fernet_secrets import exceptions as fe
 from airflow_fernet_secrets.config.common import ensure_fernet
 from airflow_fernet_secrets.config.server import load_secret_key
 from airflow_fernet_secrets.secrets.server import ServerFernetLocalSecretsBackend
@@ -124,7 +125,8 @@ class HasIds(HasSecrets):
         if isinstance(value, Mapping):
             return {str(key): str(value) for key, value in value.items()}
 
-        raise NotImplementedError
+        error_msg = f"invalid rename mapping type: {type(value).__name__}"
+        raise fe.FernetSecretsTypeError(error_msg)
 
     @cached_property
     def _separated_conn_ids(self) -> tuple[str, ...]:

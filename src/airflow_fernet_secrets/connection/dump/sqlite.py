@@ -7,6 +7,7 @@ from urllib.parse import unquote
 from airflow.models.connection import Connection
 from sqlalchemy.engine.url import make_url
 
+from airflow_fernet_secrets import exceptions as fe
 from airflow_fernet_secrets.const import SQLITE_CONN_TYPES as _SQLITE_CONN_TYPES
 
 if TYPE_CHECKING:
@@ -21,10 +22,10 @@ def connection_to_args(connection: Connection) -> ConnectionArgs:
         error_msg = (
             f"invalid conn_type attribute type: {type(connection.conn_type).__name__}"
         )
-        raise TypeError(error_msg)
+        raise fe.FernetSecretsTypeError(error_msg)
     if connection.conn_type.lower() not in _SQLITE_CONN_TYPES:
         error_msg = f"invalid conn_type attribute: {connection.conn_type}"
-        raise TypeError(error_msg)
+        raise fe.FernetSecretsTypeError(error_msg)
 
     uri = _sqlite_uri(connection)
     url = make_url(uri)

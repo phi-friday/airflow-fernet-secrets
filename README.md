@@ -32,7 +32,7 @@ AIRFLOW__PROVIDERS_FERNET_SECRETS__BACKEND_FILE=# some sqlite file path
 ```
 
 ## TODO
-- [ ] exceptions
+- [x] exceptions
 - [ ] mysql
 - [ ] mssql(`pymssql`)
 - [ ] more tests

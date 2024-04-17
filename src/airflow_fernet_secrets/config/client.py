@@ -4,6 +4,7 @@ from os import getenv
 from typing import TYPE_CHECKING
 
 from airflow_fernet_secrets import const
+from airflow_fernet_secrets import exceptions as fe
 from airflow_fernet_secrets.config.common import (
     create_backend_file,
     ensure_fernet_return,
@@ -35,8 +36,7 @@ def load_secret_key(logger: Logger) -> str:
     if value:
         return value
 
-    logger.error("need secret_key")
-    raise NotImplementedError
+    raise fe.FernetSecretsKeyError("need secret_key")
 
 
 def load_backend_file(logger: Logger) -> str:
