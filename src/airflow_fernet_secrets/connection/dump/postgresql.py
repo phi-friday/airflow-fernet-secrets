@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING, Any
+from copy import deepcopy
+from typing import TYPE_CHECKING, Any, Literal
 
 from airflow.models.connection import Connection
 from sqlalchemy.engine.url import make_url
@@ -9,9 +10,19 @@ from sqlalchemy.engine.url import make_url
 from airflow_fernet_secrets.const import POSTGRESQL_CONN_TYPES as _POSTGRESQL_CONN_TYPES
 
 if TYPE_CHECKING:
+    from psycopg2._psycopg import cursor
+
     from airflow_fernet_secrets.connection import ConnectionArgs
 
 __all__ = ["connection_to_args"]
+
+_POSTGRESQL_EXTRA_EXCLUDE = frozenset({
+    "iam",
+    "redshift",
+    "cursor",
+    "cluster-identifier",
+    "aws_conn_id",
+})
 
 
 def connection_to_args(connection: Connection) -> ConnectionArgs:
@@ -55,6 +66,8 @@ def connection_to_args(connection: Connection) -> ConnectionArgs:
     if isinstance(connect_args, str):
         connect_args = json.loads(connect_args)
     connect_args = dict(connect_args)
+    _connect_args = _postgresql_connect_args(connection, extras)
+    connect_args.update(_connect_args)
 
     if url.database:
         for key in ("dbname", "database"):
@@ -66,3 +79,54 @@ def connection_to_args(connection: Connection) -> ConnectionArgs:
 def _postgresql_uri(connection: Connection) -> str:
     """obtained from airflow postgresql provider hook"""
     return connection.get_uri().replace("postgres://", "postgresql://")
+
+
+def _postgresql_connect_args(
+    connection: Connection, extras: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    """obtained from airflow postgresql provider hook"""
+    connection = deepcopy(connection)
+    if extras is None:
+        extras = connection.extra_dejson
+
+    """ needs hook & aws
+    if extras.get("iam", False):
+        connection.login, connection.password, connection.port = hook.get_iam_token(
+            connection
+        )
+    """
+
+    connect_args: dict[str, Any] = {
+        "host": connection.host,
+        "user": connection.login,
+        "password": connection.password,
+        "dbname": connection.schema,
+        "port": connection.port,
+    }
+
+    raw_cursor = extras.get("cursor", "")
+    if raw_cursor:
+        connect_args["cursor_factory"] = _postgresql_cursor(raw_cursor)
+
+    for arg_name, arg_val in extras.items():
+        if arg_name in _POSTGRESQL_EXTRA_EXCLUDE:
+            continue
+        connect_args[arg_name] = arg_val
+
+    return connect_args
+
+
+def _postgresql_cursor(
+    cursor_type: Literal["dictcursor", "realdictcursor", "namedtuplecursor"],
+) -> type[cursor]:
+    """obtained from airflow postgresql provider hook"""
+    if cursor_type == "dictcursor":
+        from psycopg2.extras import DictCursor as Cursor
+    elif cursor_type == "realdictcursor":
+        from psycopg2.extras import RealDictCursor as Cursor
+    elif cursor_type == "namedtuplecursor":
+        from psycopg2.extras import NamedTupleCursor as Cursor
+    else:
+        raise NotImplementedError
+
+    return Cursor
