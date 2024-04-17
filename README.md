@@ -9,7 +9,7 @@ pip install airflow-fernet-secrets
 
 ## how to use
 ```toml
-AIRFLOW__SECRETS__BACKEND=airflow.providers.fernet_secrets.secrets.FernetLocalSecretsBackend
+AIRFLOW__SECRETS__BACKEND=airflow.providers.fernet_secrets.secrets.secret_manager.FernetLocalSecretsBackend
 # or
 # AIRFLOW__SECRETS__BACKEND=airflow_fernet_secrets.secrets.server.ServerFernetLocalSecretsBackend
 #
