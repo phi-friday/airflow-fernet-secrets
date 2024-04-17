@@ -120,6 +120,10 @@ class DirectFernetLocalSecretsBackend(
     def _deserialize_connection(
         self, conn_id: str, connection: ConnectionDict
     ) -> ConnectionDict:
+        connection_args = connection["args"]
+        if connection_args:
+            connection = connection.copy()
+            connection["args"] = convert_args_from_jsonable(connection_args)
         return connection
 
     @override
