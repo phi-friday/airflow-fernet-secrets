@@ -32,8 +32,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          rye remove apache-airflow --no-sync
-          rye add "apache-airflow==${{ matrix.airflow-version }}" --no-sync
+          rye remove apache-airflow --dev --no-sync
+          rye add "apache-airflow==${{ matrix.airflow-version }}" --dev --no-sync
           rye sync --features asyncio
 
       - name: Code checks
