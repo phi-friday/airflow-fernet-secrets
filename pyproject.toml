@@ -30,6 +30,8 @@ asyncio = [
     "aiosqlite",
 ]
 
+[project.urls]
+Repository = "https://github.com/phi-friday/airflow-fernet-secrets"
 
 [tool.rye]
 managed = true
@@ -46,17 +48,14 @@ dev-dependencies = [
     "pyodbc>=5.1.0",
 ]
 
-[project.scripts]
-copy_info_schema = "airflow_fernet_secrets.info:copy_provider_info_schema"
-
 [project.entry-points."apache_airflow_provider"]
 provider_info = "airflow_fernet_secrets.info:get_provider_info"
 
 [tool.hatch.build.targets.sdist]
-exclude = ["src/airflow_fernet_secrets/info.schema.json", "src/**/.gitignore"]
+exclude = ["src/**/.gitignore"]
 [tool.hatch.build.targets.wheel]
 packages = ["src/airflow_fernet_secrets", "src/airflow"]
-artifacts = ["src/airflow_fernet_secrets/info.schema.json", "src/**/.gitignore"]
+artifacts = ["src/**/.gitignore"]
 
 [build-system]
 requires = ["hatchling"]
