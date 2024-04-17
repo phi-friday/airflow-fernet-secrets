@@ -24,6 +24,12 @@ config:
         example: cat /dev/run/backend
         type: string
         version_added: 0.0.1
+      backend_file_secret:
+        default: null
+        description: file what has backend file path
+        example: /dev/run/backend
+        type: string
+        version_added: 0.0.1
       secret_key:
         default: null
         description: fernet secret key
@@ -34,5 +40,11 @@ config:
         default: null
         description: fernet secret key command
         example: cat /dev/run/fernet_key
+        type: string
+        version_added: 0.0.1
+      secret_key_secret:
+        default: null
+        description: file what has fernet secret key
+        example: /dev/run/fernet_key
         type: string
         version_added: 0.0.1
