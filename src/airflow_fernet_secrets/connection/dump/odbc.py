@@ -74,9 +74,9 @@ def _odbc_uri(connection: Connection, lower_extra: dict[str, Any]) -> str:
     dsn = _odbc_dsn(lower_extra)
     host = str(connection.host) if connection.host else ""
     database = str(connection.schema) if connection.schema else ""
-    login = str(connection.schema) if connection.login else ""
-    password = str(connection.schema) if connection.password else ""
-    port = str(connection.schema) if connection.port else ""
+    login = str(connection.login) if connection.login else ""
+    password = str(connection.password) if connection.password else ""
+    port = str(connection.port) if connection.port else ""
 
     conn_str = ""
     if driver:
