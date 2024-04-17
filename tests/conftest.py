@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import warnings
 from os import environ
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -8,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 import pytest
+from airflow.utils.db import initdb
 from cryptography.fernet import Fernet
 
 if TYPE_CHECKING:
@@ -42,6 +44,13 @@ def _init_envs() -> None:
     environ["AIRFLOW__SECRETS__BACKEND"] = (
         "airflow.providers.fernet_secrets.secrets.secret_manager.FernetLocalSecretsBackend"
     )
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _init_database() -> None:
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        initdb()
 
 
 @pytest.fixture(scope="session")

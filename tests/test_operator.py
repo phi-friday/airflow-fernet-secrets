@@ -12,9 +12,8 @@ from airflow.models.connection import Connection
 from airflow.models.dagrun import DagRun
 from airflow.models.variable import Variable
 from airflow.models.xcom import BaseXCom
-from airflow.utils.db import initdb
 
-from tests.base import BaseTestClientAndServer, ignore_warnings
+from tests.base import BaseTestClientAndServer
 
 from airflow_fernet_secrets.operators.dump import DumpSecretsOperator
 from airflow_fernet_secrets.operators.load import LoadSecretsOperator
@@ -22,11 +21,6 @@ from airflow_fernet_secrets.operators.load import LoadSecretsOperator
 
 @pytest.mark.parametrize("backend_class", ["server"], indirect=True)
 class TestOeprator(BaseTestClientAndServer):
-    @pytest.fixture(scope="class", autouse=True)
-    def _init_database(self) -> None:
-        with ignore_warnings():
-            initdb()
-
     def test_dump_connection(self, secret_key, backend_path, temp_file):
         conn_id = temp_file.stem
         assert not self.backend.has_connection(conn_id)
