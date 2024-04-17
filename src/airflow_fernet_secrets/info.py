@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from functools import lru_cache
 from importlib.metadata import distribution
 from importlib.util import find_spec
 from pathlib import Path
@@ -14,6 +15,7 @@ __all__ = ["get_provider_info"]
 _RE_VARIABLE = re.compile(r"{{ ([a-zA-Z0-9_-]+) }}")
 
 
+@lru_cache
 def get_provider_info() -> dict[str, Any]:
     """airflow-fernet-secrets provider info"""
     root = Path(__file__).parent
