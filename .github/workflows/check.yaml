@@ -1,0 +1,45 @@
+name: lint & test
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - "**.py"
+      - ".github/workflows/check.yaml"
+  pull_request:
+    branches: [dev, main]
+    paths:
+      - "**.py"
+      - ".github/workflows/check.yaml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        airflow-version: ["2.8", "2.9"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install rye
+        uses: phi-friday/install-rye@v1.4
+        id: install-rye
+        with:
+          python_version: ${{ matrix.python-version }}
+          use_uv: true
+
+      - name: Install dependencies
+        run: |
+          rye remove apache-airflow --no-sync
+          rye add "apache-airflow==${{ matrix.airflow-version }}" --no-sync
+          rye sync --features asyncio
+
+      - name: Code checks
+        run: |
+          rye run pre-commit run --all-files --show-diff-on-failure
+
+      - name: Test with pytest
+        run: |
+          rye run pytest
