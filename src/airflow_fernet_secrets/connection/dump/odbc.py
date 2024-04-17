@@ -80,7 +80,7 @@ def _odbc_uri(connection: Connection, lower_extra: dict[str, Any]) -> str:
 
     conn_str = ""
     if driver:
-        conn_str += f"DRIVER={{{driver}}}"
+        conn_str += f"DRIVER={{{driver}}};"
     if dsn:
         conn_str += f"DSN={dsn};"
     if host:
