@@ -21,7 +21,7 @@ def convert_connection_to_dict(connection: Connection) -> ConnectionDict:
     """airflow connection to connection dict"""
     from airflow_fernet_secrets.connection.dump import connection_to_args
 
-    as_dict = connection.to_dict()
+    as_dict = _connection_to_dict(connection)
 
     conn_type = _get_conn_type(connection)
     args = connection_to_args(connection) if is_sql_connection(connection) else None
@@ -76,3 +76,24 @@ def is_sql_connection(connection: Connection) -> bool:
 
 def _get_conn_type(connection: Connection) -> str:
     return cast(str, connection.conn_type)
+
+
+def _connection_to_dict(connection: Connection) -> dict[str, Any]:
+    """obtained from airflow.models.Connection.to_dict"""
+    if callable(getattr(connection, "to_dict", None)):
+        return connection.to_dict()
+
+    as_dict = {
+        "conn_id": connection.conn_id,
+        "conn_type": connection.conn_type,
+        "description": connection.description,
+        "host": connection.host,
+        "login": connection.login,
+        "password": connection.password,
+        "schema": connection.schema,
+        "port": connection.port,
+    }
+    as_dict = {key: value for key, value in as_dict.items() if value is not None}
+    as_dict["extra"] = connection.extra_dejson
+    json.dumps(as_dict)
+    return as_dict
