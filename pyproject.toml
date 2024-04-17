@@ -26,8 +26,8 @@ dependencies = [
 
 [project.optional-dependencies]
 asyncio = [
-    "aiosqlite>=0.20.0",
     "sqlalchemy[asyncio]>=1.4",
+    "aiosqlite",
 ]
 
 
