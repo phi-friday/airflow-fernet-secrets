@@ -40,7 +40,8 @@ dev-dependencies = [
     "pytest>=8.1.1",
     "sqlalchemy2-stubs>=0.0.2a38",
     "anyio",
-    "uvloop; platform_system != 'Windows'"
+    "uvloop; platform_system != 'Windows'",
+    "pre-commit>=3.5.0",
 ]
 
 [project.scripts]
