@@ -12,6 +12,7 @@ from airflow_fernet_secrets.config.client import load_secret_key as _load_secret
 from airflow_fernet_secrets.connection import (
     ConnectionArgs,
     ConnectionDict,
+    convert_args_from_jsonable,
     convert_args_to_jsonable,
 )
 from airflow_fernet_secrets.connection.client import (
@@ -51,11 +52,13 @@ class ClientFernetLocalSecretsBackend(
         connect_args = args.get("connect_args") or {}
         engine_kwargs = args.get("engine_kwargs") or {}
 
-        return {
+        connection_args: ConnectionArgs = {
             "url": url,
             "connect_args": connect_args,
             "engine_kwargs": engine_kwargs,
         }
+
+        return convert_args_from_jsonable(connection_args)
 
     @override
     def _serialize_connection(

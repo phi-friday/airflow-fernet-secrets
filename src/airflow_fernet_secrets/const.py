@@ -15,6 +15,8 @@ LOGGER_NAME = "airflow.fernet_secrets"
 SQL_CONN_TYPE = "sql"
 SA_DATACLASS_METADATA_KEY = "sa"
 
+JSONABLE_CLASS_TYPE_FLAG = "_jsonable_class_type_flag_"
+
 # connection type
 SQLITE_CONN_TYPE = "sqlite"
 SQLITE_CONN_TYPES = frozenset({SQLITE_CONN_TYPE, "sqlite"})
