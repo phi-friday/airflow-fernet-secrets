@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import re
-import shutil
 from importlib.metadata import distribution
 from importlib.util import find_spec
 from pathlib import Path
@@ -46,31 +45,10 @@ def validate_provider_info(info: dict[str, Any]) -> None:
     if schema is None:
         return
 
-    schema = copy_provider_info_schema(schema)
-    if schema is None:
-        return
-
     with schema.open("r") as file:
         json_data: dict[str, Any] = json.load(file)
 
     jsonschema.validate(info, json_data)
-
-
-def copy_provider_info_schema(file: Path | None = None) -> Path | None:
-    local_schema = Path(__file__).with_name("info.schema.json")
-    if local_schema.exists() and not local_schema.is_file():
-        raise FileExistsError(local_schema)
-
-    if file is None:
-        schema = _get_provider_schema_path()
-        if schema is None:
-            return None
-    else:
-        schema = file
-
-    shutil.copyfile(schema, local_schema)
-
-    return local_schema
 
 
 def _get_provider_schema_path() -> Path | None:
