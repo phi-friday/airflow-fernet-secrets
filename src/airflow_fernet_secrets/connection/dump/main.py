@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any
 from typing_extensions import TypedDict
 
 from airflow_fernet_secrets import exceptions as fe
+from airflow_fernet_secrets.const import MSSQL_CONN_TYPES as _MSSQL_CONN_TYPES
 from airflow_fernet_secrets.const import ODBC_CONN_TYPES as _ODBC_CONN_TYPES
 from airflow_fernet_secrets.const import POSTGRESQL_CONN_TYPES as _POSTGRESQL_CONN_TYPES
 from airflow_fernet_secrets.const import SQLITE_CONN_TYPES as _SQLITE_CONN_TYPES
@@ -51,6 +52,13 @@ def connection_to_args(connection: Connection) -> ConnectionArgs:
         return _connection_to_args(connection)
     if conn_type in _ODBC_CONN_TYPES:
         from airflow_fernet_secrets.connection.dump.odbc import (
+            connection_to_args as _connection_to_args,
+        )
+
+        return _connection_to_args(connection)
+
+    if conn_type in _MSSQL_CONN_TYPES:
+        from airflow_fernet_secrets.connection.dump.mssql import (
             connection_to_args as _connection_to_args,
         )
 
