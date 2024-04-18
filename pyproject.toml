@@ -46,6 +46,7 @@ dev-dependencies = [
     "pre-commit>=3.5.0",
     "psycopg2>=2.9.9",
     "pyodbc>=5.1.0",
+    "pymssql>=2.3.0",
 ]
 
 [project.entry-points."apache_airflow_provider"]
