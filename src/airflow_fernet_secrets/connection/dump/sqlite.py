@@ -53,7 +53,10 @@ def connection_to_args(connection: Connection) -> ConnectionArgs:
 
 
 def _sqlite_uri(connection: Connection) -> str:
-    """obtained from airflow sqlite provider hook"""
+    """obtained from airflow sqlite provider hook.
+
+    see more: `airflow.providers.sqlite.hooks.sqlite.SqliteHook.get_uri()`
+    """
     return (
         unquote(connection.get_uri())
         .replace("/?", "?")
