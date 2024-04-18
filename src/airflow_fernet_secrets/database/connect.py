@@ -45,6 +45,9 @@ __all__ = [
 
 SessionT = TypeVar("SessionT", bound="Session | AsyncSession")
 
+_TIMEOUT = 10
+_TIMEOUT_MS = _TIMEOUT * 1000
+
 
 @runtime_checkable
 class SessionMaker(Protocol[SessionT]):
@@ -165,14 +168,22 @@ def ensure_sqlite_sync_engine(
 ) -> Engine:
     """ensure sqlalchemy sqlite sync engine"""
     if isinstance(connectable_or_url, (Engine, Connection)):
-        ensure_sqlite_url(connectable_or_url.engine.url)
-        return _set_listeners(connectable_or_url.engine)
+        return ensure_sqlite_sync_engine(connectable_or_url.engine.url)
+
     if isinstance(connectable_or_url, (str, URL)):
         connectable_or_url = ensure_sqlite_url(connectable_or_url, is_async=False)
+
     if isinstance(connectable_or_url, URL):
-        return _set_listeners(create_engine(connectable_or_url))
+        return _set_listeners(
+            create_engine(
+                connectable_or_url,
+                connect_args={"timeout": _TIMEOUT, "isolation_level": None},
+            )
+        )
+
     if isinstance(connectable_or_url, SessionMaker):
         connectable_or_url = connectable_or_url()
+
     if isinstance(connectable_or_url, Session):
         bind = connectable_or_url.get_bind()
         return ensure_sqlite_sync_engine(bind)
@@ -191,14 +202,22 @@ def ensure_sqlite_async_engine(
 ) -> AsyncEngine:
     """ensure sqlalchemy sqlite async engine"""
     if isinstance(connectable_or_url, (AsyncEngine, AsyncConnection)):
-        ensure_sqlite_url(connectable_or_url.engine.url)
-        return _set_listeners(connectable_or_url.engine)
+        return ensure_sqlite_async_engine(connectable_or_url.engine.url)
+
     if isinstance(connectable_or_url, (str, URL)):
         connectable_or_url = ensure_sqlite_url(connectable_or_url, is_async=True)
+
     if isinstance(connectable_or_url, URL):
-        return _set_listeners(create_async_engine(connectable_or_url))
+        return _set_listeners(
+            create_async_engine(
+                connectable_or_url,
+                connect_args={"timeout": _TIMEOUT, "isolation_level": None},
+            )
+        )
+
     if isinstance(connectable_or_url, SessionMaker):
         connectable_or_url = connectable_or_url()
+
     if isinstance(connectable_or_url, AsyncSession):
         bind = connectable_or_url.get_bind()
         return ensure_sqlite_async_engine(bind)
@@ -267,7 +286,7 @@ def _sqlite_busy_timeout(
     connection_record: Any,  # noqa: ARG001
 ) -> None:
     cursor = dbapi_connection.cursor()
-    cursor.execute("PRAGMA busy_timeout = 10000;", ())
+    cursor.execute(f"PRAGMA busy_timeout = {_TIMEOUT_MS!s};", ())
 
 
 @overload
