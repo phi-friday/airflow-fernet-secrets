@@ -69,7 +69,10 @@ def connection_to_args(connection: Connection) -> ConnectionArgs:
 
 
 def _odbc_uri(connection: Connection, lower_extra: dict[str, Any]) -> str:
-    """obtained from airflow odbc provider hook"""
+    """obtained from airflow odbc provider hook.
+
+    see more: `airflow.providers.odbc.hooks.odbc.OdbcHook.get_uri()`
+    """
 
     driver = _odbc_driver(lower_extra)
     dsn = _odbc_dsn(lower_extra)
@@ -106,7 +109,10 @@ def _odbc_uri(connection: Connection, lower_extra: dict[str, Any]) -> str:
 
 
 def _odbc_driver(lower_extra: dict[str, Any]) -> str:
-    """obtained from airflow odbc provider hook"""
+    """obtained from airflow odbc provider hook.
+
+    see more: `airflow.providers.odbc.hooks.odbc.OdbcHook.driver`
+    """
     driver: str | None = lower_extra.get("driver")
     if driver:
         driver = driver.strip()
@@ -123,7 +129,10 @@ def _odbc_driver(lower_extra: dict[str, Any]) -> str:
 
 
 def _odbc_dsn(lower_extra: dict[str, Any]) -> str:
-    """obtained from airflow odbc provider hook"""
+    """obtained from airflow odbc provider hook.
+
+    see more: `airflow.providers.odbc.hooks.odbc.OdbcHook.dsn`
+    """
     dsn: str | None = lower_extra.get("dsn")
     if dsn:
         return dsn.strip()
@@ -131,7 +140,10 @@ def _odbc_dsn(lower_extra: dict[str, Any]) -> str:
 
 
 def _odbc_connect_args(lower_extra: dict[str, Any]) -> dict[str, Any]:
-    """obtained from airflow odbc provider hook"""
+    """obtained from airflow odbc provider hook.
+
+    see more: `airflow.providers.odbc.hooks.odbc.OdbcHook.connect_kwargs`
+    """
     connect_args: dict[str, Any] = lower_extra.get("connect_kwargs", {})
 
     if "attrs_before" in connect_args:
