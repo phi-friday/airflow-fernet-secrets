@@ -78,14 +78,20 @@ def connection_to_args(connection: Connection) -> ConnectionArgs:
 
 
 def _postgresql_uri(connection: Connection) -> str:
-    """obtained from airflow postgresql provider hook"""
+    """obtained from airflow postgresql provider hook.
+
+    see more: `airflow.providers.postgres.hooks.postgres.PostgresHook.get_uri()`
+    """
     return connection.get_uri().replace("postgres://", "postgresql://")
 
 
 def _postgresql_connect_args(
     connection: Connection, extras: dict[str, Any] | None = None
 ) -> dict[str, Any]:
-    """obtained from airflow postgresql provider hook"""
+    """obtained from airflow postgresql provider hook.
+
+    see more: `airflow.providers.postgres.hooks.postgres.PostgresHook.get_conn()`
+    """
     connection = deepcopy(connection)
     if extras is None:
         extras = connection.extra_dejson
@@ -120,7 +126,10 @@ def _postgresql_connect_args(
 def _postgresql_cursor(
     cursor_type: Literal["dictcursor", "realdictcursor", "namedtuplecursor"],
 ) -> type[cursor]:
-    """obtained from airflow postgresql provider hook"""
+    """obtained from airflow postgresql provider hook.
+
+    see more: `airflow.providers.postgres.hooks.postgres.PostgresHook._get_cursor()`
+    """
     if cursor_type == "dictcursor":
         from psycopg2.extras import DictCursor as Cursor
     elif cursor_type == "realdictcursor":
