@@ -34,7 +34,7 @@ def _rand() -> str:
         }
         # conn_type, host, login, password, schema, param, port, extra
         for conn_type, param in product(
-            ("sqlite", "postgresql", "odbc"),
+            ("sqlite", "postgresql", "odbc", "mssql"),
             product(
                 (True, False),
                 (True, False),
@@ -47,6 +47,9 @@ def _rand() -> str:
     ),
 )
 def test_dumps(data: dict[str, Any]):
+    if data["conn_type"] == "mssql" and not data["host"]:
+        pytest.skip("pymssql needs host")
+
     connection = Connection(**data)
     args = connection_to_args(connection)
 
