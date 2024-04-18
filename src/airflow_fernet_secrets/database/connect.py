@@ -12,7 +12,6 @@ from typing import (
     runtime_checkable,
 )
 
-import sqlalchemy as sa
 from sqlalchemy.dialects.sqlite import dialect as sqlite_dialect
 from sqlalchemy.engine import Connection, Engine, create_engine
 from sqlalchemy.engine.url import URL, make_url
@@ -263,17 +262,12 @@ def _is_async_dialect(dialect: type[Dialect] | Dialect) -> bool:
     return getattr(dialect, "is_async", False) is True
 
 
-def _sqlite_isolation_read(
+def _sqlite_busy_timeout(
     dbapi_connection: _DBAPIConnection,
     connection_record: Any,  # noqa: ARG001
 ) -> None:
     cursor = dbapi_connection.cursor()
-    cursor.execute("PRAGMA read_uncommitted = true;", ())
-
-
-def _sqlite_isolation_non_read(conn: Connection) -> None:
-    stmt = sa.text("PRAGMA read_uncommitted = false;")
-    conn.execute(stmt)
+    cursor.execute("PRAGMA busy_timeout = 10000;", ())
 
 
 @overload
@@ -284,6 +278,5 @@ def _set_listeners(engine: AsyncEngine) -> AsyncEngine: ...
 def _set_listeners(engine: Engine | AsyncEngine) -> Engine | AsyncEngine: ...
 def _set_listeners(engine: Engine | AsyncEngine) -> Engine | AsyncEngine:
     sync_engine = engine.sync_engine if isinstance(engine, AsyncEngine) else engine
-    listen(sync_engine, "connect", _sqlite_isolation_read)
-    listen(sync_engine, "begin", _sqlite_isolation_non_read)
+    listen(sync_engine, "connect", _sqlite_busy_timeout)
     return engine

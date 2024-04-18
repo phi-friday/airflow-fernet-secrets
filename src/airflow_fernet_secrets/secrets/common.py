@@ -2,14 +2,16 @@ from __future__ import annotations
 
 import json
 from abc import ABC, abstractmethod
-from contextlib import asynccontextmanager, contextmanager
+from contextlib import asynccontextmanager, contextmanager, suppress
 from functools import cached_property
 from typing import TYPE_CHECKING, AsyncGenerator, Generator, Generic, Literal, cast
 
 import sqlalchemy as sa
+from sqlalchemy.exc import ResourceClosedError
 from typing_extensions import TypeVar, override
 
 from airflow_fernet_secrets.config.common import ensure_fernet
+from airflow_fernet_secrets.const import CONNECTION_BEGIN_INFO_KEY
 from airflow_fernet_secrets.database.connect import (
     create_sqlite_url,
     ensure_sqlite_async_engine,
@@ -254,10 +256,10 @@ class CommonFernetLocalSecretsBackend(
         """delete connection in backend"""
         secret_key = self._secret()
         with enter_sync_database(self._backend_sync_engine) as session:
-            value = FernetConnection.get(session, conn_id)
-            if value is None:
-                return
             with _sync_transact(session):
+                value = FernetConnection.get(session, conn_id)
+                if value is None:
+                    return
                 value.delete(session, secret_key=secret_key)
                 session.commit()
 
@@ -265,10 +267,10 @@ class CommonFernetLocalSecretsBackend(
         """delete connection in backend"""
         secret_key = self._secret()
         async with enter_async_database(self._backend_async_engine) as session:
-            value = await FernetConnection.aget(session, conn_id)
-            if value is None:
-                return
             async with _async_transact(session):
+                value = await FernetConnection.aget(session, conn_id)
+                if value is None:
+                    return
                 await value.adelete(session, secret_key=secret_key)
                 await session.commit()
 
@@ -298,13 +300,13 @@ class CommonFernetLocalSecretsBackend(
         """set variable to backend"""
         secret_key = self._secret()
         with enter_sync_database(self._backend_sync_engine) as session:
-            as_bytes = FernetVariable.encrypt(value, secret_key)
-            variable = FernetVariable.get(session, key)
-            if variable is None:
-                variable = FernetVariable(encrypted=as_bytes, key=key)
-            else:
-                variable.encrypted = as_bytes
             with _sync_transact(session):
+                as_bytes = FernetVariable.encrypt(value, secret_key)
+                variable = FernetVariable.get(session, key)
+                if variable is None:
+                    variable = FernetVariable(encrypted=as_bytes, key=key)
+                else:
+                    variable.encrypted = as_bytes
                 variable.upsert(session, secret_key=secret_key)
                 session.commit()
 
@@ -312,13 +314,13 @@ class CommonFernetLocalSecretsBackend(
         """set variable to backend"""
         secret_key = self._secret()
         async with enter_async_database(self._backend_async_engine) as session:
-            as_bytes = FernetVariable.encrypt(value, secret_key)
-            variable = await FernetVariable.aget(session, key)
-            if variable is None:
-                variable = FernetVariable(encrypted=as_bytes, key=key)
-            else:
-                variable.encrypted = as_bytes
             async with _async_transact(session):
+                as_bytes = FernetVariable.encrypt(value, secret_key)
+                variable = await FernetVariable.aget(session, key)
+                if variable is None:
+                    variable = FernetVariable(encrypted=as_bytes, key=key)
+                else:
+                    variable.encrypted = as_bytes
                 await variable.aupsert(session, secret_key=secret_key)
                 await session.commit()
 
@@ -326,10 +328,10 @@ class CommonFernetLocalSecretsBackend(
         """delete variable to backend"""
         secret_key = self._secret()
         with enter_sync_database(self._backend_sync_engine) as session:
-            variable = FernetVariable.get(session, key=key)
-            if variable is None:
-                return
             with _sync_transact(session):
+                variable = FernetVariable.get(session, key=key)
+                if variable is None:
+                    return
                 variable.delete(session, secret_key=secret_key)
                 session.commit()
 
@@ -337,10 +339,10 @@ class CommonFernetLocalSecretsBackend(
         """delete variable to backend"""
         secret_key = self._secret()
         async with enter_async_database(self._backend_async_engine) as session:
-            variable = await FernetVariable.aget(session, key=key)
-            if variable is None:
-                return
             async with _async_transact(session):
+                variable = await FernetVariable.aget(session, key=key)
+                if variable is None:
+                    return
                 await variable.adelete(session, secret_key=secret_key)
                 await session.commit()
 
@@ -513,20 +515,28 @@ class CommonFernetLocalSecretsBackend(
 @contextmanager
 def _sync_transact(session: Session) -> Generator[Session, None, None]:
     conn = session.connection()
-    if conn.in_transaction() or conn.in_nested_transaction():
-        func = conn.begin_nested
-    else:
-        func = conn.begin
-    with func():
+    is_begin = conn.info.get(CONNECTION_BEGIN_INFO_KEY, False)
+    if is_begin is False:
+        conn.execute(sa.text("BEGIN IMMEDIATE;"))
+        conn.info[CONNECTION_BEGIN_INFO_KEY] = True
+
+    try:
         yield session
+    finally:
+        with suppress(ResourceClosedError):
+            conn.info[CONNECTION_BEGIN_INFO_KEY] = False
 
 
 @asynccontextmanager
 async def _async_transact(session: AsyncSession) -> AsyncGenerator[AsyncSession, None]:
     conn = await session.connection()
-    if conn.in_transaction() or conn.in_nested_transaction():
-        func = conn.begin_nested
-    else:
-        func = conn.begin
-    async with func():
+    is_begin = conn.info.get(CONNECTION_BEGIN_INFO_KEY, False)
+    if is_begin is False:
+        await conn.execute(sa.text("BEGIN IMMEDIATE;"))
+        conn.info[CONNECTION_BEGIN_INFO_KEY] = True
+
+    try:
         yield session
+    finally:
+        with suppress(ResourceClosedError):
+            conn.info[CONNECTION_BEGIN_INFO_KEY] = False

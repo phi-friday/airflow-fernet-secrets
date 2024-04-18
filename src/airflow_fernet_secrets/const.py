@@ -16,6 +16,7 @@ SQL_CONN_TYPE = "sql"
 SA_DATACLASS_METADATA_KEY = "sa"
 
 JSONABLE_CLASS_TYPE_FLAG = "_jsonable_class_type_flag_"
+CONNECTION_BEGIN_INFO_KEY = "is_begin_immediate"
 
 # connection type
 SQLITE_CONN_TYPE = "sqlite"
