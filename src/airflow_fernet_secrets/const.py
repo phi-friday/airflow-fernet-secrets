@@ -25,3 +25,5 @@ POSTGRESQL_CONN_TYPE = "postgresql"
 POSTGRESQL_CONN_TYPES = frozenset({POSTGRESQL_CONN_TYPE, "postgres", "postgresql"})
 ODBC_CONN_TYPE = "odbc"
 ODBC_CONN_TYPES = frozenset({ODBC_CONN_TYPE, "odbc"})
+MSSQL_CONN_TYPE = "mssql"
+MSSQL_CONN_TYPES = frozenset({MSSQL_CONN_TYPE, "odbc"})
