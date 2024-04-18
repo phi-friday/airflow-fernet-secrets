@@ -1,5 +1,10 @@
 # airflow-fernet-secrets
 
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-yellow.svg)](https://opensource.org/licenses/Apache-2.0)
+[![github action](https://github.com/phi-friday/airflow-fernet-secrets/actions/workflows/check.yaml/badge.svg?event=push)](#)
+[![PyPI version](https://badge.fury.io/py/airflow-fernet-secrets.svg)](https://badge.fury.io/py/airflow-fernet-secrets)
+[![python version](https://img.shields.io/pypi/pyversions/airflow-fernet-secrets.svg)](#)
+
 ## how to install
 ```sh
 pip install airflow-fernet-secrets
