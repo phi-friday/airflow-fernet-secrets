@@ -56,9 +56,12 @@ def connection_to_args(connection: Connection) -> ConnectionArgs:
         url = url.set(drivername="postgresql+psycopg2")
 
     url = url.difference_update_query([Connection.EXTRA_KEY])
-    extras = dict(connection.extra_dejson)
 
-    engine_kwargs: dict[str, Any] = extras.pop("engine_kwargs", {})
+    lower_extra = {
+        str(key).lower(): value for key, value in connection.extra_dejson.items()
+    }
+
+    engine_kwargs: dict[str, Any] = lower_extra.pop("engine_kwargs", {})
     if isinstance(engine_kwargs, str):
         engine_kwargs = json.loads(engine_kwargs)
     engine_kwargs = dict(engine_kwargs)
@@ -67,7 +70,7 @@ def connection_to_args(connection: Connection) -> ConnectionArgs:
     if isinstance(connect_args, str):
         connect_args = json.loads(connect_args)
     connect_args = dict(connect_args)
-    _connect_args = _postgresql_connect_args(connection, extras)
+    _connect_args = _postgresql_connect_args(connection, lower_extra)
     connect_args.update(_connect_args)
 
     if url.database:
