@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import json
-
 from airflow_fernet_secrets.dynamic import HAS_AIRFLOW, IS_SERVER_FLAG
 
 if not HAS_AIRFLOW or not IS_SERVER_FLAG:
     raise ImportError("not has airflow or not in server")
 
+import json
 from functools import cached_property
 from itertools import chain
 from typing import TYPE_CHECKING, Any, Mapping, Sequence
