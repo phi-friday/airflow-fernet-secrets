@@ -7,12 +7,12 @@ from uuid import uuid4
 
 import pytest
 import sqlalchemy as sa
+
 from airflow.models.baseoperator import BaseOperator
 from airflow.models.connection import Connection
 from airflow.models.dagrun import DagRun
 from airflow.models.variable import Variable
 from airflow.models.xcom import BaseXCom
-
 from tests.base import BaseTestClientAndServer
 
 from airflow_fernet_secrets.operators.dump import DumpSecretsOperator
@@ -162,14 +162,15 @@ class TestOeprator(BaseTestClientAndServer):
         )
         self.add_in_airflow(conn)
 
-        conf = {}
-        for flag, key, value in zip(
-            (conf_conn_id, conf_secret_key, conf_backend_path),
-            ("conf_conn_id", "conf_secret_key", "conf_backend_path"),
-            (conn_id, secret_key.decode("utf-8"), str(backend_path)),
-        ):
-            if flag:
-                conf[key] = value
+        conf = {
+            key: value
+            for flag, key, value in zip(
+                (conf_conn_id, conf_secret_key, conf_backend_path),
+                ("conf_conn_id", "conf_secret_key", "conf_backend_path"),
+                (conn_id, secret_key.decode("utf-8"), str(backend_path)),
+            )
+            if flag
+        }
 
         dag = self.dag(dag_id="test_dump", schedule=None)
         dag_run, now = self.create_dagrun(dag, conf=conf)
@@ -221,14 +222,15 @@ class TestOeprator(BaseTestClientAndServer):
         variable = Variable(variable_key, variable_value)
         self.add_in_airflow(variable)
 
-        conf = {}
-        for flag, conf_key, value in zip(
-            (conf_variable_key, conf_secret_key, conf_backend_path),
-            ("conf_variable_key", "conf_secret_key", "conf_backend_path"),
-            (variable_key, secret_key.decode("utf-8"), str(backend_path)),
-        ):
-            if flag:
-                conf[conf_key] = value
+        conf = {
+            key: value
+            for flag, key, value in zip(
+                (conf_variable_key, conf_secret_key, conf_backend_path),
+                ("conf_variable_key", "conf_secret_key", "conf_backend_path"),
+                (variable_key, secret_key.decode("utf-8"), str(backend_path)),
+            )
+            if flag
+        }
 
         dag = self.dag(dag_id="test_dump", schedule=None)
         dag_run, now = self.create_dagrun(dag, conf=conf)
@@ -284,14 +286,15 @@ class TestOeprator(BaseTestClientAndServer):
         check = self.get_connection_in_airflow(conn_id)
         assert check is None
 
-        conf = {}
-        for flag, key, value in zip(
-            (conf_conn_id, conf_secret_key, conf_backend_path),
-            ("conf_conn_id", "conf_secret_key", "conf_backend_path"),
-            (conn_id, secret_key.decode("utf-8"), str(backend_path)),
-        ):
-            if flag:
-                conf[key] = value
+        conf = {
+            key: value
+            for flag, key, value in zip(
+                (conf_conn_id, conf_secret_key, conf_backend_path),
+                ("conf_conn_id", "conf_secret_key", "conf_backend_path"),
+                (conn_id, secret_key.decode("utf-8"), str(backend_path)),
+            )
+            if flag
+        }
 
         dag = self.dag(dag_id="test_load", schedule=None)
         dag_run, now = self.create_dagrun(dag, conf=conf)
@@ -346,14 +349,15 @@ class TestOeprator(BaseTestClientAndServer):
         check = self.get_variable_in_airflow(variable_key)
         assert check is None
 
-        conf = {}
-        for flag, conf_key, value in zip(
-            (conf_variable_key, conf_secret_key, conf_backend_path),
-            ("conf_variable_key", "conf_secret_key", "conf_backend_path"),
-            (variable_key, secret_key.decode("utf-8"), str(backend_path)),
-        ):
-            if flag:
-                conf[conf_key] = value
+        conf = {
+            key: value
+            for flag, key, value in zip(
+                (conf_variable_key, conf_secret_key, conf_backend_path),
+                ("conf_variable_key", "conf_secret_key", "conf_backend_path"),
+                (variable_key, secret_key.decode("utf-8"), str(backend_path)),
+            )
+            if flag
+        }
 
         dag = self.dag(dag_id="test_load", schedule=None)
         dag_run, now = self.create_dagrun(dag, conf=conf)

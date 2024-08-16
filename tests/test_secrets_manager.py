@@ -6,13 +6,13 @@ from uuid import uuid4
 
 import pytest
 import sqlalchemy as sa
-from airflow.hooks.filesystem import FSHook
-from airflow.models.connection import Connection
-from airflow.providers.common.sql.hooks.sql import DbApiHook
 from sqlalchemy.engine.url import URL, make_url
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import Session
 
+from airflow.hooks.filesystem import FSHook
+from airflow.models.connection import Connection
+from airflow.providers.common.sql.hooks.sql import DbApiHook
 from tests.base import BaseTestClientAndServer, get_hook, ignore_warnings
 
 if TYPE_CHECKING:
@@ -131,8 +131,8 @@ class TestSyncClientAndServer(BaseTestClientAndServer):
         assert check is True
 
 
+@pytest.mark.anyio
 @pytest.mark.parametrize("backend_class", ["client", "server"], indirect=True)
-@pytest.mark.anyio()
 class TestAsyncClientAndServer(BaseTestClientAndServer):
     async def test_aget_connection(self, default_conn_id):
         conn_value = await self.backend.aget_conn_value(default_conn_id)

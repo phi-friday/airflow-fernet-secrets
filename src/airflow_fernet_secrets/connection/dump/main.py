@@ -11,8 +11,9 @@ from airflow_fernet_secrets.const import POSTGRESQL_CONN_TYPES as _POSTGRESQL_CO
 from airflow_fernet_secrets.const import SQLITE_CONN_TYPES as _SQLITE_CONN_TYPES
 
 if TYPE_CHECKING:
-    from airflow.models.connection import Connection
     from sqlalchemy.engine.url import URL
+
+    from airflow.models.connection import Connection
 
 __all__ = ["ConnectionArgs", "connection_to_args"]
 

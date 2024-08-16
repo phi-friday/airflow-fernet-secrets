@@ -10,8 +10,9 @@ from functools import cached_property
 from itertools import chain
 from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
-from airflow.models import BaseOperator
 from typing_extensions import TypedDict
+
+from airflow.models import BaseOperator
 
 from airflow_fernet_secrets import exceptions as fe
 from airflow_fernet_secrets.config.common import ensure_fernet

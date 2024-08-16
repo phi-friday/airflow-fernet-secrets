@@ -4,8 +4,9 @@ import json
 from copy import deepcopy
 from typing import TYPE_CHECKING, Any, Literal
 
-from airflow.models.connection import Connection
 from sqlalchemy.engine.url import make_url
+
+from airflow.models.connection import Connection
 
 from airflow_fernet_secrets import exceptions as fe
 from airflow_fernet_secrets.const import POSTGRESQL_CONN_TYPES as _POSTGRESQL_CONN_TYPES

@@ -5,9 +5,10 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
-from airflow.models.connection import Connection
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import URL, make_url
+
+from airflow.models.connection import Connection
 
 from airflow_fernet_secrets.connection import (
     connection_to_args,

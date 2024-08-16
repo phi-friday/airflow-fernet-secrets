@@ -4,8 +4,9 @@ import json
 from typing import TYPE_CHECKING, Any
 from urllib import parse
 
-from airflow.models.connection import Connection
 from sqlalchemy.engine.url import make_url
+
+from airflow.models.connection import Connection
 
 from airflow_fernet_secrets import exceptions as fe
 from airflow_fernet_secrets.const import MSSQL_CONN_TYPE as _MSSQL_CONN_TYPE

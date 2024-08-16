@@ -9,8 +9,9 @@ from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 import pytest
-from airflow.utils.db import initdb
 from cryptography.fernet import Fernet
+
+from airflow.utils.db import initdb
 
 if TYPE_CHECKING:
     from airflow_fernet_secrets.connection.dump.main import ConnectionArgs
@@ -146,7 +147,7 @@ def _init_connections(
     backend.set_connection(default_async_conn_id, default_async_conn)
 
 
-@pytest.fixture()
+@pytest.fixture
 def client_backend(secret_key, backend_path) -> ClientFernetLocalSecretsBackend:
     from airflow_fernet_secrets.secrets.client import ClientFernetLocalSecretsBackend
 
@@ -155,7 +156,7 @@ def client_backend(secret_key, backend_path) -> ClientFernetLocalSecretsBackend:
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def server_backend(secret_key, backend_path) -> ServerFernetLocalSecretsBackend:
     from airflow_fernet_secrets.secrets.server import ServerFernetLocalSecretsBackend
 
@@ -164,7 +165,7 @@ def server_backend(secret_key, backend_path) -> ServerFernetLocalSecretsBackend:
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def backend(
     request: pytest.FixtureRequest, client_backend, server_backend
 ) -> CommonFernetLocalSecretsBackend[Any]:
@@ -178,13 +179,13 @@ def backend(
     raise TypeError(error_msg)
 
 
-@pytest.fixture()
+@pytest.fixture
 def temp_dir():
     with TemporaryDirectory() as temp_dir_str:
         yield Path(temp_dir_str)
 
 
-@pytest.fixture()
+@pytest.fixture
 def temp_file(temp_dir: Path):
     return temp_dir / str(uuid4())
 

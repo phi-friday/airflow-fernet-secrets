@@ -6,15 +6,16 @@ from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any, Generator, Literal, cast
 
 import pytest
+from pendulum.datetime import DateTime
+from sqlalchemy.engine import Engine, create_engine
+from sqlalchemy.engine.url import URL, make_url
+
 from airflow import DAG
 from airflow.models.connection import Connection
 from airflow.providers.common.sql.hooks.sql import DbApiHook
 from airflow.utils.session import create_session
 from airflow.utils.state import DagRunState
 from airflow.utils.types import DagRunType
-from pendulum.datetime import DateTime
-from sqlalchemy.engine import Engine, create_engine
-from sqlalchemy.engine.url import URL, make_url
 
 from airflow_fernet_secrets import exceptions as fe
 from airflow_fernet_secrets.connection.server import convert_connection_to_dict
@@ -23,11 +24,12 @@ from airflow_fernet_secrets.utils.re import camel_to_snake
 if TYPE_CHECKING:
     from datetime import datetime
 
+    from sqlalchemy.orm import Session
+    from typing_extensions import TypeAlias
+
     from airflow.hooks.base import BaseHook
     from airflow.models.baseoperator import BaseOperator
     from airflow.models.dagrun import DagRun
-    from sqlalchemy.orm import Session
-    from typing_extensions import TypeAlias
 
     from airflow_fernet_secrets._typeshed import PathType
     from airflow_fernet_secrets.secrets.common import CommonFernetLocalSecretsBackend

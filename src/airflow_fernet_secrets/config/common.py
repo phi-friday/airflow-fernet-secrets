@@ -59,11 +59,8 @@ def load_from_cmd(cmd: str) -> str:
     Returns:
         command outputs
     """
-    process = subprocess.run(
-        shlex.split(cmd),  # noqa: S603
-        text=True,
-        capture_output=True,
-        check=True,
+    process = subprocess.run(  # noqa: S603
+        shlex.split(cmd), text=True, capture_output=True, check=True
     )
     return process.stdout.strip()
 

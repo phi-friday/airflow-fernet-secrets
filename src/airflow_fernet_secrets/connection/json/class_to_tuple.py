@@ -62,13 +62,10 @@ def is_jsonable_class_type(value: Any) -> TypeGuard[JsonableClassType]:
         value["module"],
         value["name"],
     )
-    if (
-        jsonable_class_type_flag is not True
-        or not isinstance(module, str)
-        or not module
-        or not isinstance(name, str)
-        or not name
-    ):
-        return False
-
-    return True
+    return bool(
+        jsonable_class_type_flag is True
+        and isinstance(module, str)
+        and module
+        and isinstance(name, str)
+        and name
+    )

@@ -102,7 +102,7 @@ class TestConcurrency(BaseTestClientAndServer):
                 continue
             raise error
 
-    @pytest.mark.anyio()
+    @pytest.mark.anyio
     async def test_concurrency(self):
         index = list(range(1000))
         shuffle(index)

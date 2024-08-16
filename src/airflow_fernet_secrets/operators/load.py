@@ -3,19 +3,21 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
 import sqlalchemy as sa
+from typing_extensions import override
+
 from airflow.models.connection import Connection
 from airflow.models.variable import Variable
 from airflow.utils.session import create_session
-from typing_extensions import override
 
 from airflow_fernet_secrets import exceptions as fe
 from airflow_fernet_secrets.operators.base import HasIds, OperatorResult
 from airflow_fernet_secrets.utils.cast import ensure_boolean
 
 if TYPE_CHECKING:
-    from airflow.utils.context import Context
     from cryptography.fernet import Fernet, MultiFernet
     from sqlalchemy.orm import Session
+
+    from airflow.utils.context import Context
 
     from airflow_fernet_secrets._typeshed import PathType
     from airflow_fernet_secrets.secrets.server import ServerFernetLocalSecretsBackend
@@ -119,7 +121,7 @@ class LoadSecretsOperator(HasIds):
 
         return {"connection": sorted(conn_result), "variable": sorted(var_result)}
 
-    def _execute_conn_process(  # noqa: PLR0913
+    def _execute_conn_process(
         self,
         *,
         conn_id: str,
@@ -169,7 +171,7 @@ class LoadSecretsOperator(HasIds):
         session.flush()
         return new_conn_id
 
-    def _execute_var_process(  # noqa: PLR0913
+    def _execute_var_process(
         self,
         *,
         key: str,

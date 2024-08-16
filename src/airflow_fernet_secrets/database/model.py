@@ -17,14 +17,15 @@ from airflow_fernet_secrets.config.common import ensure_fernet
 from airflow_fernet_secrets.utils.re import camel_to_snake
 
 if TYPE_CHECKING:
-    from airflow.models.connection import Connection as AirflowConnection
-    from airflow.models.variable import Variable as AirflowVariable
     from cryptography.fernet import Fernet, MultiFernet
     from sqlalchemy.engine import Connection as SqlalchemyConnection
     from sqlalchemy.engine import Engine
     from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
     from sqlalchemy.orm import Session
     from sqlalchemy.sql import Delete, Select, Update
+
+    from airflow.models.connection import Connection as AirflowConnection
+    from airflow.models.variable import Variable as AirflowVariable
 
     from airflow_fernet_secrets.database.connect import SessionMaker
 

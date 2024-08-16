@@ -26,13 +26,14 @@ from airflow_fernet_secrets.database.model import migrate
 if TYPE_CHECKING:
     from logging import Logger
 
-    from airflow.secrets import BaseSecretsBackend
     from cryptography.fernet import Fernet, MultiFernet
     from sqlalchemy.engine import Engine
     from sqlalchemy.engine.result import Result
     from sqlalchemy.engine.url import URL
     from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
     from sqlalchemy.orm import Session
+
+    from airflow.secrets import BaseSecretsBackend
 
     from airflow_fernet_secrets._typeshed import PathType
     from airflow_fernet_secrets.connection import ConnectionDict
