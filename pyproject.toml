@@ -53,7 +53,9 @@ dev-dependencies = [
 provider_info = "airflow_fernet_secrets.info:get_provider_info"
 
 [tool.hatch.build.targets.sdist]
+include = ["src/airflow_fernet_secrets", "src/airflow"]
 exclude = ["src/**/.gitignore"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/airflow_fernet_secrets", "src/airflow"]
 artifacts = ["src/**/.gitignore"]
