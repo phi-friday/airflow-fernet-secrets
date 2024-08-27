@@ -1,3 +1,6 @@
+# pyright: reportUnknownParameterType=false
+# pyright: reportMissingParameterType=false
+# pyright: reportUnusedFunction=false
 from __future__ import annotations
 
 import json

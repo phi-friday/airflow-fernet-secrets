@@ -123,7 +123,7 @@ class HasIds(HasSecrets):
     def _rename_mapping(self) -> dict[str, str]:
         if self.fernet_secrets_rename is None:
             return {}
-        if isinstance(self.fernet_secrets_rename, (str, bytes, bytearray, memoryview)):
+        if isinstance(self.fernet_secrets_rename, (str, bytes, bytearray)):
             value = json.loads(self.fernet_secrets_rename)
         else:
             value = self.fernet_secrets_rename

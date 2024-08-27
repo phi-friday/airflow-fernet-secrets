@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor, wait
 from functools import partial
 from random import shuffle
 from threading import Event
-from typing import Callable
+from typing import Any, Callable
 from uuid import uuid4
 
 import anyio
@@ -24,7 +24,7 @@ def set_airflow_env():
 
 
 def set_random_variable(
-    backend_getter: Callable[[], CommonFernetLocalSecretsBackend],
+    backend_getter: Callable[[], CommonFernetLocalSecretsBackend[Any]],
     event: Event,
     key: str | None = None,
 ) -> None:
@@ -37,7 +37,7 @@ def set_random_variable(
 
 
 def get_random_variable(
-    backend_getter: Callable[[], CommonFernetLocalSecretsBackend],
+    backend_getter: Callable[[], CommonFernetLocalSecretsBackend[Any]],
     event: Event,
     key: str | None = None,
 ) -> None:
@@ -49,7 +49,7 @@ def get_random_variable(
 
 
 async def aset_random_variable(
-    backend_getter: Callable[[], CommonFernetLocalSecretsBackend],
+    backend_getter: Callable[[], CommonFernetLocalSecretsBackend[Any]],
     key: str | None = None,
 ) -> None:
     backend = backend_getter()
@@ -60,7 +60,7 @@ async def aset_random_variable(
 
 
 async def aget_random_variable(
-    backend_getter: Callable[[], CommonFernetLocalSecretsBackend],
+    backend_getter: Callable[[], CommonFernetLocalSecretsBackend[Any]],
     key: str | None = None,
 ) -> None:
     backend = backend_getter()
@@ -69,7 +69,9 @@ async def aget_random_variable(
     await backend.aget_variable(key)
 
 
-def getter(backend: CommonFernetLocalSecretsBackend) -> CommonFernetLocalSecretsBackend:
+def getter(
+    backend: CommonFernetLocalSecretsBackend[Any],
+) -> CommonFernetLocalSecretsBackend[Any]:
     key = backend._fernet_secrets_key  # noqa: SLF001
     file = backend.fernet_secrets_backend_file
 

@@ -36,7 +36,7 @@ _DATACLASS_ARGS: dict[str, Any]
 if sys.version_info >= (3, 10):
     _DATACLASS_ARGS = {"kw_only": True}
 else:
-    _DATACLASS_ARGS = {}
+    _DATACLASS_ARGS = {}  # pyright: ignore[reportConstantRedefinition]
 
 
 metadata = sa.MetaData()
@@ -318,7 +318,7 @@ class Variable(Encrypted):
 
     @staticmethod
     @override
-    def decrypt(
+    def decrypt(  # pyright: ignore[reportIncompatibleMethodOverride]
         value: str | bytes, secret_key: str | bytes | Fernet | MultiFernet
     ) -> str:
         value = Encrypted.decrypt(value, secret_key)
@@ -406,7 +406,7 @@ def migrate(
     """migrate database without alembic"""
     finalize: Callable[[], None] | None = None
     if callable(connectable):
-        connectable = cast("SessionMaker[Session]", connectable)()
+        connectable = connectable()
         finalize = connectable.close
 
     try:

@@ -204,7 +204,7 @@ class CommonFernetLocalSecretsBackend(
         )
 
     @override
-    def deserialize_connection(self, conn_id: str, value: str | bytes) -> ConnectionT:
+    def deserialize_connection(self, conn_id: str, value: str | bytes) -> ConnectionT:  # pyright: ignore[reportIncompatibleMethodOverride]
         secret_key = self._secret()
         value = secret_key.decrypt(value)
         as_dict = json.loads(value)
@@ -226,7 +226,7 @@ class CommonFernetLocalSecretsBackend(
         return secret_key.encrypt(value.encode("utf-8"))
 
     @override
-    def get_connection(self, conn_id: str) -> ConnectionT | None:
+    def get_connection(self, conn_id: str) -> ConnectionT | None:  # pyright: ignore[reportIncompatibleMethodOverride]
         value = self.get_conn_value(conn_id)
         if value is None:
             return None
