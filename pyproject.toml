@@ -33,7 +33,7 @@ asyncio = [
 [project.urls]
 Repository = "https://github.com/phi-friday/airflow-fernet-secrets"
 
-[tool.rye]
+[tool.uv]
 managed = true
 dev-dependencies = [
     "apache-airflow==2.9.0",
@@ -47,7 +47,15 @@ dev-dependencies = [
     "psycopg2>=2.9.9",
     "pyodbc>=5.1.0",
     "pymssql>=2.3.0",
+    "poethepoet>=0.27.0",
+    "airflow-fernet-secrets[asyncio]"
 ]
+
+[tool.poe.tasks]
+lint = ["lint:check", "lint:format"]
+"lint:check" = "ruff check src tests --fix"
+"lint:format" = "ruff format src tests"
+check = "pre-commit run --all-files --show-diff-on-failure"
 
 [project.entry-points."apache_airflow_provider"]
 provider_info = "airflow_fernet_secrets.info:get_provider_info"
