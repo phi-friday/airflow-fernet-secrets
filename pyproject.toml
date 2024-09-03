@@ -60,8 +60,8 @@ check = "pre-commit run --all-files --show-diff-on-failure"
 [tool.poe.tasks.constraint]
 cmd = "uv pip install -r pyproject.toml"
 [tool.poe.tasks.constraint.env]
-PYTHON_VERSION = "3.8"
-AIRFLOW_VERSION = "2.10.0"
+PYTHON_VERSION.default = "3.8"
+AIRFLOW_VERSION.default = "2.10.0"
 UV_CONSTRAINT = "https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${PYTHON_VERSION}.txt"
 
 [project.entry-points."apache_airflow_provider"]
