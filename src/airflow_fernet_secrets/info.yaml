@@ -5,9 +5,18 @@ version: "{{ version }}"
 description: "{{ description }}"
 secrets-backends:
   - airflow.providers.fernet_secrets.secrets.secret_manager.FernetLocalSecretsBackend
+task-decorators:
+  - class-name: airflow.providers.fernet_secrets.decorators.sync.dump_fernet_task
+    name: dump_fernet
+  - class-name: airflow.providers.fernet_secrets.decorators.sync.load_fernet_task
+    name: load_fernet
 operators:
-  - airflow.providers.fernet_secrets.operators.sync.DumpSecretsOperator
-  - airflow.providers.fernet_secrets.operators.sync.LoadSecretsOperator
+  - python-modules:
+      - airflow.providers.fernet_secrets.operators.sync
+    integration-name: Dump Secrets
+  - python-modules:
+      - airflow.providers.fernet_secrets.operators.sync
+    integration-name: Load Secrets
 config:
   fernet_secrets:
     description: "{{ description }}"
