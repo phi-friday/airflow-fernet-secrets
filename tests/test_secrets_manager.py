@@ -15,14 +15,15 @@ from sqlalchemy.orm import Session
 from airflow.hooks.filesystem import FSHook
 from airflow.models.connection import Connection
 from airflow.providers.common.sql.hooks.sql import DbApiHook
-from tests.base import BaseTestClientAndServer, get_hook, ignore_warnings
+from tests.base import get_hook, ignore_warnings
+from tests.base_airflow import BaseAirflowTestClientAndServer
 
 if TYPE_CHECKING:
     from airflow_fernet_secrets.connection.dump.main import ConnectionArgs
 
 
 @pytest.mark.parametrize("backend_class", ["client", "server"], indirect=True)
-class TestSyncClientAndServer(BaseTestClientAndServer):
+class TestSyncClientAndServer(BaseAirflowTestClientAndServer):
     def test_get_connection(self, default_conn_id):
         conn_value = self.backend.get_conn_value(default_conn_id)
         assert conn_value is not None
@@ -135,7 +136,7 @@ class TestSyncClientAndServer(BaseTestClientAndServer):
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("backend_class", ["client", "server"], indirect=True)
-class TestAsyncClientAndServer(BaseTestClientAndServer):
+class TestAsyncClientAndServer(BaseAirflowTestClientAndServer):
     async def test_aget_connection(self, default_conn_id):
         conn_value = await self.backend.aget_conn_value(default_conn_id)
         assert conn_value is not None

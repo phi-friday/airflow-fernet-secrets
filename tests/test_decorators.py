@@ -10,11 +10,11 @@ import pytest
 from airflow.decorators import task
 from airflow.models.connection import Connection
 from airflow.models.variable import Variable
-from tests.base import BaseTestClientAndServer
+from tests.base_airflow import BaseAirflowTestClientAndServer
 
 
 @pytest.mark.parametrize("backend_class", ["server"], indirect=True)
-class TestDecorator(BaseTestClientAndServer):
+class TestDecorator(BaseAirflowTestClientAndServer):
     def test_dump_connection(self, secret_key, backend_path, temp_file):
         conn_id = temp_file.stem
         assert not self.backend.has_connection(conn_id)

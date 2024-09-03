@@ -9,14 +9,14 @@ import pytest
 
 from airflow.models.connection import Connection
 from airflow.models.variable import Variable
-from tests.base import BaseTestClientAndServer
+from tests.base_airflow import BaseAirflowTestClientAndServer
 
 from airflow_fernet_secrets.operators.dump import DumpSecretsOperator
 from airflow_fernet_secrets.operators.load import LoadSecretsOperator
 
 
 @pytest.mark.parametrize("backend_class", ["server"], indirect=True)
-class TestOeprator(BaseTestClientAndServer):
+class TestOeprator(BaseAirflowTestClientAndServer):
     def test_dump_connection(self, secret_key, backend_path, temp_file):
         conn_id = temp_file.stem
         assert not self.backend.has_connection(conn_id)
