@@ -21,16 +21,18 @@ if TYPE_CHECKING:
 
 __all__ = []
 
+_PREFIX = "fernet_secrets_"
+
 
 class SecretsParameters(TypedDict, total=False):
-    fernet_secrets_conn_ids: str | Sequence[str] | None
-    fernet_secrets_var_ids: str | Sequence[str] | None
-    fernet_secrets_rename: str | Sequence[Sequence[str]] | Mapping[str, str] | None
-    fernet_secrets_separate: str | bool
-    fernet_secrets_separator: str
-    fernet_secrets_key: str | bytes | Fernet | MultiFernet | None
-    fernet_secrets_backend_file_path: PathType | None
-    fernet_secrets_overwrite: str | bool
+    conn_ids: str | Sequence[str] | None
+    var_ids: str | Sequence[str] | None
+    rename: str | Sequence[Sequence[str]] | Mapping[str, str] | None
+    separate: str | bool
+    separator: str
+    key: str | bytes | Fernet | MultiFernet | None
+    backend_file_path: PathType | None
+    overwrite: str | bool
 
 
 class FernetDecoratedOperator(DecoratedOperator):
@@ -75,6 +77,6 @@ class FernetDecoratedOperator(DecoratedOperator):
             raise TypeError(error_msg)
 
         for key, value in operator_args.items():
-            setattr(self, key, value)
+            setattr(self, f"{_PREFIX!s}{key!s}", value)
 
         return super(DecoratedOperator, self).execute(context)
