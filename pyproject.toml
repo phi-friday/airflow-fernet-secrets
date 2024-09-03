@@ -36,7 +36,7 @@ Repository = "https://github.com/phi-friday/airflow-fernet-secrets"
 [tool.uv]
 managed = true
 dev-dependencies = [
-    "apache-airflow==2.9.0",
+    "apache-airflow[odbc,mssql,postgres]==2.10.0",
     "ruff==0.6.0",
     "ipykernel>=6.29.4",
     "pytest>=8.1.1",
@@ -56,6 +56,13 @@ lint = ["lint:check", "lint:format"]
 "lint:check" = "ruff check src tests --fix"
 "lint:format" = "ruff format src tests"
 check = "pre-commit run --all-files --show-diff-on-failure"
+
+[tool.poe.tasks.constraint]
+cmd = "uv pip install -r pyproject.toml"
+[tool.poe.tasks.constraint.env]
+PYTHON_VERSION = "3.8"
+AIRFLOW_VERSION = "2.10.0"
+UV_CONSTRAINT = "https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${PYTHON_VERSION}.txt"
 
 [project.entry-points."apache_airflow_provider"]
 provider_info = "airflow_fernet_secrets.info:get_provider_info"
