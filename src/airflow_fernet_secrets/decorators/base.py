@@ -36,7 +36,7 @@ class SecretsParameters(TypedDict, total=False):
 
 
 class FernetDecoratedOperator(DecoratedOperator):
-    template_fields = ("templates_dict", "op_args", "op_kwargs")
+    template_fields = ("op_args", "op_kwargs")
 
     custom_operator_name: str
     python_callable: Callable[..., SecretsParameters]
