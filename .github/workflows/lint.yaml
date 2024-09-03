@@ -53,7 +53,9 @@ jobs:
   
       - name: Install dependencies
         if: steps.uv-cache.outputs.cache-hit != 'true'
-        run: uv sync
+        run: |
+          uv sync
+          uv run poe constraint
 
       - name: Restore pre-commit cache
         uses: actions/cache@v4
