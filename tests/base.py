@@ -231,20 +231,21 @@ class BaseTestClientAndServer:
             task = cls.xcom_to_operator(task)
         task.run(**kwargs)
 
+    @classmethod
     def check_task_output(
-        self,
+        cls,
         dag_run: DagRun,
         task: BaseOperator | XComArg,
         conn_ids: Iterable[str] | None = None,
         var_ids: Iterable[str] | None = None,
     ) -> None:
-        task = self.xcom_to_operator(task)
+        task = cls.xcom_to_operator(task)
         stmt = sa.select(BaseXCom).where(
             BaseXCom.dag_id == task.dag_id,
             BaseXCom.task_id == task.task_id,
             BaseXCom.run_id == dag_run.run_id,
         )
-        with self.create_session() as session:
+        with cls.create_session() as session:
             output = session.scalars(stmt.with_only_columns(BaseXCom.value)).one()
 
         assert isinstance(output, (str, bytes))
@@ -263,23 +264,26 @@ class BaseTestClientAndServer:
         assert set(output_connection) == set(conn_ids)
         assert set(output_variable) == set(var_ids)
 
-    def add_in_airflow(self, value: Connection | Variable) -> None:
-        with self.create_session() as session:
+    @classmethod
+    def add_in_airflow(cls, value: Connection | Variable) -> None:
+        with cls.create_session() as session:
             session.add(value)
             session.commit()
 
-    def get_connection_in_airflow(self, conn_id: str) -> Connection | None:
+    @classmethod
+    def get_connection_in_airflow(cls, conn_id: str) -> Connection | None:
         stmt = sa.select(Connection).where(Connection.conn_id == conn_id)
-        with self.create_session() as session:
+        with cls.create_session() as session:
             result = session.scalars(stmt).one_or_none()
             if result is None:
                 return None
             session.expunge(result)
             return result
 
-    def get_variable_in_airflow(self, key: str) -> Variable | None:
+    @classmethod
+    def get_variable_in_airflow(cls, key: str) -> Variable | None:
         stmt = sa.select(Variable).where(Variable.key == key)
-        with self.create_session() as session:
+        with cls.create_session() as session:
             result = session.scalars(stmt).one_or_none()
             if result is None:
                 return None
