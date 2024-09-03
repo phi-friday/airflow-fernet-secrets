@@ -2,21 +2,19 @@
 # pyright: reportMissingParameterType=false
 from __future__ import annotations
 
-from itertools import product
+from typing import Any
 from uuid import uuid4
 
 import pytest
 
+from airflow.decorators import task
 from airflow.models.connection import Connection
 from airflow.models.variable import Variable
 from tests.base import BaseTestClientAndServer
 
-from airflow_fernet_secrets.operators.dump import DumpSecretsOperator
-from airflow_fernet_secrets.operators.load import LoadSecretsOperator
-
 
 @pytest.mark.parametrize("backend_class", ["server"], indirect=True)
-class TestOeprator(BaseTestClientAndServer):
+class TestDecorator(BaseTestClientAndServer):
     def test_dump_connection(self, secret_key, backend_path, temp_file):
         conn_id = temp_file.stem
         assert not self.backend.has_connection(conn_id)
@@ -28,14 +26,17 @@ class TestOeprator(BaseTestClientAndServer):
 
         dag = self.dag(dag_id="test_dump", schedule=None)
         dag_run, now = self.create_dagrun(dag)
-        task = DumpSecretsOperator(
-            task_id="dump",
-            dag=dag,
-            fernet_secrets_conn_ids=conn_id,
-            fernet_secrets_key=secret_key,
-            fernet_secrets_backend_file_path=backend_path,
-        )
-        self.run_task(task, now=now)
+
+        @task.dump_fernet(dag=dag)
+        def f() -> Any:
+            return {
+                "conn_ids": conn_id,
+                "secret_key": secret_key,
+                "backend_file_path": backend_path,
+            }
+
+        arg = f()
+        self.run_task(arg, now=now)
 
         check = self.backend.get_connection(conn_id=conn_id)
         assert check is not None
@@ -44,7 +45,7 @@ class TestOeprator(BaseTestClientAndServer):
         assert conn.conn_type == check.conn_type
         assert conn.extra_dejson == check.extra_dejson
 
-        self.check_task_output(dag_run, task, [conn_id])
+        self.check_task_output(dag_run, arg, [conn_id])
 
     def test_dump_variable(self, secret_key, backend_path):
         key, value = str(uuid4()), str(uuid4())
@@ -55,21 +56,25 @@ class TestOeprator(BaseTestClientAndServer):
 
         dag = self.dag(dag_id="test_dump", schedule=None)
         dag_run, now = self.create_dagrun(dag)
-        task = DumpSecretsOperator(
-            task_id="dump",
-            dag=dag,
-            fernet_secrets_var_ids=key,
-            fernet_secrets_key=secret_key,
-            fernet_secrets_backend_file_path=backend_path,
-        )
-        self.run_task(task, now=now)
+
+        @task.dump_fernet(dag=dag)
+        def f() -> Any:
+            return {
+                "var_ids": key,
+                "secret_key": secret_key,
+                "backend_file_path": backend_path,
+            }
+
+        arg = f()
+        self.run_task(arg, now=now)
 
         check = self.backend.get_variable(key=key)
         assert check is not None
         assert check == value
 
-        self.check_task_output(dag_run, task, None, [key])
+        self.check_task_output(dag_run, arg, None, [key])
 
+    """
     def test_load_connection(self, secret_key, backend_path, temp_file):
         conn_id = temp_file.stem
         check = self.get_connection_in_airflow(conn_id)
@@ -622,3 +627,4 @@ class TestOeprator(BaseTestClientAndServer):
             var = self.get_variable_in_airflow(key)
             assert var is not None
             assert var.val == value
+    """

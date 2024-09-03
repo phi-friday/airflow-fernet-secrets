@@ -5,15 +5,19 @@ from __future__ import annotations
 import json
 import warnings
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, Generator, Literal, cast
+from typing import TYPE_CHECKING, Any, Generator, Iterable, Literal, cast
 
 import pytest
+import sqlalchemy as sa
 from pendulum.datetime import DateTime
 from sqlalchemy.engine import Engine, create_engine
 from sqlalchemy.engine.url import URL, make_url
 
 from airflow import DAG
 from airflow.models.connection import Connection
+from airflow.models.variable import Variable
+from airflow.models.xcom import BaseXCom
+from airflow.models.xcom_arg import XComArg
 from airflow.providers.common.sql.hooks.sql import DbApiHook
 from airflow.utils.session import create_session
 from airflow.utils.state import DagRunState
@@ -203,8 +207,14 @@ class BaseTestClientAndServer:
         return dag_run, cast(DateTime, dag_run.start_date)
 
     @staticmethod
+    def xcom_to_operator(task: BaseOperator | XComArg) -> BaseOperator:
+        if isinstance(task, XComArg):
+            return task.operator  # pyright: ignore[reportAttributeAccessIssue]
+        return task
+
+    @classmethod
     def run_task(
-        task: BaseOperator, now: datetime | None = None, **kwargs: Any
+        cls, task: BaseOperator | XComArg, now: datetime | None = None, **kwargs: Any
     ) -> None:
         if now is None:
             now = DateTime.utcnow()
@@ -216,7 +226,65 @@ class BaseTestClientAndServer:
         }
         for key, value in default.items():
             kwargs.setdefault(key, value)
+
+        if isinstance(task, XComArg):
+            task = cls.xcom_to_operator(task)
         task.run(**kwargs)
+
+    def check_task_output(
+        self,
+        dag_run: DagRun,
+        task: BaseOperator | XComArg,
+        conn_ids: Iterable[str] | None = None,
+        var_ids: Iterable[str] | None = None,
+    ) -> None:
+        task = self.xcom_to_operator(task)
+        stmt = sa.select(BaseXCom).where(
+            BaseXCom.dag_id == task.dag_id,
+            BaseXCom.task_id == task.task_id,
+            BaseXCom.run_id == dag_run.run_id,
+        )
+        with self.create_session() as session:
+            output = session.scalars(stmt.with_only_columns(BaseXCom.value)).one()
+
+        assert isinstance(output, (str, bytes))
+        output = json.loads(output)
+
+        assert isinstance(output, dict)
+        assert "connection" in output
+        assert "variable" in output
+
+        output_connection, output_variable = output["connection"], output["variable"]
+        assert isinstance(output_connection, list)
+        assert isinstance(output_variable, list)
+
+        conn_ids = [] if conn_ids is None else conn_ids
+        var_ids = [] if var_ids is None else var_ids
+        assert set(output_connection) == set(conn_ids)
+        assert set(output_variable) == set(var_ids)
+
+    def add_in_airflow(self, value: Connection | Variable) -> None:
+        with self.create_session() as session:
+            session.add(value)
+            session.commit()
+
+    def get_connection_in_airflow(self, conn_id: str) -> Connection | None:
+        stmt = sa.select(Connection).where(Connection.conn_id == conn_id)
+        with self.create_session() as session:
+            result = session.scalars(stmt).one_or_none()
+            if result is None:
+                return None
+            session.expunge(result)
+            return result
+
+    def get_variable_in_airflow(self, key: str) -> Variable | None:
+        stmt = sa.select(Variable).where(Variable.key == key)
+        with self.create_session() as session:
+            result = session.scalars(stmt).one_or_none()
+            if result is None:
+                return None
+            session.expunge(result)
+            return result
 
 
 @contextmanager
