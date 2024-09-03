@@ -4,7 +4,7 @@ import json
 from copy import deepcopy
 from typing import TYPE_CHECKING, Any, Literal
 
-from sqlalchemy.engine.url import make_url
+from sqlalchemy.engine.url import URL
 
 from airflow.models.connection import Connection
 
@@ -38,8 +38,14 @@ def connection_to_args(connection: Connection) -> ConnectionArgs:
         error_msg = f"invalid conn_type attribute: {connection.conn_type}"
         raise fe.FernetSecretsTypeError(error_msg)
 
-    uri = _postgresql_uri(connection)
-    url = make_url(uri)
+    url = URL.create(
+        drivername="postgresql",
+        username=connection.login,  # pyright: ignore[reportArgumentType]
+        password=connection.password,
+        host=connection.host,  # pyright: ignore[reportArgumentType]
+        port=connection.port,  # pyright: ignore[reportArgumentType]
+        database=connection.schema,  # pyright: ignore[reportArgumentType]
+    )
 
     backend, *drivers = url.drivername.split("+", 1)
     backend = backend.lower()
@@ -79,14 +85,6 @@ def connection_to_args(connection: Connection) -> ConnectionArgs:
             connect_args.pop(key, None)
 
     return {"url": url, "connect_args": connect_args, "engine_kwargs": engine_kwargs}
-
-
-def _postgresql_uri(connection: Connection) -> str:
-    """obtained from airflow postgresql provider hook.
-
-    see more: `airflow.providers.postgres.hooks.postgres.PostgresHook.get_uri()`
-    """
-    return connection.get_uri().replace("postgres://", "postgresql://")
 
 
 def _postgresql_connect_args(
