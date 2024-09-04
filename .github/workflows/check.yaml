@@ -38,9 +38,7 @@ jobs:
           uv python install ${{ matrix.python-version }}
           uv python pin ${{ matrix.python-version }}
           uv lock
-          PY=$(uv run python -VV | shasum -a 256 | cut -d' ' -f1)
-          echo PY: $PY
-          echo "PY=$PY" >> "$GITHUB_OUTPUT"
+          uv venv
 
       - name: Install dependencies
         run: |
