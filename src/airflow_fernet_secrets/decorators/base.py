@@ -76,6 +76,7 @@ class FernetDecoratedOperator(DecoratedOperator):
             error_msg = f"invalid return type: {type(operator_args).__name__}"
             raise TypeError(error_msg)
 
+        operator_args = self.render_template(operator_args, context)
         for key, value in operator_args.items():
             setattr(self, f"{_PREFIX!s}{key!s}", value)
 
