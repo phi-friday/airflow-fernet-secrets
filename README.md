@@ -13,6 +13,7 @@ pip install airflow-fernet-secrets
 ```
 
 ## how to use
+### config
 ```properties
 AIRFLOW__SECRETS__BACKEND=airflow.providers.fernet_secrets.secrets.secret_manager.FernetLocalSecretsBackend
 # or
@@ -34,6 +35,31 @@ AIRFLOW__PROVIDERS_FERNET_SECRETS__BACKEND_FILE=# some sqlite file path
 # or
 # AIRFLOW__PROVIDERS_FERNET_SECRETS__BACKEND_FILE_SECRET=# some sqlite file path file
 # ex: /tmp/where_is_backend
+```
+### example dag
+```python
+from __future__ import annotations
+
+from typing import Any
+
+from pendulum import datetime
+
+from airflow.decorators import dag, task
+from airflow.providers.fernet_secrets.operators.sync import DumpSecretsOperator
+
+
+@dag(start_date=datetime(2024, 1, 1), catchup=False, schedule=None)
+def dump_connection():
+    @task.load_fernet()
+    def load_connection() -> dict[str, Any]:
+        return {"conn_ids": "some_conn_id"}
+
+    dump = DumpSecretsOperator(task_id="dump", fernet_secrets_conn_ids="some_conn_id")
+    load = load_connection()
+    _ = dump >> load
+
+
+dump_connection()
 ```
 
 ## TODO
