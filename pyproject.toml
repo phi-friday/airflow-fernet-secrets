@@ -28,7 +28,7 @@ dependencies = [
 test = [
     # support pep440
     "apache-airflow>=2.8.1",
-    "pytest>=8.3.2",
+    "pytest>=7",
 ]
 asyncio = [
     "sqlalchemy[asyncio]>=1.4",
