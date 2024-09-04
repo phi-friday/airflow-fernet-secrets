@@ -43,7 +43,16 @@ jobs:
           echo "PY=$PY" >> "$GITHUB_OUTPUT"
 
       - name: Install dependencies
-        run: uv pip install -r pyproject.toml "apache-airflow==${{ matrix.airflow-version }}"
+        run: |
+          uv pip compile pyproject.toml -o requirements.txt --extra asyncio
+          uv pip install -r requirements.txt "apache-airflow==${{ matrix.airflow-version }}"
+
+      - name: Install self
+        run: |
+          uvx --from build pyproject-build --installer uv
+          uv pip install dist/airflow_fernet_secrets-0.0.0-py3-none-any.whl --reinstall-package airflow-fernet-secrets --no-deps
 
       - name: Test with pytest
-        run: uv run pytest
+        run: |
+          source .venv/bin/activate
+          pytest -m "airflow or not airflow"
