@@ -32,9 +32,9 @@ test = [
     # async
     "anyio",
     "uvloop; platform_system != 'Windows'",
-    "psycopg2>=2.9.9",
-    "pyodbc>=5.1.0",
-    "pymssql>=2.3.0",
+    "psycopg2>=2",
+    "pyodbc>=5",
+    "pymssql>=2",
 ]
 asyncio = [
     "sqlalchemy[asyncio]>=1.4",
