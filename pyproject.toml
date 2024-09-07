@@ -47,7 +47,7 @@ Repository = "https://github.com/phi-friday/airflow-fernet-secrets"
 [tool.uv]
 managed = true
 dev-dependencies = [
-    "apache-airflow[odbc,mssql,postgres]==2.10.0",
+    "apache-airflow[odbc,mssql,postgres]==2.10.1",
     "ruff==0.6.4",
     "ipykernel>=6.29.4",
     "sqlalchemy2-stubs>=0.0.2a38",
@@ -66,7 +66,7 @@ check = "pre-commit run --all-files --show-diff-on-failure"
 cmd = "uv pip install -r pyproject.toml"
 [tool.poe.tasks.constraint.env]
 PYTHON_VERSION.default = "3.8"
-AIRFLOW_VERSION.default = "2.10.0"
+AIRFLOW_VERSION.default = "2.10.1"
 UV_CONSTRAINT = "https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${PYTHON_VERSION}.txt"
 
 [project.entry-points."apache_airflow_provider"]
