@@ -48,7 +48,7 @@ Repository = "https://github.com/phi-friday/airflow-fernet-secrets"
 managed = true
 dev-dependencies = [
     "apache-airflow[odbc,mssql,postgres]==2.10.0",
-    "ruff==0.6.0",
+    "ruff==0.6.4",
     "ipykernel>=6.29.4",
     "sqlalchemy2-stubs>=0.0.2a38",
     "pre-commit>=3.5.0",
