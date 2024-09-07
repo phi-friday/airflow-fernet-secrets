@@ -7,6 +7,8 @@ def __getattr__(name: str):  # noqa: ANN202
     if name == "__version__":
         from importlib.metadata import version
 
-        return version("airflow-fernet-secrets")
+        _version = version("airflow-fernet-secrets")
+        globals()["__version__"] = _version
+        return _version
 
     raise AttributeError(name)
