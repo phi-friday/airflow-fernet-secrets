@@ -90,5 +90,8 @@ packages = ["src/airflow_fernet_secrets", "src/airflow"]
 artifacts = ["src/**/.gitignore"]
 
 [tool.pytest.ini_options]
-addopts = "-n 4"
+addopts = "-n 4 -m 'not airflow'"
 testpaths = ["src/tests"]
+markers = [
+    "airflow: mark airflow tests"
+]
