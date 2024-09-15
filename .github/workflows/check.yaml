@@ -61,8 +61,14 @@ jobs:
           uv build
           uv pip install dist/airflow_fernet_secrets-*.whl --reinstall-package airflow-fernet-secrets --no-deps
 
-      - name: Test with pytest
+      - name: Test with pytest - not airflow
         if: steps.check-constraint.outputs.state == 'success'
         run: |
           source .venv/bin/activate
-          pytest -m "airflow or not airflow"
+          pytest -m "not airflow"
+
+      - name: Test with pytest - airflow
+        if: steps.check-constraint.outputs.state == 'success'
+        run: |
+          source .venv/bin/activate
+          pytest -m "airflow" -n 0
