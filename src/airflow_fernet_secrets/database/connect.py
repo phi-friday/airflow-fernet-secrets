@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager, contextmanager
+from pathlib import Path
+from tempfile import gettempdir
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -11,7 +13,9 @@ from typing import (
     overload,
     runtime_checkable,
 )
+from uuid import uuid4
 
+from filelock import AsyncFileLock, FileLock
 from sqlalchemy.dialects.sqlite import dialect as sqlite_dialect
 from sqlalchemy.engine import Connection, Engine, create_engine
 from sqlalchemy.engine.url import URL, make_url
@@ -26,6 +30,7 @@ from sqlalchemy.orm import Session
 from typing_extensions import TypeVar
 
 from airflow_fernet_secrets import exceptions as fe
+from airflow_fernet_secrets.log.common import get_logger
 
 if TYPE_CHECKING:
     from sqlalchemy.engine.interfaces import Dialect, _DBAPIConnection
@@ -47,6 +52,8 @@ SessionT = TypeVar("SessionT", bound="Session | AsyncSession")
 
 _TIMEOUT = 10
 _TIMEOUT_MS = _TIMEOUT * 1000
+
+logger = get_logger()
 
 
 @runtime_checkable
@@ -231,23 +238,25 @@ def enter_sync_database(
     connectable: Engine | Connection | SessionMaker[Session] | Session,
 ) -> Generator[Session, None, None]:
     """sqlalchemy sync context manager"""
-    if isinstance(connectable, Session):
-        session = connectable
-    elif isinstance(connectable, (Engine, Connection)):
-        session = Session(connectable)
-    elif isinstance(connectable, SessionMaker):
-        session = connectable()
-    else:
-        error_msg = f"invalid sync connectable type: {type(connectable).__name__}"
-        raise fe.FernetSecretsTypeError(error_msg)
+    lockfile = _parse_lock_file(connectable)
+    with FileLock(lockfile, thread_local=True):
+        if isinstance(connectable, Session):
+            session = connectable
+        elif isinstance(connectable, (Engine, Connection)):
+            session = Session(connectable)
+        elif isinstance(connectable, SessionMaker):
+            session = connectable()
+        else:
+            error_msg = f"invalid sync connectable type: {type(connectable).__name__}"
+            raise fe.FernetSecretsTypeError(error_msg)
 
-    try:
-        yield session
-    except:
-        session.rollback()
-        raise
-    finally:
-        session.close()
+        try:
+            yield session
+        except:
+            session.rollback()
+            raise
+        finally:
+            session.close()
 
 
 @asynccontextmanager
@@ -258,23 +267,47 @@ async def enter_async_database(
     | AsyncSession,
 ) -> AsyncGenerator[AsyncSession, None]:
     """sqlalchemy async context manager"""
-    if isinstance(connectable, AsyncSession):
-        session = connectable
-    elif isinstance(connectable, (AsyncEngine, AsyncConnection)):
-        session = AsyncSession(connectable)
-    elif isinstance(connectable, SessionMaker):
-        session = connectable()
-    else:
-        error_msg = f"invalid async connectable type: {type(connectable).__name__}"
-        raise fe.FernetSecretsTypeError(error_msg)
+    lockfile = _parse_lock_file(connectable)
+    async with AsyncFileLock(lockfile, thread_local=True):
+        if isinstance(connectable, AsyncSession):
+            session = connectable
+        elif isinstance(connectable, (AsyncEngine, AsyncConnection)):
+            session = AsyncSession(connectable)
+        elif isinstance(connectable, SessionMaker):
+            session = connectable()
+        else:
+            error_msg = f"invalid async connectable type: {type(connectable).__name__}"
+            raise fe.FernetSecretsTypeError(error_msg)
 
-    try:
-        yield session
-    except:
-        await session.rollback()
-        raise
-    finally:
-        await session.close()
+        try:
+            yield session
+        except:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
+
+
+def _parse_lock_file(
+    connectable_or_url: Engine
+    | AsyncEngine
+    | AsyncConnection
+    | SessionMaker[AsyncSession]
+    | AsyncSession
+    | Connection
+    | SessionMaker[Session]
+    | Session
+    | URL
+    | str,
+) -> Path:
+    engine = ensure_sqlite_engine(connectable_or_url)
+    database = engine.url.database
+    if not database:
+        logger.warning("cannot find database in url. use temporary file instead.")
+        tempdir = gettempdir()
+        return Path(tempdir).with_name(str(uuid4())).with_suffix(".lock")
+
+    return Path(database).with_suffix(".lock")
 
 
 def _is_async_dialect(dialect: type[Dialect] | Dialect) -> bool:
