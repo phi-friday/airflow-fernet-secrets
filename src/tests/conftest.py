@@ -9,6 +9,7 @@ from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
+import filelock
 import pytest
 from cryptography.fernet import Fernet
 
@@ -49,20 +50,32 @@ def _init_envs() -> None:
 
 
 @pytest.fixture(scope="session", autouse=True)
-def _init_database() -> None:
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", DeprecationWarning)
-        initdb()
+def _init_database(tmp_path_factory: pytest.TempPathFactory, worker_id) -> None:
+    if worker_id == "master":
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            initdb()
+        return
+
+    root_tmp_dir = tmp_path_factory.getbasetemp().parent
+    flag = root_tmp_dir / "initdb.flag"
+    lockfile = flag.with_suffix(".lock")
+    with filelock.FileLock(lockfile):
+        if flag.exists():
+            return
+        flag.touch()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            initdb()
 
 
 @pytest.fixture(scope="session")
-def temp_path():
-    with TemporaryDirectory() as temp_dir:
-        yield Path(temp_dir)
+def temp_path(tmp_path_factory: pytest.TempPathFactory):
+    return tmp_path_factory.getbasetemp().parent
 
 
 @pytest.fixture(scope="session", autouse=True)
-def backend_path(temp_path: Path):
+def backend_path(tmp_path_factory: pytest.TempPathFactory, worker_id, temp_path: Path):
     from airflow_fernet_secrets import const
     from airflow_fernet_secrets.database.connect import (
         create_sqlite_url,
@@ -70,31 +83,86 @@ def backend_path(temp_path: Path):
     )
     from airflow_fernet_secrets.database.model import migrate
 
-    file = temp_path / str(uuid4())
-    file.touch()
+    if worker_id == "master":
+        file = temp_path / str(uuid4())
+        file.touch()
 
-    url = create_sqlite_url(file)
-    engine = ensure_sqlite_sync_engine(url)
-    migrate(engine)
+        url = create_sqlite_url(file)
+        engine = ensure_sqlite_sync_engine(url)
+        migrate(engine)
 
-    _set_backend_kwargs("fernet_secrets_backend_file_path", str(file))
-    environ.setdefault(
-        const.CLIENT_ENV_PREFIX + const.ENV_BACKEND_FILE.upper(), str(file)
-    )
+        _set_backend_kwargs("fernet_secrets_backend_file_path", str(file))
+        environ.setdefault(
+            const.CLIENT_ENV_PREFIX + const.ENV_BACKEND_FILE.upper(), str(file)
+        )
 
-    return file
+        return file
+
+    root_tmp_dir = tmp_path_factory.getbasetemp().parent
+    flag = root_tmp_dir / "backend.flag"
+    lockfile = flag.with_suffix(".lock")
+    with filelock.FileLock(lockfile):
+        if flag.exists():
+            with flag.open() as f:
+                file = Path(f.read())
+
+            _set_backend_kwargs("fernet_secrets_backend_file_path", str(file))
+            environ.setdefault(
+                const.CLIENT_ENV_PREFIX + const.ENV_BACKEND_FILE.upper(), str(file)
+            )
+
+            return file
+
+        file = temp_path / str(uuid4())
+        with flag.open("w+") as f:
+            f.write(str(file))
+
+        url = create_sqlite_url(file)
+        engine = ensure_sqlite_sync_engine(url)
+        migrate(engine)
+
+        _set_backend_kwargs("fernet_secrets_backend_file_path", str(file))
+        environ.setdefault(
+            const.CLIENT_ENV_PREFIX + const.ENV_BACKEND_FILE.upper(), str(file)
+        )
+
+        return file
 
 
 @pytest.fixture(scope="session", autouse=True)
-def secret_key():
+def secret_key(tmp_path_factory: pytest.TempPathFactory, worker_id):
     from airflow_fernet_secrets import const
 
-    key = Fernet.generate_key()
-    _set_backend_kwargs("fernet_secrets_key", key.decode("utf-8"))
-    environ.setdefault(
-        const.CLIENT_ENV_PREFIX + const.ENV_SECRET_KEY.upper(), key.decode("utf-8")
-    )
-    return key
+    if worker_id == "master":
+        key = Fernet.generate_key()
+        _set_backend_kwargs("fernet_secrets_key", key.decode("utf-8"))
+        environ.setdefault(
+            const.CLIENT_ENV_PREFIX + const.ENV_SECRET_KEY.upper(), key.decode("utf-8")
+        )
+        return key
+
+    root_tmp_dir = tmp_path_factory.getbasetemp().parent
+    flag = root_tmp_dir / "key.flag"
+    lockfile = flag.with_suffix(".lock")
+    with filelock.FileLock(lockfile):
+        if flag.exists():
+            with flag.open("rb") as f:
+                key = f.read()
+            _set_backend_kwargs("fernet_secrets_key", key.decode("utf-8"))
+            environ.setdefault(
+                const.CLIENT_ENV_PREFIX + const.ENV_SECRET_KEY.upper(),
+                key.decode("utf-8"),
+            )
+            return key
+
+        key = Fernet.generate_key()
+        with flag.open("wb+") as f:
+            f.write(key)
+        _set_backend_kwargs("fernet_secrets_key", key.decode("utf-8"))
+        environ.setdefault(
+            const.CLIENT_ENV_PREFIX + const.ENV_SECRET_KEY.upper(), key.decode("utf-8")
+        )
+        return key
 
 
 @pytest.fixture(scope="session")
