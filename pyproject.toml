@@ -36,6 +36,7 @@ test = [
     "psycopg2>=2",
     "pyodbc>=5",
     "pymssql>=2",
+    "pytest-xdist>=3.6.1",
 ]
 asyncio = [
     "sqlalchemy[asyncio]>=1.4",
@@ -87,3 +88,7 @@ exclude = ["src/**/.gitignore"]
 [tool.hatch.build.targets.wheel]
 packages = ["src/airflow_fernet_secrets", "src/airflow"]
 artifacts = ["src/**/.gitignore"]
+
+[tool.pytest.ini_options]
+addopts = "-n 4"
+testpaths = ["src/tests"]
