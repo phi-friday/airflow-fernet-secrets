@@ -1,6 +1,6 @@
 [project]
 name = "airflow-fernet-secrets"
-version = "0.0.0"
+dynamic = ["version"]
 description = "airflow filesystem secret backend using fernet"
 authors = [{ name = "phi", email = "phi.friday@gmail.com" }]
 readme = "README.md"
@@ -72,6 +72,13 @@ UV_CONSTRAINT = "https://raw.githubusercontent.com/apache/airflow/constraints-${
 [project.entry-points."apache_airflow_provider"]
 provider_info = "airflow_fernet_secrets.info:get_provider_info"
 
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
 [tool.hatch.build.targets.sdist]
 include = ["src/airflow_fernet_secrets", "src/airflow"]
 exclude = ["src/**/.gitignore"]
@@ -79,10 +86,3 @@ exclude = ["src/**/.gitignore"]
 [tool.hatch.build.targets.wheel]
 packages = ["src/airflow_fernet_secrets", "src/airflow"]
 artifacts = ["src/**/.gitignore"]
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.hatch.metadata]
-allow-direct-references = true

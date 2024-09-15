@@ -19,6 +19,4 @@
     "reportPrivateUsage": false,
     "reportUnnecessaryTypeIgnoreComment": true,
     "reportImplicitOverride": true,
-    "venv": ".venv",
-    "venvPath": "."
 }

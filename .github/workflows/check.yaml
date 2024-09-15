@@ -58,8 +58,8 @@ jobs:
       - name: Install self
         if: steps.check-constraint.outputs.state == 'success'
         run: |
-          uvx --from build pyproject-build --installer uv
-          uv pip install dist/airflow_fernet_secrets-0.0.0-py3-none-any.whl --reinstall-package airflow-fernet-secrets --no-deps
+          uv build
+          uv pip install dist/airflow_fernet_secrets-*.whl --reinstall-package airflow-fernet-secrets --no-deps
 
       - name: Test with pytest
         if: steps.check-constraint.outputs.state == 'success'
