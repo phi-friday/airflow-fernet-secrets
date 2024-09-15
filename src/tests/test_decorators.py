@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
+import pytest
 from typing_extensions import override
 
 from airflow.decorators import task
@@ -13,6 +14,8 @@ from tests.base_airflow import BaseAirflowTaskTest
 
 _PREFIX = "fernet_secrets_"
 _RE_PREFIX = re.compile(rf"^{_PREFIX}")
+
+pytestmark = pytest.mark.airflow
 
 
 class TestDecorator(BaseAirflowTaskTest):

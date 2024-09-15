@@ -20,7 +20,11 @@ if TYPE_CHECKING:
     from airflow_fernet_secrets.connection.dump.main import ConnectionArgs
 
 
-@pytest.mark.parametrize("backend_class", ["client", "server"], indirect=True)
+@pytest.mark.parametrize(
+    "backend_class",
+    ["client", pytest.param("server", marks=[pytest.mark.airflow])],
+    indirect=True,
+)
 class TestSyncClientAndServer(BaseAirflowTestClientAndServer):
     def test_get_connection(self, default_conn_id):
         conn_value = self.backend.get_conn_value(default_conn_id)
@@ -133,7 +137,11 @@ class TestSyncClientAndServer(BaseAirflowTestClientAndServer):
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("backend_class", ["client", "server"], indirect=True)
+@pytest.mark.parametrize(
+    "backend_class",
+    ["client", pytest.param("server", marks=[pytest.mark.airflow])],
+    indirect=True,
+)
 class TestAsyncClientAndServer(BaseAirflowTestClientAndServer):
     async def test_aget_connection(self, default_conn_id):
         conn_value = await self.backend.aget_conn_value(default_conn_id)

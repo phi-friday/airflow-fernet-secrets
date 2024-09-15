@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import pytest
 from typing_extensions import override
 
 from airflow import DAG
@@ -11,6 +12,8 @@ from tests.base_airflow import BaseAirflowTaskTest
 
 from airflow_fernet_secrets.operators.dump import DumpSecretsOperator
 from airflow_fernet_secrets.operators.load import LoadSecretsOperator
+
+pytestmark = pytest.mark.airflow
 
 
 class TestOeprator(BaseAirflowTaskTest):

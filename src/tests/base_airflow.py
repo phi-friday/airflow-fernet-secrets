@@ -114,7 +114,11 @@ class BaseAirflowTestClientAndServer(BaseTestClientAndServer):
         raise fe.FernetSecretsTypeError(error_msg)
 
 
-@pytest.mark.parametrize("backend_class", ["server"], indirect=True)
+@pytest.mark.parametrize(
+    "backend_class",
+    [pytest.param("server", marks=[pytest.mark.airflow])],
+    indirect=True,
+)
 class BaseAirflowTaskTest(BaseAirflowTestClientAndServer):
     @staticmethod
     def create_dump_operator(
