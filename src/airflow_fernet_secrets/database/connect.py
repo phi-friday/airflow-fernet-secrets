@@ -268,7 +268,7 @@ async def enter_async_database(
 ) -> AsyncGenerator[AsyncSession, None]:
     """sqlalchemy async context manager"""
     lockfile = _parse_lock_file(connectable)
-    async with AsyncFileLock(lockfile, thread_local=True):
+    async with AsyncFileLock(lockfile, thread_local=False):
         if isinstance(connectable, AsyncSession):
             session = connectable
         elif isinstance(connectable, (AsyncEngine, AsyncConnection)):
