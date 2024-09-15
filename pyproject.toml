@@ -36,7 +36,7 @@ test = [
     "psycopg2>=2",
     "pyodbc>=5",
     "pymssql>=2",
-    "pytest-xdist>=3.6.1",
+    "pytest-xdist>=3.5.0",
 ]
 asyncio = [
     "sqlalchemy[asyncio]>=1.4",
