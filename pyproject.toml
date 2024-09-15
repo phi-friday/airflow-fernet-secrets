@@ -28,7 +28,7 @@ dependencies = [
 [project.optional-dependencies]
 test = [
     # support pep440
-    "apache-airflow>=2.8.1",
+    "apache-airflow>=2.9.3",
     "pytest>=7",
     # async
     "anyio",
