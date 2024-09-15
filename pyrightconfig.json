@@ -19,4 +19,11 @@
     "reportPrivateUsage": false,
     "reportUnnecessaryTypeIgnoreComment": true,
     "reportImplicitOverride": true,
+    "executionEnvironments": [
+        {
+            "root": "src/tests",
+            "reportUnknownParameterType": false,
+            "reportMissingParameterType": false,
+        }
+    ]
 }

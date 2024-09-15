@@ -84,7 +84,7 @@ split-on-trailing-comma = false
 
 # tests
 [lint.per-file-ignores]
-"./tests/**/*.py" = [
+"src/tests/**/*.py" = [
     "TCH001",
     "TCH002",
     "TCH003",

@@ -1,5 +1,3 @@
-# pyright: reportUnknownParameterType=false
-# pyright: reportMissingParameterType=false
 from __future__ import annotations
 
 from pathlib import Path
