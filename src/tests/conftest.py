@@ -22,6 +22,14 @@ if TYPE_CHECKING:
 
 AIRFLOW_SERVER_FLAG = sys.version_info < (3, 13)
 
+anyio_params = [pytest.param(("asyncio", {"use_uvloop": False}), id="asyncio")]
+if sys.version_info < (3, 13):
+    # FIXME: uvloop build error
+    # see more: https://github.com/MagicStack/uvloop/issues/622
+    anyio_params.append(
+        pytest.param(("asyncio", {"use_uvloop": True}), id="asyncio-uvloop")
+    )
+
 
 def _set_backend_kwargs(key: str, value: Any) -> None:
     json_value = environ.get("AIRFLOW__SECRETS__BACKEND_KWARGS")
@@ -33,12 +41,7 @@ def _set_backend_kwargs(key: str, value: Any) -> None:
     environ["AIRFLOW__SECRETS__BACKEND_KWARGS"] = json.dumps(kwargs)
 
 
-@pytest.fixture(
-    params=[
-        pytest.param(("asyncio", {"use_uvloop": False}), id="asyncio"),
-        pytest.param(("asyncio", {"use_uvloop": True}), id="asyncio-uvloop"),
-    ]
-)
+@pytest.fixture(params=anyio_params)
 def anyio_backend(request) -> tuple[str, dict[str, Any]]:
     return request.param
 

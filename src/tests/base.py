@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any, Generator, Literal, cast
 
 import pytest
 import sqlalchemy as sa
-from pendulum.datetime import DateTime
 
 from airflow_fernet_secrets import exceptions as fe
 from airflow_fernet_secrets.connection.server import convert_connection_to_dict
@@ -134,6 +133,8 @@ class BaseTestClientAndServer:
     def create_dagrun(
         dag: DAG, now: datetime | None = None, **kwargs: Any
     ) -> tuple[DagRun, datetime]:
+        from pendulum.datetime import DateTime
+
         from airflow.utils.state import DagRunState
         from airflow.utils.types import DagRunType
 
@@ -164,6 +165,8 @@ class BaseTestClientAndServer:
     def run_task(
         cls, task: BaseOperator | XComArg, now: datetime | None = None, **kwargs: Any
     ) -> None:
+        from pendulum.datetime import DateTime
+
         from airflow.models.xcom_arg import XComArg
 
         if now is None:

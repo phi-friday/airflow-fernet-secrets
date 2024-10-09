@@ -34,9 +34,9 @@ test = [
     # async
     "anyio",
     "uvloop; platform_system != 'Windows' and python_version != '3.13'",
-    "psycopg2>=2",
-    "pyodbc>=5",
-    "pymssql>=2",
+    "psycopg2>=2; python_version != '3.13'",
+    "pyodbc>=5.1; python_version != '3.13'",
+    "pymssql>=2; python_version != '3.13'",
     "pytest-xdist>=3.5.0",
 ]
 asyncio = [

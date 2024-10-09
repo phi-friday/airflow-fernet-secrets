@@ -7,9 +7,6 @@ from typing_extensions import override
 
 from tests.base_airflow import BaseAirflowTaskTest
 
-from airflow_fernet_secrets.operators.dump import DumpSecretsOperator
-from airflow_fernet_secrets.operators.load import LoadSecretsOperator
-
 if TYPE_CHECKING:
     from airflow import DAG
     from airflow.models.baseoperator import BaseOperator
@@ -24,6 +21,8 @@ class TestOeprator(BaseAirflowTaskTest):
     def create_dump_operator(
         *, task_id: str, dag: DAG, **kwargs: Any
     ) -> BaseOperator | XComArg:
+        from airflow_fernet_secrets.operators.dump import DumpSecretsOperator
+
         return DumpSecretsOperator(task_id=task_id, dag=dag, **kwargs)
 
     @staticmethod
@@ -31,4 +30,6 @@ class TestOeprator(BaseAirflowTaskTest):
     def create_load_operator(
         *, task_id: str, dag: DAG, **kwargs: Any
     ) -> BaseOperator | XComArg:
+        from airflow_fernet_secrets.operators.load import LoadSecretsOperator
+
         return LoadSecretsOperator(task_id=task_id, dag=dag, **kwargs)
