@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import sys
 import warnings
 from os import environ
 from pathlib import Path
@@ -13,13 +14,13 @@ import filelock
 import pytest
 from cryptography.fernet import Fernet
 
-from airflow.utils.db import initdb
-
 if TYPE_CHECKING:
     from airflow_fernet_secrets.connection.dump.main import ConnectionArgs
     from airflow_fernet_secrets.secrets.client import ClientFernetLocalSecretsBackend
     from airflow_fernet_secrets.secrets.common import CommonFernetLocalSecretsBackend
     from airflow_fernet_secrets.secrets.server import ServerFernetLocalSecretsBackend
+
+AIRFLOW_SERVER_FLAG = sys.version_info < (3, 13)
 
 
 def _set_backend_kwargs(key: str, value: Any) -> None:
@@ -51,6 +52,11 @@ def _init_envs() -> None:
 
 @pytest.fixture(scope="session", autouse=True)
 def _init_database(tmp_path_factory: pytest.TempPathFactory, worker_id) -> None:
+    if not AIRFLOW_SERVER_FLAG:
+        return
+
+    from airflow.utils.db import initdb
+
     if worker_id == "master":
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", DeprecationWarning)
@@ -264,6 +270,9 @@ def backend_class(
     request: pytest.FixtureRequest,
 ) -> type[CommonFernetLocalSecretsBackend[Any]]:
     side = request.param
+    if not AIRFLOW_SERVER_FLAG and side in {"server", "direct"}:
+        pytest.skip("airflow does not support 3.13 yet")
+
     if side == "client":
         from airflow_fernet_secrets.secrets.client import (
             ClientFernetLocalSecretsBackend as FernetLocalSecretsBackend,

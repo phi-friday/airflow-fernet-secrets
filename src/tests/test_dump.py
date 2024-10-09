@@ -8,7 +8,7 @@ import pytest
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import URL, make_url
 
-from airflow.models.connection import Connection
+from tests.conftest import AIRFLOW_SERVER_FLAG
 
 from airflow_fernet_secrets.connection import (
     connection_to_args,
@@ -21,6 +21,7 @@ def _rand() -> str:
     return f"a{rand}Z"
 
 
+@pytest.mark.skipif(not AIRFLOW_SERVER_FLAG, reason="airflow does not support 3.13 yet")
 @pytest.mark.parametrize(
     "data",
     (
@@ -48,6 +49,8 @@ def _rand() -> str:
     ),
 )
 def test_dumps(data: dict[str, Any]):
+    from airflow.models.connection import Connection
+
     if data["conn_type"] == "mssql" and not data["host"]:
         pytest.skip("pymssql needs host")
 

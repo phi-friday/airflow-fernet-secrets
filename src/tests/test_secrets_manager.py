@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 from uuid import uuid4
 
 import pytest
@@ -10,21 +10,20 @@ from sqlalchemy.engine.url import URL, make_url
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import Session
 
-from airflow.hooks.filesystem import FSHook
-from airflow.models.connection import Connection
-from airflow.providers.common.sql.hooks.sql import DbApiHook
 from tests.base import get_hook, ignore_warnings
 from tests.base_airflow import BaseAirflowTestClientAndServer
+from tests.conftest import AIRFLOW_SERVER_FLAG
 
 if TYPE_CHECKING:
     from airflow_fernet_secrets.connection.dump.main import ConnectionArgs
 
 
-@pytest.mark.parametrize(
-    "backend_class",
-    ["client", pytest.param("server", marks=[pytest.mark.airflow])],
-    indirect=True,
-)
+backend_class_params: list[Any] = ["client"]
+if AIRFLOW_SERVER_FLAG:
+    backend_class_params.append(pytest.param("server", marks=[pytest.mark.airflow]))
+
+
+@pytest.mark.parametrize("backend_class", backend_class_params, indirect=True)
 class TestSyncClientAndServer(BaseAirflowTestClientAndServer):
     def test_get_connection(self, default_conn_id):
         conn_value = self.backend.get_conn_value(default_conn_id)
@@ -137,11 +136,7 @@ class TestSyncClientAndServer(BaseAirflowTestClientAndServer):
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize(
-    "backend_class",
-    ["client", pytest.param("server", marks=[pytest.mark.airflow])],
-    indirect=True,
-)
+@pytest.mark.parametrize("backend_class", backend_class_params, indirect=True)
 class TestAsyncClientAndServer(BaseAirflowTestClientAndServer):
     async def test_aget_connection(self, default_conn_id):
         conn_value = await self.backend.aget_conn_value(default_conn_id)
@@ -260,7 +255,11 @@ class TestAsyncClientAndServer(BaseAirflowTestClientAndServer):
         assert check is True
 
 
+@pytest.mark.skipif(not AIRFLOW_SERVER_FLAG, reason="airflow does not support 3.13 yet")
 def test_server_to_client(server_backend, client_backend, temp_file):
+    from airflow.models.connection import Connection
+    from airflow.providers.common.sql.hooks.sql import DbApiHook
+
     conn_id = temp_file.stem
     connection = Connection(
         conn_id=conn_id,
@@ -290,7 +289,10 @@ async def test_server_ato_client(server_backend, client_backend, temp_file):
 """
 
 
+@pytest.mark.skipif(not AIRFLOW_SERVER_FLAG, reason="airflow does not support 3.13 yet")
 def test_client_to_server(server_backend, client_backend, temp_file):
+    from airflow.providers.common.sql.hooks.sql import DbApiHook
+
     conn_id = temp_file.stem
     client_url: str = URL.create(
         "sqlite", database=str(temp_file), query={"some_key": "some_value"}
@@ -317,7 +319,11 @@ def test_client_ato_server(server_backend, client_backend, temp_file):
 """
 
 
+@pytest.mark.skipif(not AIRFLOW_SERVER_FLAG, reason="airflow does not support 3.13 yet")
 def test_filesystem_connection(server_backend, temp_file):
+    from airflow.hooks.filesystem import FSHook
+    from airflow.models.connection import Connection
+
     conn_id = temp_file.stem
     connection = Connection(
         conn_id=conn_id, conn_type="fs", extra={"path": str(temp_file)}

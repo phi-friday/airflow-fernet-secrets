@@ -10,19 +10,18 @@ import sqlalchemy as sa
 from sqlalchemy.engine import Engine, create_engine
 from sqlalchemy.engine.url import URL, make_url
 
-from airflow.models.connection import Connection
-from airflow.models.dag import DAG
-from airflow.models.variable import Variable
-from airflow.models.xcom import BaseXCom
-from airflow.models.xcom_arg import XComArg
-from airflow.providers.common.sql.hooks.sql import DbApiHook
 from tests.base import BaseTestClientAndServer, get_hook
+from tests.conftest import AIRFLOW_SERVER_FLAG
 
 from airflow_fernet_secrets import exceptions as fe
 
 if TYPE_CHECKING:
     from airflow.models.baseoperator import BaseOperator
+    from airflow.models.connection import Connection
+    from airflow.models.dag import DAG
     from airflow.models.dagrun import DagRun
+    from airflow.models.variable import Variable
+    from airflow.models.xcom_arg import XComArg
 
 
 class BaseAirflowTestClientAndServer(BaseTestClientAndServer):
@@ -41,6 +40,8 @@ class BaseAirflowTestClientAndServer(BaseTestClientAndServer):
             assert isinstance(connect_args, dict)
             assert isinstance(engine_kwargs, dict)
         elif self.side == "server":
+            from airflow.models.connection import Connection
+
             assert isinstance(connection, Connection)
         elif self.side == "direct":
             assert isinstance(connection, dict)
@@ -56,6 +57,8 @@ class BaseAirflowTestClientAndServer(BaseTestClientAndServer):
         conn_ids: Iterable[str] | None = None,
         var_ids: Iterable[str] | None = None,
     ) -> None:
+        from airflow.models.xcom import BaseXCom
+
         task = cls.xcom_to_operator(task)
         stmt = sa.select(BaseXCom).where(
             BaseXCom.dag_id == task.dag_id,
@@ -88,6 +91,8 @@ class BaseAirflowTestClientAndServer(BaseTestClientAndServer):
             url = make_url(url)
             return url.render_as_string(hide_password=False)
         if self.side == "server":
+            from airflow.models.connection import Connection
+
             assert isinstance(connection, Connection)
             return connection.get_uri()
         if self.side == "direct":
@@ -105,6 +110,8 @@ class BaseAirflowTestClientAndServer(BaseTestClientAndServer):
                 **connection["engine_kwargs"],
             )
         if self.side == "server":
+            from airflow.providers.common.sql.hooks.sql import DbApiHook
+
             hook = get_hook(connection)
             assert isinstance(hook, DbApiHook)
             engine = hook.get_sqlalchemy_engine()
@@ -114,6 +121,7 @@ class BaseAirflowTestClientAndServer(BaseTestClientAndServer):
         raise fe.FernetSecretsTypeError(error_msg)
 
 
+@pytest.mark.skipif(not AIRFLOW_SERVER_FLAG, reason="airflow does not support 3.13 yet")
 @pytest.mark.parametrize(
     "backend_class",
     [pytest.param("server", marks=[pytest.mark.airflow])],
@@ -133,6 +141,8 @@ class BaseAirflowTaskTest(BaseAirflowTestClientAndServer):
         raise NotImplementedError
 
     def test_dump_connection(self, secret_key, backend_path, temp_file):
+        from airflow.models.connection import Connection
+
         conn_id = temp_file.stem
         assert not self.backend.has_connection(conn_id)
 
@@ -162,6 +172,8 @@ class BaseAirflowTaskTest(BaseAirflowTestClientAndServer):
         self.check_task_output(dag_run, task, [conn_id])
 
     def test_dump_variable(self, secret_key, backend_path):
+        from airflow.models.variable import Variable
+
         key, value = str(uuid4()), str(uuid4())
         assert not self.backend.has_variable(key)
 
@@ -186,6 +198,8 @@ class BaseAirflowTaskTest(BaseAirflowTestClientAndServer):
         self.check_task_output(dag_run, task, None, [key])
 
     def test_load_connection(self, secret_key, backend_path, temp_file):
+        from airflow.models.connection import Connection
+
         conn_id = temp_file.stem
         check = self.get_connection_in_airflow(conn_id)
         assert check is None
@@ -219,6 +233,8 @@ class BaseAirflowTaskTest(BaseAirflowTestClientAndServer):
         self.check_task_output(dag_run, task, [conn_id])
 
     def test_load_variable(self, secret_key, backend_path):
+        from airflow.models.variable import Variable
+
         key, value = str(uuid4()), str(uuid4())
         check = self.get_variable_in_airflow(key)
         assert check is None
@@ -265,6 +281,8 @@ class BaseAirflowTaskTest(BaseAirflowTestClientAndServer):
         conf_secret_key: bool,
         conf_backend_path: bool,
     ):
+        from airflow.models.connection import Connection
+
         conn_id = temp_file.stem
         assert not self.backend.has_connection(conn_id)
 
@@ -327,6 +345,8 @@ class BaseAirflowTaskTest(BaseAirflowTestClientAndServer):
         conf_secret_key: bool,
         conf_backend_path: bool,
     ):
+        from airflow.models.variable import Variable
+
         variable_key, variable_value = str(uuid4()), str(uuid4())
         assert not self.backend.has_variable(variable_key)
 
@@ -385,6 +405,8 @@ class BaseAirflowTaskTest(BaseAirflowTestClientAndServer):
         conf_secret_key: bool,
         conf_backend_path: bool,
     ):
+        from airflow.models.connection import Connection
+
         conn_id = temp_file.stem
         check = self.get_connection_in_airflow(conn_id)
         assert check is None
@@ -451,6 +473,8 @@ class BaseAirflowTaskTest(BaseAirflowTestClientAndServer):
         conf_secret_key: bool,
         conf_backend_path: bool,
     ):
+        from airflow.models.variable import Variable
+
         variable_key, variable_value = str(uuid4()), str(uuid4())
         check = self.get_variable_in_airflow(variable_key)
         assert check is None
@@ -495,6 +519,8 @@ class BaseAirflowTaskTest(BaseAirflowTestClientAndServer):
         self.check_task_output(dag_run, task, None, [variable_key])
 
     def test_dump_connection_rename(self, secret_key, backend_path, temp_file):
+        from airflow.models.connection import Connection
+
         conn_id = temp_file.stem
         new_id = str(uuid4())
         conn = Connection(
@@ -525,6 +551,8 @@ class BaseAirflowTaskTest(BaseAirflowTestClientAndServer):
         self.check_task_output(dag_run, task, [new_id])
 
     def test_dump_variable_rename(self, secret_key, backend_path):
+        from airflow.models.variable import Variable
+
         key, value, new_key = str(uuid4()), str(uuid4()), str(uuid4())
         variable = Variable(key, value)
         self.add_in_airflow(variable)
@@ -551,6 +579,8 @@ class BaseAirflowTaskTest(BaseAirflowTestClientAndServer):
         self.check_task_output(dag_run, task, None, [new_key])
 
     def test_load_connection_rename(self, secret_key, backend_path, temp_file):
+        from airflow.models.connection import Connection
+
         conn_id = temp_file.stem
         conn = Connection(
             conn_id=conn_id, conn_type="fs", extra={"path": str(temp_file)}
@@ -581,6 +611,8 @@ class BaseAirflowTaskTest(BaseAirflowTestClientAndServer):
         self.check_task_output(dag_run, task, [new_conn_id])
 
     def test_load_variable_rename(self, secret_key, backend_path):
+        from airflow.models.variable import Variable
+
         key, value, new_key = str(uuid4()), str(uuid4()), str(uuid4())
         self.backend.set_variable(key, value)
 
@@ -617,6 +649,9 @@ class BaseAirflowTaskTest(BaseAirflowTestClientAndServer):
     def test_dump_many(
         self, secret_key, backend_path, conn_ids: list[str], var_ids: list[str]
     ):
+        from airflow.models.connection import Connection
+        from airflow.models.variable import Variable
+
         salt = str(uuid4())
         conn_ids = [f"{salt}-{x}" for x in conn_ids]
         var_ids = [f"{salt}-{x}" for x in var_ids]
@@ -683,6 +718,8 @@ class BaseAirflowTaskTest(BaseAirflowTestClientAndServer):
     def test_load_many(
         self, secret_key, backend_path, conn_ids: list[str], var_ids: list[str]
     ):
+        from airflow.models.connection import Connection
+
         salt = str(uuid4())
         conn_ids = [f"{salt}-{x}" for x in conn_ids]
         var_ids = [f"{salt}-{x}" for x in var_ids]

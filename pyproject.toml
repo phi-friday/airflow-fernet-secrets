@@ -14,8 +14,9 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
-requires-python = ">=3.8, <3.13"
+requires-python = ">=3.8, <3.14"
 dependencies = [
     "typing-extensions>=4.4.0",
     "sqlalchemy>=1.4",
@@ -28,11 +29,11 @@ dependencies = [
 [project.optional-dependencies]
 test = [
     # support pep440
-    "apache-airflow>=2.9.3",
+    "apache-airflow>=2.9.3; python_version != '3.13'",
     "pytest>=7",
     # async
     "anyio",
-    "uvloop; platform_system != 'Windows'",
+    "uvloop; platform_system != 'Windows' and python_version != '3.13'",
     "psycopg2>=2",
     "pyodbc>=5",
     "pymssql>=2",
@@ -49,7 +50,7 @@ Repository = "https://github.com/phi-friday/airflow-fernet-secrets"
 [tool.uv]
 managed = true
 dev-dependencies = [
-    "apache-airflow[odbc,mssql,postgres]==2.10.1",
+    "apache-airflow[odbc,mssql,postgres]==2.10.2; python_version != '3.13'",
     "ruff==0.6.8",
     "ipykernel>=6.29.4",
     "sqlalchemy2-stubs>=0.0.2a38",

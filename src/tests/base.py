@@ -8,14 +8,6 @@ import pytest
 import sqlalchemy as sa
 from pendulum.datetime import DateTime
 
-from airflow import DAG
-from airflow.models.connection import Connection
-from airflow.models.variable import Variable
-from airflow.models.xcom_arg import XComArg
-from airflow.utils.session import create_session
-from airflow.utils.state import DagRunState
-from airflow.utils.types import DagRunType
-
 from airflow_fernet_secrets import exceptions as fe
 from airflow_fernet_secrets.connection.server import convert_connection_to_dict
 from airflow_fernet_secrets.utils.re import camel_to_snake
@@ -26,9 +18,13 @@ if TYPE_CHECKING:
     from sqlalchemy.orm import Session
     from typing_extensions import TypeAlias
 
+    from airflow import DAG
     from airflow.hooks.base import BaseHook
     from airflow.models.baseoperator import BaseOperator
+    from airflow.models.connection import Connection
     from airflow.models.dagrun import DagRun
+    from airflow.models.variable import Variable
+    from airflow.models.xcom_arg import XComArg
 
     from airflow_fernet_secrets._typeshed import PathType
     from airflow_fernet_secrets.secrets.common import CommonFernetLocalSecretsBackend
@@ -66,11 +62,15 @@ class BaseTestClientAndServer:
 
     @property
     def dag(self) -> type[DAG]:
+        from airflow import DAG
+
         return DAG
 
     @staticmethod
     @contextmanager
     def create_session() -> Generator[Session, None, None]:
+        from airflow.utils.session import create_session
+
         with ignore_warnings(), create_session() as session:
             yield session
 
@@ -107,6 +107,8 @@ class BaseTestClientAndServer:
             url = create_sqlite_url(file, is_async=is_async, query=extra, **kwargs)
             return {"url": url, "connect_args": {}, "engine_kwargs": {}}
         if self.side == "server":
+            from airflow.models.connection import Connection
+
             return Connection(
                 conn_id=conn_id,
                 conn_type=conn_type,
@@ -115,6 +117,8 @@ class BaseTestClientAndServer:
                 **kwargs,
             )
         if self.side == "direct":
+            from airflow.models.connection import Connection
+
             connection = Connection(
                 conn_id=conn_id,
                 conn_type=conn_type,
@@ -130,6 +134,9 @@ class BaseTestClientAndServer:
     def create_dagrun(
         dag: DAG, now: datetime | None = None, **kwargs: Any
     ) -> tuple[DagRun, datetime]:
+        from airflow.utils.state import DagRunState
+        from airflow.utils.types import DagRunType
+
         if now is None:
             now = DateTime.utcnow()
         default = {
@@ -147,6 +154,8 @@ class BaseTestClientAndServer:
 
     @staticmethod
     def xcom_to_operator(task: BaseOperator | XComArg) -> BaseOperator:
+        from airflow.models.xcom_arg import XComArg
+
         if isinstance(task, XComArg):
             return task.operator  # pyright: ignore[reportAttributeAccessIssue]
         return task
@@ -155,6 +164,8 @@ class BaseTestClientAndServer:
     def run_task(
         cls, task: BaseOperator | XComArg, now: datetime | None = None, **kwargs: Any
     ) -> None:
+        from airflow.models.xcom_arg import XComArg
+
         if now is None:
             now = DateTime.utcnow()
         default = {
@@ -178,6 +189,8 @@ class BaseTestClientAndServer:
 
     @classmethod
     def get_connection_in_airflow(cls, conn_id: str) -> Connection | None:
+        from airflow.models.connection import Connection
+
         stmt = sa.select(Connection).where(Connection.conn_id == conn_id)
         with cls.create_session() as session:
             result = session.scalars(stmt).one_or_none()
@@ -188,6 +201,8 @@ class BaseTestClientAndServer:
 
     @classmethod
     def get_variable_in_airflow(cls, key: str) -> Variable | None:
+        from airflow.models.variable import Variable
+
         stmt = sa.select(Variable).where(Variable.key == key)
         with cls.create_session() as session:
             result = session.scalars(stmt).one_or_none()

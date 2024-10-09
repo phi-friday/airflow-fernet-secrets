@@ -1,17 +1,19 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 from typing_extensions import override
 
-from airflow import DAG
-from airflow.models.baseoperator import BaseOperator
-from airflow.models.xcom_arg import XComArg
 from tests.base_airflow import BaseAirflowTaskTest
 
 from airflow_fernet_secrets.operators.dump import DumpSecretsOperator
 from airflow_fernet_secrets.operators.load import LoadSecretsOperator
+
+if TYPE_CHECKING:
+    from airflow import DAG
+    from airflow.models.baseoperator import BaseOperator
+    from airflow.models.xcom_arg import XComArg
 
 pytestmark = pytest.mark.airflow
 
