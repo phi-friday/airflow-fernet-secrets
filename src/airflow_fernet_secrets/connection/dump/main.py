@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
-
-from typing_extensions import TypedDict
+from typing import TYPE_CHECKING
 
 from airflow_fernet_secrets import exceptions as fe
 from airflow_fernet_secrets.const import MSSQL_CONN_TYPES as _MSSQL_CONN_TYPES
@@ -11,22 +9,11 @@ from airflow_fernet_secrets.const import POSTGRESQL_CONN_TYPES as _POSTGRESQL_CO
 from airflow_fernet_secrets.const import SQLITE_CONN_TYPES as _SQLITE_CONN_TYPES
 
 if TYPE_CHECKING:
-    from sqlalchemy.engine.url import URL
-
     from airflow.models.connection import Connection
 
-__all__ = ["ConnectionArgs", "connection_to_args"]
+    from airflow_fernet_secrets.typings import ConnectionArgs
 
-
-class ConnectionArgs(TypedDict, total=True):
-    """connection args using in sqlalchemy"""
-
-    url: str | URL
-    """sqlalchemy url"""
-    connect_args: dict[str, Any]
-    """dbapi connection args"""
-    engine_kwargs: dict[str, Any]
-    """sqlalchemy engine args"""
+__all__ = ["connection_to_args"]
 
 
 def connection_to_args(connection: Connection) -> ConnectionArgs:

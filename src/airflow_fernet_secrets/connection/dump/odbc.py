@@ -12,7 +12,7 @@ from airflow_fernet_secrets import exceptions as fe
 from airflow_fernet_secrets.const import ODBC_CONN_TYPES as _ODBC_CONN_TYPES
 
 if TYPE_CHECKING:
-    from airflow_fernet_secrets.connection import ConnectionArgs
+    from airflow_fernet_secrets.typings import ConnectionArgs
 
 __all__ = ["connection_to_args"]
 

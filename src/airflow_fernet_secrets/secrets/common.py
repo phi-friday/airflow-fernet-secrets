@@ -36,8 +36,8 @@ if TYPE_CHECKING:
     from airflow.secrets import BaseSecretsBackend
 
     from airflow_fernet_secrets._typeshed import PathType
-    from airflow_fernet_secrets.connection import ConnectionDict
     from airflow_fernet_secrets.log.common import CommonLoggingMixin
+    from airflow_fernet_secrets.typings import ConnectionDict
 
     class BaseFernetLocalSecretsBackend(
         BaseSecretsBackend, CommonLoggingMixin, ABC

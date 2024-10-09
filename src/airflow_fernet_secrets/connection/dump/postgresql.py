@@ -14,7 +14,7 @@ from airflow_fernet_secrets.const import POSTGRESQL_CONN_TYPES as _POSTGRESQL_CO
 if TYPE_CHECKING:
     from psycopg2._psycopg import cursor
 
-    from airflow_fernet_secrets.connection import ConnectionArgs
+    from airflow_fernet_secrets.typings import ConnectionArgs
 
 __all__ = ["connection_to_args"]
 

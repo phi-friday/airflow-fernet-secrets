@@ -15,10 +15,10 @@ import pytest
 from cryptography.fernet import Fernet
 
 if TYPE_CHECKING:
-    from airflow_fernet_secrets.connection.dump.main import ConnectionArgs
     from airflow_fernet_secrets.secrets.client import ClientFernetLocalSecretsBackend
     from airflow_fernet_secrets.secrets.common import CommonFernetLocalSecretsBackend
     from airflow_fernet_secrets.secrets.server import ServerFernetLocalSecretsBackend
+    from airflow_fernet_secrets.typings import ConnectionArgs
 
 AIRFLOW_SERVER_FLAG = sys.version_info < (3, 13)
 

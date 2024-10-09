@@ -11,8 +11,6 @@ from airflow_fernet_secrets import exceptions as fe
 from airflow_fernet_secrets.config.client import load_backend_file as _load_backend_file
 from airflow_fernet_secrets.config.client import load_secret_key as _load_secret_key
 from airflow_fernet_secrets.connection import (
-    ConnectionArgs,
-    ConnectionDict,
     convert_args_from_jsonable,
     convert_args_to_jsonable,
 )
@@ -27,10 +25,12 @@ from airflow_fernet_secrets.secrets.common import (
 
 if TYPE_CHECKING:
     from airflow_fernet_secrets.database.model import Connection
+    from airflow_fernet_secrets.typings import ConnectionArgs, ConnectionDict
 
 __all__ = ["ClientFernetLocalSecretsBackend", "DirectFernetLocalSecretsBackend"]
 
 ConnectionType: TypeAlias = "ConnectionArgs"
+DirectConnectionType: TypeAlias = "ConnectionDict"
 
 
 class ClientFernetLocalSecretsBackend(
@@ -95,7 +95,7 @@ class ClientFernetLocalSecretsBackend(
 
 
 class DirectFernetLocalSecretsBackend(
-    _CommonFernetLocalSecretsBackend[ConnectionDict], LoggingMixin
+    _CommonFernetLocalSecretsBackend[DirectConnectionType], LoggingMixin
 ):
     """using in non-airflow"""
 
@@ -103,7 +103,7 @@ class DirectFernetLocalSecretsBackend(
     load_secret_key = staticmethod(_load_secret_key)
 
     @override
-    def _get_conn_type(self, connection: ConnectionDict) -> str:
+    def _get_conn_type(self, connection: DirectConnectionType) -> str:
         args = connection["args"]
         if args is not None:
             with suppress(Exception):
@@ -118,8 +118,8 @@ class DirectFernetLocalSecretsBackend(
 
     @override
     def _deserialize_connection(
-        self, conn_id: str, connection: ConnectionDict
-    ) -> ConnectionDict:
+        self, conn_id: str, connection: DirectConnectionType
+    ) -> DirectConnectionType:
         connection_args = connection["args"]
         if connection_args:
             connection = connection.copy()
@@ -128,8 +128,8 @@ class DirectFernetLocalSecretsBackend(
 
     @override
     def _serialize_connection(
-        self, conn_id: str, connection: ConnectionDict
-    ) -> ConnectionDict:
+        self, conn_id: str, connection: DirectConnectionType
+    ) -> DirectConnectionType:
         args = connection["args"]
         if args is not None:
             connection["args"] = convert_args_to_jsonable(args)

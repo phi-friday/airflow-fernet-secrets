@@ -5,7 +5,6 @@ from contextlib import suppress
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.engine.url import make_url
-from typing_extensions import Required, TypedDict
 
 from airflow_fernet_secrets.connection.json.class_to_tuple import (
     dump_as_jsonable,
@@ -13,30 +12,9 @@ from airflow_fernet_secrets.connection.json.class_to_tuple import (
 )
 
 if TYPE_CHECKING:
-    from airflow_fernet_secrets.connection import ConnectionArgs
+    from airflow_fernet_secrets.typings import ConnectionArgs
 
-__all__ = ["ConnectionDict", "convert_args_to_jsonable", "convert_args_from_jsonable"]
-
-
-class ConnectionDict(TypedDict, total=False):
-    """serialized connection dict"""
-
-    conn_type: str
-    """conn type(== airflow `Connection.conn_type`)"""
-    host: str
-    """`Connection.host`"""
-    login: str
-    """`Connection.login`"""
-    password: str
-    """`Connection.password`"""
-    schema: str
-    """`Connection.schema`"""
-    port: int
-    """`Connection.port`"""
-    extra: Required[dict[str, Any]]
-    """`Connection.extra`"""
-    args: Required[ConnectionArgs | None]
-    """`ConnectionArgs`"""
+__all__ = ["convert_args_to_jsonable", "convert_args_from_jsonable"]
 
 
 def convert_args_to_jsonable(args: ConnectionArgs) -> ConnectionArgs:

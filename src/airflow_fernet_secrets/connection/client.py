@@ -15,7 +15,7 @@ from airflow_fernet_secrets import exceptions as fe
 from airflow_fernet_secrets.database.connect import SessionMaker
 
 if TYPE_CHECKING:
-    from airflow_fernet_secrets.connection import ConnectionArgs, ConnectionDict
+    from airflow_fernet_secrets.typings import ConnectionArgs, ConnectionDict
 
 __all__ = [
     "convert_url_to_dict",

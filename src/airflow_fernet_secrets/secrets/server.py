@@ -24,7 +24,7 @@ from airflow_fernet_secrets.secrets.common import (
 if TYPE_CHECKING:
     from airflow.models.connection import Connection
 
-    from airflow_fernet_secrets.connection import ConnectionDict
+    from airflow_fernet_secrets.typings import ConnectionDict
 else:
     Connection = Any
 

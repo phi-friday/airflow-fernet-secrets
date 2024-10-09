@@ -15,7 +15,7 @@ from tests.base_airflow import BaseAirflowTestClientAndServer
 from tests.conftest import AIRFLOW_SERVER_FLAG
 
 if TYPE_CHECKING:
-    from airflow_fernet_secrets.connection.dump.main import ConnectionArgs
+    from airflow_fernet_secrets.typings import ConnectionArgs
 
 
 backend_class_params: list[Any] = ["client"]

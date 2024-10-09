@@ -8,7 +8,7 @@ from airflow_fernet_secrets import exceptions as fe
 if TYPE_CHECKING:
     from airflow.models.connection import Connection
 
-    from airflow_fernet_secrets.connection import ConnectionDict
+    from airflow_fernet_secrets.typings import ConnectionDict
 
 __all__ = [
     "convert_connection_to_dict",
