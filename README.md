@@ -40,18 +40,21 @@ AIRFLOW__PROVIDERS_FERNET_SECRETS__BACKEND_FILE=# some sqlite file path
 ```python
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING
 
 from pendulum import datetime
 
 from airflow.decorators import dag, task
 from airflow.providers.fernet_secrets.operators.sync import DumpSecretsOperator
 
+if TYPE_CHECKING:
+    from airflow_fernet_secrets.typings import SecretsParameter
+
 
 @dag(start_date=datetime(2024, 1, 1), catchup=False, schedule=None)
 def dump_connection():
     @task.load_fernet()
-    def load_connection() -> dict[str, Any]:
+    def load_connection() -> SecretsParameter:
         return {"conn_ids": "some_conn_id"}
 
     dump = DumpSecretsOperator(task_id="dump", fernet_secrets_conn_ids="some_conn_id")
