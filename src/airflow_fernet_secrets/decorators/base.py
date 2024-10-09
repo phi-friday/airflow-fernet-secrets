@@ -6,46 +6,33 @@ if not HAS_AIRFLOW or not IS_SERVER_FLAG:
     raise ImportError("not has airflow or not in server")
 
 import warnings
-from typing import TYPE_CHECKING, Any, Callable, Collection, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Callable, Collection, Mapping
 
-from typing_extensions import TypedDict, override
+from typing_extensions import override
 
 from airflow.decorators.base import DecoratedOperator
 from airflow.utils.context import Context, context_merge
 from airflow.utils.operator_helpers import determine_kwargs
 
 if TYPE_CHECKING:
-    from cryptography.fernet import Fernet, MultiFernet
-
-    from airflow_fernet_secrets._typeshed import PathType
+    from airflow_fernet_secrets.typings import SecretsParameter
 
 __all__ = []
 
 _PREFIX = "fernet_secrets_"
 
 
-class SecretsParameters(TypedDict, total=False):
-    conn_ids: str | Sequence[str] | None
-    var_ids: str | Sequence[str] | None
-    rename: str | Sequence[Sequence[str]] | Mapping[str, str] | None
-    separate: str | bool
-    separator: str
-    key: str | bytes | Fernet | MultiFernet | None
-    backend_file_path: PathType | None
-    overwrite: str | bool
-
-
 class FernetDecoratedOperator(DecoratedOperator):
     template_fields = ("op_args", "op_kwargs")
 
     custom_operator_name: str
-    python_callable: Callable[..., SecretsParameters]
+    python_callable: Callable[..., SecretsParameter]
 
     @override
     def __init__(
         self,
         *,
-        python_callable: Callable[..., SecretsParameters],
+        python_callable: Callable[..., SecretsParameter],
         task_id: str,
         op_args: Collection[Any] | None = None,
         op_kwargs: Mapping[str, Any] | None = None,

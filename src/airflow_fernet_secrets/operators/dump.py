@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Sequence
 
 import sqlalchemy as sa
 from typing_extensions import override
@@ -14,13 +14,21 @@ from airflow_fernet_secrets.operators.base import HasIds, OperatorResult
 from airflow_fernet_secrets.utils.cast import ensure_boolean
 
 if TYPE_CHECKING:
-    from cryptography.fernet import Fernet, MultiFernet
     from sqlalchemy.orm import Session
 
     from airflow.utils.context import Context
 
-    from airflow_fernet_secrets._typeshed import PathType
     from airflow_fernet_secrets.secrets.server import ServerFernetLocalSecretsBackend
+    from airflow_fernet_secrets.typings import (
+        SecretsBackendFilePath,
+        SecretsConnIds,
+        SecretsKey,
+        SecretsOverwrite,
+        SecretsRename,
+        SecretsSeparate,
+        SecretsSeparator,
+        SecretsVarIds,
+    )
 
 
 __all__ = ["DumpSecretsOperator"]
@@ -46,17 +54,14 @@ class DumpSecretsOperator(HasIds):
     def __init__(  # noqa: PLR0913
         self,
         *,
-        fernet_secrets_conn_ids: str | Sequence[str] | None = None,
-        fernet_secrets_var_ids: str | Sequence[str] | None = None,
-        fernet_secrets_rename: str
-        | Sequence[Sequence[str]]
-        | Mapping[str, str]
-        | None = None,
-        fernet_secrets_separate: str | bool = False,
-        fernet_secrets_separator: str = ",",
-        fernet_secrets_key: str | bytes | Fernet | MultiFernet | None = None,
-        fernet_secrets_backend_file_path: PathType | None = None,
-        fernet_secrets_overwrite: str | bool = False,
+        fernet_secrets_conn_ids: SecretsConnIds | None = None,
+        fernet_secrets_var_ids: SecretsVarIds | None = None,
+        fernet_secrets_rename: SecretsRename | None = None,
+        fernet_secrets_separate: SecretsSeparate = False,
+        fernet_secrets_separator: SecretsSeparator = ",",
+        fernet_secrets_key: SecretsKey | None = None,
+        fernet_secrets_backend_file_path: SecretsBackendFilePath | None = None,
+        fernet_secrets_overwrite: SecretsOverwrite = False,
         **kwargs: Any,
     ) -> None:
         """init DumpSecretsOperator.

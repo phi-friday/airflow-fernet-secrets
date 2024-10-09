@@ -8,7 +8,7 @@ from airflow_fernet_secrets.decorators.base import FernetDecoratedOperator
 from airflow_fernet_secrets.operators.load import LoadSecretsOperator
 
 if TYPE_CHECKING:
-    from airflow_fernet_secrets.decorators.base import SecretsParameters
+    from airflow_fernet_secrets.typings import SecretsParameter
 
 __all__ = ["load_fernet_task"]
 
@@ -18,7 +18,7 @@ class _LoadDecoratedOperator(FernetDecoratedOperator, LoadSecretsOperator):
 
 
 def load_fernet_task(
-    python_callable: Callable[..., SecretsParameters] | None = None, **kwargs: Any
+    python_callable: Callable[..., SecretsParameter] | None = None, **kwargs: Any
 ) -> TaskDecorator:
     """wrap a function into LoadSecretsOperator."""
     return task_decorator_factory(
