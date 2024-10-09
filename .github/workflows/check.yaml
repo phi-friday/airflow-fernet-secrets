@@ -15,7 +15,7 @@ on:
       - "pyproject.toml"
 
 jobs:
-  build:
+  test-all:
     runs-on: ubuntu-latest
     env:
       UV_CACHE_DIR: /tmp/.uv-cache
@@ -72,3 +72,31 @@ jobs:
         run: |
           source .venv/bin/activate
           pytest -m "airflow" -n 0
+
+  test-client-only:
+    runs-on: ubuntu-latest
+    env:
+      UV_CACHE_DIR: /tmp/.uv-cache
+    strategy:
+      matrix:
+        python-version: ["3.13"]
+
+    name: check py-${{ matrix.python-version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: Set up Python ${{ matrix.python-version }}
+        id: setup-python
+        run: |
+          uv python install ${{ matrix.python-version }}
+          uv python pin ${{ matrix.python-version }}
+          uv lock
+          uv venv
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Test with pytest - not airflow
+        run: uv run pytest -m "not airflow"
