@@ -15,6 +15,9 @@ fixable = [
     "SIM108", # if-else-block-instead-of-if-exp
     "I002",   #	missing-required-import	
     "RUF100", # unused-noqa
+    "PT",
+    "RUF022", # unsorted-dunder-all
+    "RUF101", # redirected-noqa
 ]
 ignore = [
     'TD',     # flake8-todos
@@ -39,8 +42,6 @@ ignore = [
     "D415",   # ends-in-punctuation
     "EM101",  # raw-string-in-exception
     "TRY003", # raise-vanilla-args
-    "ANN101", # missing-type-self
-    "ANN102", # missing-type-cls
     "ANN401", # dynamically-typed-expression
     "FBT002", # boolean-default-value-in-function-definition
     "PGH003", # blanket-type-ignore

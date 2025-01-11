@@ -51,7 +51,7 @@ Repository = "https://github.com/phi-friday/airflow-fernet-secrets"
 managed = true
 dev-dependencies = [
     "apache-airflow[odbc,mssql,postgres]==2.10.2; python_version != '3.13'",
-    "ruff==0.6.8",
+    "ruff==0.9.1",
     "ipykernel>=6.29.4",
     "sqlalchemy2-stubs>=0.0.2a38",
     "pre-commit>=3.5.0",
@@ -61,8 +61,8 @@ dev-dependencies = [
 
 [tool.poe.tasks]
 lint = ["_lint:check", "_lint:format"]
-"_lint:check" = "ruff check src tests --fix"
-"_lint:format" = "ruff format src tests"
+"_lint:check" = "ruff check src src/tests --fix"
+"_lint:format" = "ruff format src src/tests"
 check = "pre-commit run --all-files --show-diff-on-failure"
 
 [tool.poe.tasks.constraint]
