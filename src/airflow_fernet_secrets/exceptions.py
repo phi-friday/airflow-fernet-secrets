@@ -3,9 +3,9 @@ from __future__ import annotations
 __all__ = [
     "FernetSecretsError",
     "FernetSecretsKeyError",
-    "FernetSecretsValueError",
-    "FernetSecretsTypeError",
     "FernetSecretsNotImplementedError",
+    "FernetSecretsTypeError",
+    "FernetSecretsValueError",
 ]
 
 

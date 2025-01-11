@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
     from airflow_fernet_secrets._typeshed import PathType
 
-__all__ = ["SecretsParameter", "ConnectionArgs", "ConnectionDict"]
+__all__ = ["ConnectionArgs", "ConnectionDict", "SecretsParameter"]
 
 SecretsConnIds: TypeAlias = "str | Sequence[str]"
 SecretsVarIds: TypeAlias = "str | Sequence[str]"

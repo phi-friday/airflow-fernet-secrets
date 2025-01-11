@@ -40,12 +40,12 @@ if TYPE_CHECKING:
 __all__ = [
     "SessionMaker",
     "create_sqlite_url",
-    "ensure_sqlite_url",
+    "ensure_sqlite_async_engine",
     "ensure_sqlite_engine",
     "ensure_sqlite_sync_engine",
-    "ensure_sqlite_async_engine",
-    "enter_sync_database",
+    "ensure_sqlite_url",
     "enter_async_database",
+    "enter_sync_database",
 ]
 
 SessionT = TypeVar("SessionT", bound="Session | AsyncSession")

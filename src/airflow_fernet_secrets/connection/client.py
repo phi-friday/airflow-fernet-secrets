@@ -18,10 +18,10 @@ if TYPE_CHECKING:
     from airflow_fernet_secrets.typings import ConnectionArgs, ConnectionDict
 
 __all__ = [
-    "convert_url_to_dict",
     "convert_connectable_to_dict",
-    "create_url",
+    "convert_url_to_dict",
     "create_connection_args",
+    "create_url",
 ]
 
 

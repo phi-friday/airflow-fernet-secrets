@@ -14,7 +14,7 @@ from typing_extensions import Self, TypeGuard, override
 from airflow_fernet_secrets import const
 from airflow_fernet_secrets import exceptions as fe
 from airflow_fernet_secrets.config.common import ensure_fernet
-from airflow_fernet_secrets.utils.re import camel_to_snake
+from airflow_fernet_secrets.utils.rename import camel_to_snake
 
 if TYPE_CHECKING:
     from cryptography.fernet import Fernet, MultiFernet
@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from airflow_fernet_secrets.database.connect import SessionMaker
 
 
-__all__ = ["Version", "Connection", "Variable", "migrate"]
+__all__ = ["Connection", "Variable", "Version", "migrate"]
 
 _DATACLASS_ARGS: dict[str, Any]
 if sys.version_info >= (3, 10):

@@ -15,7 +15,7 @@ from airflow_fernet_secrets.config.common import (
 if TYPE_CHECKING:
     from logging import Logger
 
-__all__ = ["load_secret_key", "load_backend_file"]
+__all__ = ["load_backend_file", "load_secret_key"]
 
 
 @ensure_fernet_return

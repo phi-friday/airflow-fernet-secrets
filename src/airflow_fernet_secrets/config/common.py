@@ -24,10 +24,10 @@ if TYPE_CHECKING:
 
 __all__ = [
     "create_backend_file",
-    "load_from_cmd",
-    "load_from_file",
     "ensure_fernet",
     "ensure_fernet_return",
+    "load_from_cmd",
+    "load_from_file",
 ]
 
 

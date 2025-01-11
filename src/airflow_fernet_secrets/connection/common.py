@@ -14,7 +14,7 @@ from airflow_fernet_secrets.connection.json.class_to_tuple import (
 if TYPE_CHECKING:
     from airflow_fernet_secrets.typings import ConnectionArgs
 
-__all__ = ["convert_args_to_jsonable", "convert_args_from_jsonable"]
+__all__ = ["convert_args_from_jsonable", "convert_args_to_jsonable"]
 
 
 def convert_args_to_jsonable(args: ConnectionArgs) -> ConnectionArgs:
