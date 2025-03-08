@@ -21,8 +21,6 @@ fixable = [
 ]
 ignore = [
     'TD',     # flake8-todos
-    'E712',   # TrueFalseComparison # sqlalchemy
-    "E711",   # none-comparison # sqlalchemy
     "D100",   # public-module
     "D104",   # public-package
     "D107",   # public-init
@@ -52,6 +50,7 @@ ignore = [
     "TD",     # flake8-todos
     "FIX",    # flake8-fixme
     "D413",   # blank-line-after-last-section 
+    "A005",   # stdlib-module-shadowing
     # ruff format
     "W191",   # tab-indentation
     "E111",   # indentation-with-invalid-multiple
@@ -101,4 +100,11 @@ split-on-trailing-comma = false
     "PLR0913",
     "ARG002",
     "FBT001",
+]
+
+[lint.flake8-type-checking]
+exempt-modules = ["typing", "typing_extensions"]
+runtime-evaluated-base-classes = [
+    "pydantic.BaseModel",
+    "sqlalchemy.orm.DeclarativeBase",
 ]
