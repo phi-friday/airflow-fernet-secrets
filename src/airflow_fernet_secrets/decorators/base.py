@@ -6,7 +6,8 @@ if not HAS_AIRFLOW or not IS_SERVER_FLAG:
     raise ImportError("not has airflow or not in server")
 
 import warnings
-from typing import TYPE_CHECKING, Any, Callable, Collection, Mapping
+from collections.abc import Collection, Mapping
+from typing import TYPE_CHECKING, Any, Callable
 
 from typing_extensions import override
 

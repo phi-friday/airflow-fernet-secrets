@@ -3,16 +3,7 @@ from __future__ import annotations
 from contextlib import asynccontextmanager, contextmanager
 from pathlib import Path
 from tempfile import gettempdir
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    AsyncGenerator,
-    Callable,
-    Generator,
-    Protocol,
-    overload,
-    runtime_checkable,
-)
+from typing import TYPE_CHECKING, Any, Callable, Protocol, overload, runtime_checkable
 from uuid import uuid4
 
 from filelock import AsyncFileLock, FileLock
@@ -33,6 +24,8 @@ from airflow_fernet_secrets import exceptions as fe
 from airflow_fernet_secrets.log.common import get_logger
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator, Generator
+
     from sqlalchemy.engine.interfaces import Dialect, _DBAPIConnection
 
     from airflow_fernet_secrets._typeshed import PathType

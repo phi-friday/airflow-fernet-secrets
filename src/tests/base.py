@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import warnings
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, Generator, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import pytest
 import sqlalchemy as sa

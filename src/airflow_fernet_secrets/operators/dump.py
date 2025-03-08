@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import TYPE_CHECKING, Any
 
 import sqlalchemy as sa
 from typing_extensions import override
@@ -14,6 +14,8 @@ from airflow_fernet_secrets.operators.base import HasIds, OperatorResult
 from airflow_fernet_secrets.utils.cast import ensure_boolean
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from sqlalchemy.orm import Session
 
     from airflow.utils.context import Context

@@ -6,9 +6,10 @@ if not HAS_AIRFLOW or not IS_SERVER_FLAG:
     raise ImportError("not has airflow or not in server")
 
 import json
+from collections.abc import Mapping, Sequence
 from functools import cached_property
 from itertools import chain
-from typing import TYPE_CHECKING, Any, Mapping, Sequence
+from typing import TYPE_CHECKING, Any
 
 from typing_extensions import TypedDict
 

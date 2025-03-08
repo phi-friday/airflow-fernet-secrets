@@ -4,7 +4,7 @@ import json
 from abc import ABC, abstractmethod
 from contextlib import asynccontextmanager, contextmanager, suppress
 from functools import cached_property
-from typing import TYPE_CHECKING, AsyncGenerator, Generator, Generic, Literal, cast
+from typing import TYPE_CHECKING, Generic, Literal, cast
 
 import sqlalchemy as sa
 from sqlalchemy.exc import ResourceClosedError
@@ -24,6 +24,7 @@ from airflow_fernet_secrets.database.model import Variable as FernetVariable
 from airflow_fernet_secrets.database.model import migrate
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator, Generator
     from logging import Logger
 
     from cryptography.fernet import Fernet, MultiFernet

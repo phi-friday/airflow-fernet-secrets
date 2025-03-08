@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Mapping, Sequence
+from typing import TYPE_CHECKING, Any
 
 from typing_extensions import Required, TypeAlias, TypedDict
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence
+
     from cryptography.fernet import Fernet, MultiFernet
     from sqlalchemy.engine.url import URL
 
