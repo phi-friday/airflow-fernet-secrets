@@ -118,7 +118,7 @@ def _odbc_driver(lower_extra: dict[str, Any]) -> str:
 
     if not driver:
         try:
-            import pyodbc
+            import pyodbc  # noqa: PLC0415
         except ImportError:
             driver = ""
         else:

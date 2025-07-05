@@ -100,6 +100,7 @@ split-on-trailing-comma = false
     "PLR0913",
     "ARG002",
     "FBT001",
+    "PLC0415",
 ]
 
 [lint.flake8-type-checking]

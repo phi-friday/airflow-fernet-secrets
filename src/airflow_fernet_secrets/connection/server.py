@@ -19,7 +19,9 @@ __all__ = [
 
 def convert_connection_to_dict(connection: Connection) -> ConnectionDict:
     """airflow connection to connection dict"""
-    from airflow_fernet_secrets.connection.dump import connection_to_args
+    from airflow_fernet_secrets.connection.dump import (  # noqa: PLC0415
+        connection_to_args,
+    )
 
     as_dict = _connection_to_dict(connection)
 
@@ -44,7 +46,7 @@ def create_airflow_connection(
     connection: ConnectionDict, conn_id: str | None = None
 ) -> Connection:
     """connection dict to airflow connection"""
-    from airflow.models.connection import Connection
+    from airflow.models.connection import Connection  # noqa: PLC0415
 
     conn_type = connection.get("conn_type")
     if conn_type is None:
@@ -63,8 +65,8 @@ def create_airflow_connection(
 
 def is_sql_connection(connection: Connection) -> bool:
     """check is sql connection in airflow"""
-    from airflow.providers_manager import ProvidersManager
-    from airflow.utils.module_loading import import_string
+    from airflow.providers_manager import ProvidersManager  # noqa: PLC0415
+    from airflow.utils.module_loading import import_string  # noqa: PLC0415
 
     conn_type = _get_conn_type(connection)
     hook_info = ProvidersManager().hooks.get(conn_type, None)
@@ -75,7 +77,7 @@ def is_sql_connection(connection: Connection) -> bool:
 
 
 def _get_conn_type(connection: Connection) -> str:
-    return cast(str, connection.conn_type)
+    return cast("str", connection.conn_type)
 
 
 def _connection_to_dict(connection: Connection) -> dict[str, Any]:

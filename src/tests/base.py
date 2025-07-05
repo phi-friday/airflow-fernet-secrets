@@ -152,7 +152,7 @@ class BaseTestClientAndServer:
         for key, value in default.items():
             kwargs.setdefault(key, value)
         dag_run = dag.create_dagrun(**kwargs)
-        return dag_run, cast(DateTime, dag_run.start_date)
+        return dag_run, cast("DateTime", dag_run.start_date)
 
     @staticmethod
     def xcom_to_operator(task: BaseOperator | XComArg) -> BaseOperator:

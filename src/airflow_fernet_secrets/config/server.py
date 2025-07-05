@@ -69,8 +69,8 @@ def _get_from_conf(
     cmd: bool = False,
     secret: bool = False,
 ) -> str:
-    from airflow.configuration import conf
-    from airflow.exceptions import AirflowConfigException
+    from airflow.configuration import conf  # noqa: PLC0415
+    from airflow.exceptions import AirflowConfigException  # noqa: PLC0415
 
     if cmd:
         key = key + "_cmd"

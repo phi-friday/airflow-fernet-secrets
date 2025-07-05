@@ -144,22 +144,22 @@ class HasIds(HasSecrets):
     @cached_property
     def _separated_conn_ids(self) -> tuple[str, ...]:
         return _separated_ids(
-            self.fernet_secrets_conn_ids,
-            self.fernet_secrets_separate,
-            self.fernet_secrets_separator,
+            ids=self.fernet_secrets_conn_ids,
+            separate=self.fernet_secrets_separate,
+            separator=self.fernet_secrets_separator,
         )
 
     @cached_property
     def _separated_var_ids(self) -> tuple[str, ...]:
         return _separated_ids(
-            self.fernet_secrets_var_ids,
-            self.fernet_secrets_separate,
-            self.fernet_secrets_separator,
+            ids=self.fernet_secrets_var_ids,
+            separate=self.fernet_secrets_separate,
+            separator=self.fernet_secrets_separator,
         )
 
 
 def _separated_ids(
-    ids: str | Sequence[str] | None, separate: str | bool, separator: str
+    *, ids: str | Sequence[str] | None, separate: str | bool, separator: str
 ) -> tuple[str, ...]:
     separate = ensure_boolean(separate)
 

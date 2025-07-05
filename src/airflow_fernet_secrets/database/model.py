@@ -436,7 +436,9 @@ def _migrate_process(connectable: Engine | SqlalchemyConnection | Session) -> No
     revision = _check_migrate_version(connection)
 
     if not revision:
-        from airflow_fernet_secrets.database.revision.init import upgrade
+        from airflow_fernet_secrets.database.revision.init import (  # noqa: PLC0415
+            upgrade,
+        )
 
         upgrade(connection)
         return
@@ -465,7 +467,7 @@ def _run_as_json(value: AirflowConnection) -> str:
 
 
 def _get_variable(value: AirflowVariable) -> str:
-    return cast(str, value.val)
+    return cast("str", value.val)
 
 
 def _fullname(value: type[Any]) -> str:

@@ -17,7 +17,9 @@ class LoggingMixin(CommonLoggingMixin):
     """using airflow logging mixin"""
 
     def __init__(self) -> None:
-        from airflow.utils.log.logging_mixin import LoggingMixin as AirflowLoggingMixin
+        from airflow.utils.log.logging_mixin import (  # noqa: PLC0415
+            LoggingMixin as AirflowLoggingMixin,
+        )
 
         super().__init__()
         self._mixin = AirflowLoggingMixin()

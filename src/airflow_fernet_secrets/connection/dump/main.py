@@ -26,27 +26,27 @@ def connection_to_args(connection: Connection) -> ConnectionArgs:
 
     conn_type = connection.conn_type
     if conn_type in _SQLITE_CONN_TYPES:
-        from airflow_fernet_secrets.connection.dump.sqlite import (
+        from airflow_fernet_secrets.connection.dump.sqlite import (  # noqa: PLC0415
             connection_to_args as _connection_to_args,
         )
 
         return _connection_to_args(connection)
 
     if conn_type in _POSTGRESQL_CONN_TYPES:
-        from airflow_fernet_secrets.connection.dump.postgresql import (
+        from airflow_fernet_secrets.connection.dump.postgresql import (  # noqa: PLC0415
             connection_to_args as _connection_to_args,
         )
 
         return _connection_to_args(connection)
     if conn_type in _ODBC_CONN_TYPES:
-        from airflow_fernet_secrets.connection.dump.odbc import (
+        from airflow_fernet_secrets.connection.dump.odbc import (  # noqa: PLC0415
             connection_to_args as _connection_to_args,
         )
 
         return _connection_to_args(connection)
 
     if conn_type in _MSSQL_CONN_TYPES:
-        from airflow_fernet_secrets.connection.dump.mssql import (
+        from airflow_fernet_secrets.connection.dump.mssql import (  # noqa: PLC0415
             connection_to_args as _connection_to_args,
         )
 

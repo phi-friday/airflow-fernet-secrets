@@ -25,7 +25,7 @@ def get_provider_info() -> dict[str, Any]:
     with path.open("r") as file:
         text = file.read()
 
-    registry = {x: "" for x in _RE_VARIABLE.findall(text)}
+    registry = dict.fromkeys(_RE_VARIABLE.findall(text), "")
     meta = dist.metadata
 
     registry["package"] = registry["name"] = meta.get("name") or package
@@ -42,7 +42,7 @@ def get_provider_info() -> dict[str, Any]:
 
 
 def validate_provider_info(info: dict[str, Any]) -> None:
-    import jsonschema
+    import jsonschema  # noqa: PLC0415
 
     schema = _get_provider_schema_path()
     if schema is None:
@@ -55,7 +55,7 @@ def validate_provider_info(info: dict[str, Any]) -> None:
 
 
 def _get_provider_schema_path() -> Path | None:
-    from airflow_fernet_secrets.log.common import get_logger
+    from airflow_fernet_secrets.log.common import get_logger  # noqa: PLC0415
 
     logger = get_logger()
 

@@ -133,11 +133,11 @@ def _postgresql_cursor(
     see more: `airflow.providers.postgres.hooks.postgres.PostgresHook._get_cursor()`
     """
     if cursor_type == "dictcursor":
-        from psycopg2.extras import DictCursor as Cursor
+        from psycopg2.extras import DictCursor as Cursor  # noqa: PLC0415
     elif cursor_type == "realdictcursor":
-        from psycopg2.extras import RealDictCursor as Cursor
+        from psycopg2.extras import RealDictCursor as Cursor  # noqa: PLC0415
     elif cursor_type == "namedtuplecursor":
-        from psycopg2.extras import NamedTupleCursor as Cursor
+        from psycopg2.extras import NamedTupleCursor as Cursor  # noqa: PLC0415
     else:
         error_msg = f"invalid cursor type: {cursor_type}"
         raise fe.FernetSecretsTypeError(error_msg)
